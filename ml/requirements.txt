@@ -1,0 +1,17 @@
+# Training / export only — NOT installed on the server.
+# The API serves inference through onnxruntime-node, so Python never ships to prod.
+#
+#   python -m venv .venv && .venv/Scripts/activate   (Windows)
+#   pip install -r requirements.txt
+#
+# In Google Colab, torch/torchvision are preinstalled — install only the rest.
+
+torch>=2.2
+torchvision>=0.17
+onnx>=1.16
+onnxruntime>=1.18          # also provides the quantisation toolchain
+numpy>=1.26
+scikit-learn>=1.4          # confusion matrix, per-class precision/recall
+matplotlib>=3.8            # confusion-matrix figure for the README
+pillow>=10.2
+tqdm>=4.66

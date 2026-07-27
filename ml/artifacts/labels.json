@@ -1,0 +1,68 @@
+{
+  "modelVersion": "v1-mobilenetv3s-placeholder",
+  "_note": "PLACEHOLDER. `labels` order MUST match the trained model's output index order exactly — export_onnx.py regenerates this file from the training run's class_to_idx, so do not hand-edit the order. The server reads this to map logits to crops, diseases and remedies.",
+  "labels": [
+    "rice__healthy",
+    "rice__brown_spot",
+    "rice__leaf_blast",
+    "rice__bacterial_leaf_blight",
+    "potato__healthy",
+    "potato__early_blight",
+    "potato__late_blight",
+    "tomato__healthy",
+    "tomato__leaf_curl_virus",
+    "tomato__septoria_leaf_spot"
+  ],
+  "meta": {
+    "rice__healthy": {
+      "cropSlug": "rice",
+      "diseaseSlug": "healthy",
+      "remedy": "পাতা সুস্থ দেখা যাচ্ছে। নিয়মিত জমি পরিদর্শন করুন এবং সুষম সার প্রয়োগ চালিয়ে যান।"
+    },
+    "rice__brown_spot": {
+      "cropSlug": "rice",
+      "diseaseSlug": "brown_spot",
+      "remedy": "বাদামী দাগ রোগ প্রায়ই পটাশ ও সিলিকনের ঘাটতিতে বাড়ে। সুষম সার, বিশেষ করে পটাশ প্রয়োগ করুন এবং জমিতে পানি ধরে রাখুন। তীব্রতা বেশি হলে অনুমোদিত ছত্রাকনাশকের সঠিক মাত্রার জন্য স্থানীয় কৃষি সম্প্রসারণ কর্মকর্তার পরামর্শ নিন।"
+    },
+    "rice__leaf_blast": {
+      "cropSlug": "rice",
+      "diseaseSlug": "leaf_blast",
+      "remedy": "ব্লাস্ট রোগে অতিরিক্ত ইউরিয়া প্রয়োগ বন্ধ করুন এবং কয়েক কিস্তিতে ভাগ করে দিন। জমি আগাছামুক্ত রাখুন। ছত্রাকনাশকের মাত্রা ও সময় সম্পর্কে কৃষি কর্মকর্তার পরামর্শ নিন।"
+    },
+    "rice__bacterial_leaf_blight": {
+      "cropSlug": "rice",
+      "diseaseSlug": "bacterial_leaf_blight",
+      "remedy": "ব্যাকটেরিয়াজনিত পাতা পোড়া রোগে রাসায়নিক প্রতিকার সীমিত। আক্রান্ত জমির পানি আলাদা রাখুন, নাইট্রোজেন সার কমান এবং পরের মৌসুমে সহনশীল জাত ব্যবহার করুন।"
+    },
+    "potato__healthy": {
+      "cropSlug": "potato",
+      "diseaseSlug": "healthy",
+      "remedy": "গাছ সুস্থ। কুয়াশা বা মেঘলা আবহাওয়ায় নিয়মিত পরিদর্শন অব্যাহত রাখুন।"
+    },
+    "potato__early_blight": {
+      "cropSlug": "potato",
+      "diseaseSlug": "early_blight",
+      "remedy": "আগাম ধ্বসা রোগে আক্রান্ত পাতা সরিয়ে ধ্বংস করুন, গাছের মধ্যে বাতাস চলাচলের জায়গা রাখুন এবং ফসল আবর্তন করুন। ছত্রাকনাশকের জন্য কৃষি কর্মকর্তার পরামর্শ নিন।"
+    },
+    "potato__late_blight": {
+      "cropSlug": "potato",
+      "diseaseSlug": "late_blight",
+      "remedy": "নাবি ধ্বসা দ্রুত ছড়ায় — আক্রান্ত গাছ সঙ্গে সঙ্গে তুলে ধ্বংস করুন। উঁচু জমিতে পানি নিষ্কাশনের ব্যবস্থা রাখুন। কুয়াশা বা মেঘলা আবহাওয়া শুরু হলে আগাম সতর্কতা হিসেবে অনুমোদিত ছত্রাকনাশক প্রয়োগ করুন; মাত্রা জানতে উপসহকারী কৃষি অফিসারের সঙ্গে যোগাযোগ করুন।"
+    },
+    "tomato__healthy": {
+      "cropSlug": "tomato",
+      "diseaseSlug": "healthy",
+      "remedy": "গাছ সুস্থ। সাদা মাছি নিয়ন্ত্রণে হলুদ আঠালো ফাঁদ ব্যবহার করলে ভাইরাস রোগের ঝুঁকি কমে।"
+    },
+    "tomato__leaf_curl_virus": {
+      "cropSlug": "tomato",
+      "diseaseSlug": "leaf_curl_virus",
+      "remedy": "এটি ভাইরাস রোগ — সরাসরি রাসায়নিক প্রতিকার নেই। বাহক সাদা মাছি নিয়ন্ত্রণ করুন (হলুদ আঠালো ফাঁদ), আক্রান্ত গাছ তুলে মাটিতে পুঁতে ফেলুন এবং ক্ষেত আগাছামুক্ত রাখুন।"
+    },
+    "tomato__septoria_leaf_spot": {
+      "cropSlug": "tomato",
+      "diseaseSlug": "septoria_leaf_spot",
+      "remedy": "নিচের আক্রান্ত পাতা সরিয়ে ফেলুন, গোড়ায় পানি দিন (পাতা ভেজানো এড়িয়ে চলুন) এবং মালচিং ব্যবহার করুন। প্রয়োজনে অনুমোদিত ছত্রাকনাশকের পরামর্শ নিন।"
+    }
+  }
+}
