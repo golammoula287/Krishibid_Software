@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push supersedes an in-flight run on the same ref — keeps the free
+# GitHub Actions minutes going to the commit people are actually waiting on.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # mongodb-memory-server downloads a mongod binary on first run. Caching it
+      # saves ~90s and a chunk of bandwidth on every single CI run.
+      - name: Cache mongodb-memory-server binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/mongodb-binaries
+          key: mongo-binaries-${{ runner.os }}-7.0
+
+      - run: npm ci
+
+      # Typecheck every workspace. The shared Zod package is the API contract, so a
+      # breaking change surfaces here as a compile error on both sides at once.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Includes the 50-way bid concurrency test and the ledger balance invariants —
+      # the two suites that must never be allowed to regress silently.
+      - name: Test
+        run: npm test
+        env:
+          NODE_ENV: test
+
+      - name: Build
+        run: npm run build
+
+      - name: Report client bundle size
+        run: |
+          echo "### Client bundle (gzip)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          find client/dist/assets -name '*.js' -o -name '*.css' | while read -r f; do
+            printf '%-44s %6s KB\n' "$(basename "$f")" \
+              "$(gzip -c "$f" | wc -c | awk '{printf "%.1f", $1/1024}')" \
+              >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # The plan commits to <200 KB gzip for the initial payload. Enforced rather than
+      # aspirational: the target user is on metered mobile data.
+      - name: Enforce bundle budget
+        run: |
+          TOTAL=$(find client/dist/assets -name '*.js' -o -name '*.css' \
+            | xargs -I{} sh -c 'gzip -c "{}" | wc -c' | awk '{s+=$1} END {print s}')
+          LIMIT=$((200 * 1024))
+          echo "total gzip: $((TOTAL / 1024)) KB (limit $((LIMIT / 1024)) KB)"
+          if [ "$TOTAL" -gt "$LIMIT" ]; then
+            echo "::error::bundle budget exceeded"
+            exit 1
+          fi
