@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "outDir": "dist",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@krishibid/shared": ["../shared/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*.ts", "vitest.config.ts"]
+}
