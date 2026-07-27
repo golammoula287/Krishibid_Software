@@ -1,4 +1,4 @@
-# KrishiBid — কৃষিবিড
+# KrishiBid
 
 [![CI](https://github.com/golammoula287/Krishibid_Software/actions/workflows/ci.yml/badge.svg)](https://github.com/golammoula287/Krishibid_Software/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
