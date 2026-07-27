@@ -1,0 +1,34 @@
+{
+  "name": "krishibid",
+  "private": true,
+  "version": "0.1.0",
+  "description": "KrishiBid — AI-powered agricultural bidding marketplace, crop disease detection and Bangla RAG advisory for smallholder farmers in Bangladesh",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "build": "npm run build --workspace=server && npm run build --workspace=client",
+    "start": "npm run start --workspace=server",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,css}\"",
+    "test": "npm run test --workspaces --if-present",
+    "seed": "npm run seed --workspace=server",
+    "ingest:kb": "npm run ingest:kb --workspace=server",
+    "create:indexes": "npm run create:indexes --workspace=server"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "concurrently": "^9.1.2",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2"
+  }
+}

@@ -1,0 +1,28 @@
+# Normalise line endings so the repo is identical regardless of the author's OS.
+# Without this, a Windows checkout commits CRLF and every file shows as fully
+# rewritten when a collaborator on macOS/Linux touches it — which makes the diff
+# history useless.
+* text=auto eol=lf
+
+# Windows-only scripts must keep CRLF or cmd.exe mis-parses them.
+*.bat   text eol=crlf
+*.cmd   text eol=crlf
+
+# Binary — never diffed, never line-ending-converted.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.onnx  binary
+*.pt    binary
+*.pdf   binary
+
+# Generated: collapse in PR diffs so a lockfile bump does not bury real changes.
+package-lock.json  linguist-generated=true -diff
+
+# Notebooks are JSON with embedded output; mark as generated so GitHub's language
+# stats reflect the actual application code rather than counting the notebook.
+*.ipynb  linguist-language=Jupyter\ Notebook linguist-detectable=true

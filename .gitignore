@@ -1,0 +1,69 @@
+# ---- secrets (never commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ---- dependencies ----
+node_modules/
+.pnp
+.pnp.js
+
+# ---- build output ----
+dist/
+build/
+out/
+*.tsbuildinfo
+.turbo/
+dev-dist/
+
+# ---- test / coverage ----
+coverage/
+.nyc_output/
+playwright-report/
+test-results/
+blob-report/
+
+# ---- logs ----
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+
+# ---- editor / OS ----
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- python (ml/ is training-only, not deployed) ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+ml/data/
+
+# ---- ML artifacts: commit the exported model, ignore raw checkpoints ----
+ml/artifacts/*.pt
+ml/artifacts/*.pth
+ml/artifacts/*.ckpt
+!ml/artifacts/*.onnx
+!ml/artifacts/labels.json
+!ml/artifacts/metrics.json
+
+# ---- local scratch ----
+tmp/
+temp/
+*.local
+
+# ---- course/proposal material lives in the parent folder; never vendor it here ----
+*.pptx
+*.heic
+*.docx
