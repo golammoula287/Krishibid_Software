@@ -1,6 +1,6 @@
 # KrishiBid — কৃষিবিড
 
-[![CI](https://github.com/golammoula287/krishibid/actions/workflows/ci.yml/badge.svg)](https://github.com/golammoula287/krishibid/actions/workflows/ci.yml)
+[![CI](https://github.com/golammoula287/Krishibid_Software/actions/workflows/ci.yml/badge.svg)](https://github.com/golammoula287/Krishibid_Software/actions/workflows/ci.yml)
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
