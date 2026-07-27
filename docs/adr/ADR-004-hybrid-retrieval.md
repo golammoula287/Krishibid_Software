@@ -50,9 +50,11 @@ degraded ordering beats failing a question the retrieval already answered.
 
 - Two index slots consumed (ADR-003).
 - Both legs run concurrently, so latency is the slower leg, not the sum.
-- The eval script compares dense-only vs hybrid vs hybrid+rerank on a golden set, so
-  this decision is **measured rather than asserted** — the recall@4 delta is the
-  intended headline number for the README.
+- `npm run eval:rag` compares dense-only vs hybrid vs hybrid+rerank on a hand-labelled
+  golden set, so this decision is **measured rather than asserted**. It writes
+  `docs/rag-eval.md`; if the recall@4 delta comes out flat, this ADR is wrong and
+  should be revised rather than defended. It is not run in CI because it needs a
+  populated KB and live API quota.
 - One extra LLM call per question, which counts against the free-tier cap. Hence the
   answer cache and the per-user hourly limit.
 

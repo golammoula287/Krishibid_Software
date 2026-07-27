@@ -194,7 +194,27 @@ because the accept-bid and payment paths use multi-document transactions that a
 standalone rejects outright. Testing against a standalone would leave the code most
 worth testing never executed.
 
-The two suites that matter most:
+### RAG retrieval evaluation
+
+```bash
+npm run seed && npm run ingest:kb   # prerequisites
+npm run eval:rag                    # writes docs/rag-eval.md
+```
+
+Compares **dense-only vs hybrid vs hybrid+rerank** on a hand-labelled golden set
+(`server/src/scripts/goldenSet.ts`), reporting recall@4, MRR, the refusal rate on
+deliberately unanswerable questions, and citation validity. This exists so ADR-004's
+claim that hybrid beats dense-only is **measured rather than asserted** — if the
+numbers come out flat, the ADR is wrong and should change.
+
+The golden set deliberately includes a question asking for a specific pesticide dose
+the sources do not state. Inventing a number there is the most harmful failure this
+pillar can produce, so it is tested rather than hoped about.
+
+> Needs a populated KB and live API quota, so it is **not** run in CI — the committed
+> `docs/rag-eval.md` is the record.
+
+### The two suites that matter most
 
 - **50-way bid concurrency** — 50 buyers bid simultaneously; asserts exactly one
   active bid, that it *is* the listing's recorded winner, and that `version`

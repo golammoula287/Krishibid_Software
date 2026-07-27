@@ -23,6 +23,7 @@
     "test": "npm run test --workspaces --if-present",
     "seed": "npm run seed --workspace=server",
     "ingest:kb": "npm run ingest:kb --workspace=server",
+    "eval:rag": "npm run eval:rag --workspace=server",
     "create:indexes": "npm run create:indexes --workspace=server"
   },
   "devDependencies": {

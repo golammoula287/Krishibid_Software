@@ -17,7 +17,9 @@
     "create:indexes": "tsx src/scripts/createIndexes.ts",
     "seed:prod": "node dist/seed.js",
     "ingest:kb:prod": "node dist/ingestKb.js",
-    "create:indexes:prod": "node dist/createIndexes.js"
+    "create:indexes:prod": "node dist/createIndexes.js",
+    "eval:rag": "tsx src/scripts/evalRag.ts",
+    "eval:rag:prod": "node dist/evalRag.js"
   },
   "dependencies": {
     "@krishibid/shared": "*",

@@ -21,6 +21,7 @@ export default defineConfig({
     seed: 'src/scripts/seed.ts',
     ingestKb: 'src/scripts/ingestKb.ts',
     createIndexes: 'src/scripts/createIndexes.ts',
+    evalRag: 'src/scripts/evalRag.ts',
   },
   outDir: 'dist',
   format: ['esm'],
