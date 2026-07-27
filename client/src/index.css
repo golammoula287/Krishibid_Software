@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    /* Prevents iOS Safari inflating text in landscape. */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-brand-50 text-slate-900 antialiased;
+    /* Bottom nav is fixed; keep content clear of it and of the home indicator. */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Visible focus ring for keyboard users — never removed, only restyled. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-600 ring-offset-2;
+  }
+}
+
+@layer components {
+  /* min-h-touch enforces the 44px minimum touch target everywhere. */
+  .btn {
+    @apply inline-flex min-h-touch items-center justify-center gap-2 rounded-xl px-4
+           py-2.5 text-base font-semibold transition active:scale-[0.98]
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand-700 text-white shadow-sm hover:bg-brand-800;
+  }
+  .btn-secondary {
+    @apply btn border border-brand-200 bg-white text-brand-800 hover:bg-brand-50;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .card {
+    @apply rounded-2xl border border-brand-100 bg-white p-4 shadow-sm;
+  }
+
+  .field {
+    @apply min-h-touch w-full rounded-xl border border-slate-300 bg-white px-3.5
+           py-2.5 text-base placeholder:text-slate-400
+           focus:border-brand-600 focus:ring-1 focus:ring-brand-600;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+
+  /* Skeletons rather than spinners: they preserve layout and read as faster. */
+  .skeleton {
+    @apply animate-pulse rounded-lg bg-brand-100;
+  }
+}
