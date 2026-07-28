@@ -3,8 +3,11 @@
 Status: **proposed, not built.** Written before implementation so the risky parts are
 argued out first.
 
-This is six features, and three of them rewrite money or identity logic that currently
+This is eight features, three of which rewrite money or identity logic that currently
 works and is tested. That ordering matters more than the feature list.
+
+Sections are numbered by topic; the build order at the end is what actually governs
+sequencing.
 
 ---
 
@@ -93,6 +96,10 @@ That rule is the reason a deposit deters anything at all.
 ---
 
 ## 2. Farmer onboarding with approval + verification
+
+> Buyer onboarding is deliberately *not* symmetric — see §9. A farmer is gated before
+> listing because they receive money; a buyer is tiered with a bid ceiling instead, because
+> the same review would be friction without a matching risk.
 
 ### Status machine on the user
 
@@ -200,22 +207,131 @@ shows raw messages. To add:
 
 ---
 
+## 7. The two roles get different apps
+
+Today every signed-in user sees the same five tabs. That is wrong: a buyer has no use for
+crop-disease detection or Bangla agronomy advice, and a farmer has no use for supply-side
+market analytics.
+
+| Tab | Farmer | Buyer | Admin |
+|---|---|---|---|
+| Market | ✅ | ✅ | ✅ |
+| Diagnose (CNN) | ✅ | ✖ | ✖ |
+| Advice (RAG + voice) | ✅ | ✖ | ✖ |
+| **Insights** (market/trends) | ✖ | ✅ | ✅ |
+| **Learn** (courses) | ✅ | ✖ | ✖ |
+| Orders | ✅ | ✅ | ✖ |
+| **Review queue / Disputes / Ledger** | ✖ | ✖ | ✅ |
+| Account | ✅ | ✅ | ✅ |
+
+Enforced **server-side** as well as in the nav. Hiding a tab is presentation; the route
+itself must refuse the wrong role, or the feature is not actually restricted.
+
+A useful side effect: the advisory and diagnosis endpoints are the two that consume the
+scarce Gemini free-tier quota (5 req/min). Restricting them to farmers means buyers
+browsing the market cannot exhaust the allowance the farmers actually depend on.
+
+---
+
+## 8. Buyer account: market insights
+
+What a buyer needs in place of agronomy advice.
+
+- **Market conditions** — per crop: current open lots, median and range of recent accepted
+  prices, total volume available, active bidder count.
+- **Trending** — crops ranked by bid activity and price movement over a rolling window,
+  so a trader can see what is moving before committing.
+- **Price direction** — rolling median of accepted sale prices per crop per district, with
+  direction and volatility.
+- **Watchlist** — follow crops/districts, get notified on new lots.
+
+### What "prediction" will and will not claim
+
+**It will be labelled as statistics from platform history, not an AI forecast.** A rolling
+median over completed sales is genuinely useful and genuinely defensible. Calling it a
+prediction would be the same overstatement as claiming government NID verification: a
+moving average dressed up as a model.
+
+Every figure will carry its own sample size — "median of 14 completed sales, last 30 days"
+— because a median over three sales is noise and the buyer deserves to know which they are
+looking at. Where the sample is too small, the UI says so instead of drawing a chart.
+
+A real forecast needs either substantially more platform history or an external feed such
+as the Department of Agricultural Marketing's published price series. That is a genuine
+roadmap item, and the statistics module is designed with the ingestion seam for it.
+
+---
+
+## 9. Buyer trust: tiers, not gates
+
+A farmer needs approval **before listing**, because they are being paid. A buyer's risk is
+different — they commit money and take delivery — so the same heavyweight review would be
+friction for no benefit.
+
+So buyers are not blocked. They are **tiered**, and the tier raises their bid ceiling:
+
+| Tier | Requires | Bid ceiling |
+|---|---|---|
+| `basic` | phone verified | low cap (e.g. ৳25,000/lot) |
+| `verified` | + business name, buyer type, district | higher cap |
+| `trusted` | + NID, or 3 completed orders with no dispute | no cap, badge shown to farmers |
+
+Why a ceiling rather than a gate: an unverified buyer placing a huge bid and vanishing is
+the actual fraud risk, and a cap contains the damage while keeping signup a single screen.
+It also makes supplying information feel like unlocking something rather than filling in
+forms — which is the difference between "easy" and merely "short".
+
+Earning a tier through **completed orders** matters too: it means a genuine trader who
+would rather not upload an NID can still reach full access through behaviour.
+
+The badge is shown to farmers on the bid list, so trust information reaches the person
+actually deciding whether to sell.
+
+---
+
+## 10. Profile editing
+
+Both roles: name, district, language, notification preferences. Farmer: payout account,
+crops grown, land size (also feeds scheme matching). Buyer: business name, buyer type.
+
+**Phone number change is the one with teeth**, because the number is simultaneously the
+login identifier and the anti-fraud anchor:
+
+1. OTP sent to the **new** number; the change applies only once verified.
+2. Uniqueness enforced, so a change cannot be used to take over an existing account.
+3. `tokenVersion` bumped on success, logging out other sessions — a number change is
+   exactly what an account thief would do, so it must not leave their session alive.
+4. Blocked while the user has an in-flight auction hold or an unsettled order; the number
+   is how the counterparty reaches them mid-transaction.
+5. Previous numbers retained in an audit trail (not shown to other users).
+
+Password change already bumps `tokenVersion` in the existing auth service, so that path is
+consistent with it.
+
+---
+
 ## Build order
 
 Sequenced so nothing half-migrates the money model.
 
 | Phase | Work | Why here |
 |---|---|---|
-| **0** | Toast/error system + `code`→message map | everything after this reports failures properly |
-| **1** | User status machine, phone OTP, document upload, admin review queue | gates listing; no money touched |
-| **2** | Pay-on-bid: `bid_hold` ledger, auto-close job, refund job, remove `acceptBid` | the risky one, done alone, with tests rewritten first |
+| **0** ✅ | Toast/error system + server-owned message catalogue | everything after this reports failures properly |
+| **1** | Identity & profile: status machine, phone OTP, farmer docs + admin approval, buyer trust tiers, profile editing | gates listing; no money touched |
+| **1b** | Role-differentiated navigation + server-side role gating | small, and best done while the role model is fresh |
+| **2** | 20% deposit bidding: `bid_hold` ledger, auto-close job, refund job, retire `acceptBid` | the risky one, alone, with tests rewritten first |
 | **3** | Withdrawal requests (farmer available balance → payout, admin-processed) | depends on phase 2 settling |
-| **4** | Learning centre + quizzes + certificates | independent, no money |
-| **5** | Government schemes + matching engine | independent, no money |
-| **6** | Voice assistant on advisory | thin client-side layer |
+| **4** | Buyer insights: market conditions, trending, rolling price statistics | needs phase 2's completed-sale history to be meaningful |
+| **5** | Learning centre + quizzes + certificates | independent, no money |
+| **6** | Government schemes + profile matching engine | reuses the phase 1 profile fields |
+| **7** | Voice assistant on advisory | thin client-side layer |
 
 Phase 2 is the one that can break working, tested behaviour, so it lands on its own with
 its test suite rewritten before the implementation changes.
+
+Buyer insights moved **after** phase 2 deliberately: its statistics are derived from
+completed sales, and phase 2 is what changes how a sale completes. Building it first would
+mean writing it against a data shape about to change.
 
 ---
 
