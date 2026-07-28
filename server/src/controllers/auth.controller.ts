@@ -6,15 +6,48 @@ import * as authService from '../services/auth.service.js';
 export const REFRESH_COOKIE = 'krishibid_rt';
 
 /**
+ * True when the browser app and this API are served from different sites.
+ *
+ * In production they are: the client is a static deploy (Vercel) while the API needs a
+ * long-running process (Render) because of the interval jobs, the WebSocket server and
+ * the native ONNX/sharp binaries. That split makes the refresh cookie a cross-site
+ * cookie, which changes what SameSite value is usable.
+ */
+function isCrossSite(): boolean {
+  try {
+    const web = new URL(env().WEB_PUBLIC_URL).hostname;
+    const api = new URL(env().API_PUBLIC_URL).hostname;
+    return web !== api;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * The refresh token lives in an httpOnly cookie, never in localStorage — a token
  * readable from JS is a token stealable by any XSS. The access token is returned in
  * the body and held only in memory by the client.
+ *
+ * SameSite is chosen rather than fixed, because getting it wrong fails *silently*:
+ * a `Strict` cookie is simply never sent cross-site, so every page reload would log
+ * the user out with no error anywhere to explain why.
+ *
+ *   same-site deploy  -> 'strict', the safest option
+ *   split deploy      -> 'none', which browsers only honour alongside Secure
+ *
+ * `none` widens CSRF exposure, so it is only used where it is actually required. Three
+ * things contain that risk: authentication itself is a Bearer token (this cookie only
+ * mints access tokens, it does not authorise requests), CORS is a strict allowlist, and
+ * refresh tokens rotate on every use so a replayed one revokes the whole session family.
  */
 function refreshCookieOptions(): CookieOptions {
+  const crossSite = isProd() && isCrossSite();
+
   return {
     httpOnly: true,
-    secure: isProd(),
-    sameSite: isProd() ? 'strict' : 'lax',
+    // SameSite=None is rejected by browsers unless the cookie is also Secure.
+    secure: isProd() || crossSite,
+    sameSite: crossSite ? 'none' : isProd() ? 'strict' : 'lax',
     path: '/api/auth',
     maxAge: 30 * 24 * 60 * 60 * 1000,
   };

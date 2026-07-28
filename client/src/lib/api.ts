@@ -1,6 +1,18 @@
 import type { ApiError } from '@krishibid/shared';
 
-const BASE = '/api';
+/**
+ * API base URL.
+ *
+ * Unset in development, so requests go to a relative `/api` and Vite's dev proxy
+ * forwards them to localhost:5000.
+ *
+ * In production the client and server are deployed to different origins (Vercel and
+ * Render respectively — the server cannot run on serverless: it has interval jobs, a
+ * WebSocket server and native ONNX/sharp binaries). `VITE_API_URL` is baked in at
+ * build time and must be the server's full https origin.
+ */
+const API_ORIGIN = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+const BASE = API_ORIGIN ? `${API_ORIGIN}/api` : '/api';
 
 export class ApiRequestError extends Error {
   constructor(

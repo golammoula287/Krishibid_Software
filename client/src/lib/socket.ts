@@ -14,11 +14,16 @@ export function getSocket(): Socket | null {
   const token = getAccessToken();
   if (!token) return null;
 
-  socket ??= io({
+  // Same origin in development (Vite proxies /socket.io); the server's full origin in
+  // production, where client and API are deployed separately.
+  const origin = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '');
+
+  socket ??= io(origin || undefined, {
     auth: { token },
     transports: ['websocket', 'polling'],
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10_000,
+    withCredentials: true,
   });
 
   return socket;
