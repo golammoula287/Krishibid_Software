@@ -1,12 +1,14 @@
 import { ClaudeProvider } from './claude.js';
 import { AiProviderError } from './errors.js';
 import { GeminiProvider } from './gemini.js';
+import { GroqProvider } from './groq.js';
 import type {
   AiProvider,
   CompleteOptions,
   CompleteResult,
   EmbedResult,
   ProviderConfig,
+  ProviderName,
 } from './types.js';
 
 export * from './types.js';
@@ -15,6 +17,7 @@ export { withRetry, extractJson, sleep } from './retry.js';
 export { estimateCostUsd, estimateTokens } from './pricing.js';
 export { GeminiProvider } from './gemini.js';
 export { ClaudeProvider } from './claude.js';
+export { GroqProvider } from './groq.js';
 
 /**
  * Chat on one provider, embeddings on another.
@@ -55,33 +58,46 @@ class CompositeProvider implements AiProvider {
 export function createAiProvider(config: ProviderConfig): AiProvider {
   const { provider, embeddingDimensions } = config;
 
-  if (provider === 'claude') {
-    if (!config.claude?.apiKey) {
-      throw new AiProviderError(
-        'AI_PROVIDER=claude requires ANTHROPIC_API_KEY',
-        'claude',
-      );
-    }
-    // Embeddings still need a Gemini key even on the Claude path.
+  /**
+   * Only Gemini offers embeddings, so every non-Gemini provider is composed with the
+   * Gemini embedder rather than being used alone. Building it here — and failing loudly
+   * on a missing Gemini key — means selecting a different chat provider can never
+   * silently break retrieval, which would show up as a RAG system that quietly stops
+   * finding anything.
+   */
+  const geminiEmbedder = (forProvider: ProviderName): GeminiProvider => {
     if (!config.gemini?.apiKey) {
       throw new AiProviderError(
-        'AI_PROVIDER=claude still requires GEMINI_API_KEY for embeddings (Anthropic has no embeddings endpoint)',
-        'claude',
+        `AI_PROVIDER=${forProvider} still requires GEMINI_API_KEY for embeddings ` +
+          `(${forProvider} has no embeddings endpoint)`,
+        forProvider,
       );
     }
+    return new GeminiProvider(
+      config.gemini.apiKey,
+      config.gemini.chatModel,
+      config.gemini.embedModel,
+      embeddingDimensions,
+    );
+  };
 
+  if (provider === 'claude') {
+    if (!config.claude?.apiKey) {
+      throw new AiProviderError('AI_PROVIDER=claude requires ANTHROPIC_API_KEY', 'claude');
+    }
     return new CompositeProvider(
-      new ClaudeProvider(
-        config.claude.apiKey,
-        config.claude.chatModel,
-        embeddingDimensions,
-      ),
-      new GeminiProvider(
-        config.gemini.apiKey,
-        config.gemini.chatModel,
-        config.gemini.embedModel,
-        embeddingDimensions,
-      ),
+      new ClaudeProvider(config.claude.apiKey, config.claude.chatModel, embeddingDimensions),
+      geminiEmbedder('claude'),
+    );
+  }
+
+  if (provider === 'groq') {
+    if (!config.groq?.apiKey) {
+      throw new AiProviderError('AI_PROVIDER=groq requires GROQ_API_KEY', 'groq');
+    }
+    return new CompositeProvider(
+      new GroqProvider(config.groq.apiKey, config.groq.chatModel, embeddingDimensions),
+      geminiEmbedder('groq'),
     );
   }
 

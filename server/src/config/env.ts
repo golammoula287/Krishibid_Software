@@ -26,12 +26,14 @@ const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().default('30d'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
 
-  AI_PROVIDER: z.enum(['gemini', 'claude']).default('gemini'),
+  AI_PROVIDER: z.enum(['gemini', 'claude', 'groq']).default('gemini'),
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_CHAT_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_EMBED_MODEL: z.string().default('gemini-embedding-001'),
   ANTHROPIC_API_KEY: z.string().default(''),
   CLAUDE_CHAT_MODEL: z.string().default('claude-opus-5'),
+  GROQ_API_KEY: z.string().default(''),
+  GROQ_CHAT_MODEL: z.string().default('llama-3.3-70b-versatile'),
   EMBEDDING_DIMENSIONS: z.coerce.number().int().positive().default(1536),
 
   CLOUDINARY_CLOUD_NAME: z.string().default(''),
@@ -89,6 +91,16 @@ function buildEnv(): Env {
   }
   if (env.AI_PROVIDER === 'claude' && !env.ANTHROPIC_API_KEY) {
     throw new Error('AI_PROVIDER=claude requires ANTHROPIC_API_KEY');
+  }
+  if (env.AI_PROVIDER === 'groq' && !env.GROQ_API_KEY) {
+    throw new Error('AI_PROVIDER=groq requires GROQ_API_KEY');
+  }
+  // Neither Claude nor Groq offers embeddings, so retrieval needs Gemini regardless
+  // of which provider generates. Caught at boot rather than on the first question.
+  if (env.AI_PROVIDER !== 'gemini' && !env.GEMINI_API_KEY) {
+    throw new Error(
+      `AI_PROVIDER=${env.AI_PROVIDER} still requires GEMINI_API_KEY for embeddings`,
+    );
   }
   if (env.NODE_ENV === 'production') {
     if (env.DEMO_MODE && !env.DEMO_PASSWORD) {

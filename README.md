@@ -4,14 +4,14 @@
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-58%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-68%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A farmer-to-buyer **bidding marketplace** with **escrow payments**, **CNN crop-disease
 detection**, and a **Bangla RAG advisory assistant**, built for smallholder farmers in
 Bangladesh.
 
-> **Status:** feature-complete backend and frontend, 58 passing tests, not yet
+> **Status:** feature-complete backend and frontend, 68 passing tests, not yet
 > deployed. The disease model ships as a placeholder until the training notebook is
 > run (see [Disease model](#4-disease-model-optional)).
 
@@ -56,7 +56,7 @@ flowchart TB
         IDX["vectorSearch + 2× BM25<br/>(all 3 M0 slots)"]
     end
 
-    AI["services/ai<br/>Gemini free tier ⇄ Claude"]
+    AI["services/ai<br/>Gemini · Claude · Groq"]
     GW["SSLCOMMERZ<br/>bKash · Nagad · card"]
     ONNX["ONNX Runtime<br/>MobileNetV3-Small"]
 
@@ -93,6 +93,10 @@ Open <http://localhost:5173> and use a **one-click demo login** — no signup ne
 | `MONGODB_URI` | [Atlas](https://www.mongodb.com/cloud/atlas/register) → free M0 cluster |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | `openssl rand -base64 48` (twice) |
 | `GEMINI_API_KEY` | [AI Studio](https://aistudio.google.com/apikey) — free |
+
+**Swapping the AI provider** is one env var: `AI_PROVIDER=gemini` (default), `claude`,
+or `groq`. Only Gemini offers embeddings, so `GEMINI_API_KEY` is required either way —
+the factory throws at boot if it is missing rather than silently returning no results.
 
 Everything else is optional in development. Without Cloudinary, images are stored
 inline; without SSLCOMMERZ, payment routes return 503; without the ONNX model,
@@ -184,7 +188,7 @@ Full reasoning: [ADR-006](docs/adr/ADR-006-escrow-payments.md).
 ## Testing
 
 ```bash
-npm test          # 58 tests
+npm test          # 68 tests
 npm run typecheck
 npm run build
 ```

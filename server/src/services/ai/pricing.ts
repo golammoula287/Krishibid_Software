@@ -20,6 +20,13 @@ const RATES: Record<string, Rate> = {
   'gemini-2.5-flash-lite': { inputPerMTok: 0, outputPerMTok: 0 },
   'gemini-embedding-001': { inputPerMTok: 0, outputPerMTok: 0 },
 
+  // Groq free tier bills nothing. Named models only — a floating alias would
+  // silently change what the cost figure refers to.
+  'llama-3.3-70b-versatile': { inputPerMTok: 0, outputPerMTok: 0 },
+  'llama-3.1-8b-instant': { inputPerMTok: 0, outputPerMTok: 0 },
+  'openai/gpt-oss-120b': { inputPerMTok: 0, outputPerMTok: 0 },
+  'qwen/qwen3-32b': { inputPerMTok: 0, outputPerMTok: 0 },
+
   // Claude — paid tier. Rates as of the 2026 published price list.
   'claude-opus-5': { inputPerMTok: 5, outputPerMTok: 25 },
   'claude-sonnet-5': { inputPerMTok: 3, outputPerMTok: 15 },
@@ -64,7 +71,10 @@ export function providerDefaultModels(provider: ProviderName): {
   chat: string;
   embed: string;
 } {
-  return provider === 'claude'
-    ? { chat: 'claude-opus-5', embed: 'gemini-embedding-001' }
-    : { chat: 'gemini-2.5-flash', embed: 'gemini-embedding-001' };
+  // Embeddings are always Gemini: no other provider here offers them.
+  if (provider === 'claude') return { chat: 'claude-opus-5', embed: 'gemini-embedding-001' };
+  if (provider === 'groq') {
+    return { chat: 'llama-3.3-70b-versatile', embed: 'gemini-embedding-001' };
+  }
+  return { chat: 'gemini-3.6-flash', embed: 'gemini-embedding-001' };
 }
