@@ -1,4 +1,4 @@
-import { sslczIpnSchema } from '@krishibid/shared';
+import { sslczIpnSchema, type PaymentConfigDto } from '@krishibid/shared';
 import type { Request, Response } from 'express';
 import { env } from '../config/env.js';
 import { logger } from '../utils/logger.js';
@@ -24,6 +24,29 @@ export async function confirmDelivery(req: Request, res: Response): Promise<void
 export async function dispute(req: Request, res: Response): Promise<void> {
   await payments.raiseDispute(req.user!.id, req.body.orderId, req.body.reason);
   res.status(202).json({ status: 'disputed' });
+}
+
+/**
+ * Advertises the payment mode so the UI can label a simulated payment as simulated.
+ * Unauthenticated: it exposes no secrets, only which mode the server runs in.
+ */
+export function config(_req: Request, res: Response): void {
+  const e = env();
+  const body: PaymentConfigDto = {
+    mode: e.PAYMENT_MODE,
+    configured: e.PAYMENT_MODE === 'mock' || Boolean(e.SSLCZ_STORE_ID && e.SSLCZ_STORE_PASSWORD),
+    currency: 'BDT',
+    commissionBps: e.PLATFORM_COMMISSION_BPS,
+    escrowAutoReleaseDays: e.ESCROW_AUTO_RELEASE_DAYS,
+  };
+  res.json(body);
+}
+
+/** Simulated checkout completion. Registered only when PAYMENT_MODE=mock. */
+export async function completeMock(req: Request, res: Response): Promise<void> {
+  res.json(
+    await payments.completeMockPayment(req.user!.id, req.body.tranId, req.body.outcome),
+  );
 }
 
 // ---- gateway callbacks ----------------------------------------------------

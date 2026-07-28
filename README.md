@@ -4,7 +4,7 @@
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-68%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-75%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A farmer-to-buyer **bidding marketplace** with **escrow payments**, **CNN crop-disease
@@ -13,7 +13,7 @@ Bangladesh.
 
 > **Live client:** <https://krishibid.vercel.app>
 >
-> **Status:** frontend deployed, 68 passing tests, verified end-to-end against live
+> **Status:** frontend deployed, 75 passing tests, verified end-to-end against live
 > MongoDB Atlas and Gemini. The API is not deployed yet — it cannot run on serverless
 > (interval jobs, WebSockets, native ONNX/sharp binaries), so it needs Render; see
 > [Deployment](#deployment-free-tier). Until then the client loads but API calls fail.
@@ -131,7 +131,36 @@ keyed by content hash, so re-running updates rather than duplicating. Expand
 `kbSources.ts` toward 300–600 chunks before a real demo; keep the real
 title/URL/section on every document so citations resolve to something checkable.
 
-### 3. Payments (SSLCOMMERZ sandbox)
+### 3. Payments
+
+Two modes, set with `PAYMENT_MODE`.
+
+#### `mock` — demo escrow with no gateway account
+
+```
+PAYMENT_MODE=mock
+```
+
+Checkout renders an in-app simulated page with **Simulate success** and **Simulate
+failure** buttons. It runs the *same* `capture()`, the same double-entry ledger
+transaction and the same order transitions as a real payment — a demo that bypassed the
+ledger would prove nothing about the escrow design.
+
+Guard rails, because an endpoint that can mark payments captured is a real liability:
+
+- The route is **not registered at all** unless `PAYMENT_MODE=mock`, so it 404s rather
+  than relying on a runtime check inside the handler.
+- The server **refuses to boot** with `PAYMENT_MODE=mock` and `SSLCZ_IS_LIVE=true`.
+- Unlike the real IPN it **requires authentication** and the caller must be the order's
+  own buyer. The real IPN cannot require auth (a gateway calls it) and earns trust by
+  re-validating server-to-server instead; the mock has no external source of truth, so
+  identity is the guard.
+- Every simulated payment is flagged `simulated: true` **permanently**, and its ledger
+  memos carry `[SIMULATED]` so a ledger export read on its own still shows what was real.
+- The UI is styled as an obvious simulation rather than a convincing payment page. A
+  realistic-looking mock checkout is indistinguishable from a phishing screen.
+
+#### `sslcommerz` — the real gateway (sandbox)
 
 Register for [sandbox credentials](https://developer.sslcommerz.com/registration/) and
 set `SSLCZ_STORE_ID` / `SSLCZ_STORE_PASSWORD`.
@@ -192,7 +221,7 @@ Full reasoning: [ADR-006](docs/adr/ADR-006-escrow-payments.md).
 ## Testing
 
 ```bash
-npm test          # 68 tests
+npm test          # 75 tests
 npm run typecheck
 npm run build
 ```

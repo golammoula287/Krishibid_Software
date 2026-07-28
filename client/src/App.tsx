@@ -22,6 +22,9 @@ const OrdersPage = lazy(() => import('./pages/OrdersPage.js'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage.js'));
 const AccountPage = lazy(() => import('./pages/AccountPage.js'));
 const PaymentReturnPage = lazy(() => import('./pages/PaymentReturnPage.js'));
+// Lazy like the rest, so the simulated-checkout page costs nothing in the initial
+// bundle for the real-gateway configuration that never routes to it.
+const MockCheckoutPage = lazy(() => import('./pages/MockCheckoutPage.js'));
 const LoginPage = lazy(() => import('./pages/LoginPage.js'));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -109,6 +112,9 @@ export default function App() {
           />
           {/* Where the payment gateway sends the browser back to. */}
           <Route path="payment/return" element={<PaymentReturnPage />} />
+          {/* Simulated checkout. The server 404s /payments/mock/complete unless
+              PAYMENT_MODE=mock, and the page surfaces that plainly. */}
+          <Route path="payment/mock" element={<MockCheckoutPage />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

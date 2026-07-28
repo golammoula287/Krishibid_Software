@@ -75,6 +75,14 @@ const paymentSchema = new Schema(
     autoReleaseAt: { type: Date, default: null, index: true },
 
     failureReason: { type: String, default: null },
+
+    /**
+     * True when this payment was captured by the mock checkout rather than a real
+     * gateway. Permanent and never cleared: a simulated payment must stay
+     * distinguishable from a real one in the ledger forever, otherwise a demo run
+     * silently pollutes the books that the audit endpoint reports on.
+     */
+    simulated: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

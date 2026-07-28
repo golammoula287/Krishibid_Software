@@ -70,7 +70,7 @@ const envSchema = z.object({
 
   AI_PROVIDER: z.enum(['gemini', 'claude', 'groq']).default('gemini'),
   GEMINI_API_KEY: z.string().default(''),
-  GEMINI_CHAT_MODEL: z.string().default('gemini-2.5-flash'),
+  GEMINI_CHAT_MODEL: z.string().default('gemini-3.6-flash'),
   GEMINI_EMBED_MODEL: z.string().default('gemini-embedding-001'),
   ANTHROPIC_API_KEY: z.string().default(''),
   CLAUDE_CHAT_MODEL: z.string().default('claude-opus-5'),
@@ -85,6 +85,11 @@ const envSchema = z.object({
   SSLCZ_STORE_ID: z.string().default(''),
   SSLCZ_STORE_PASSWORD: z.string().default(''),
   SSLCZ_IS_LIVE: boolish.default('false'),
+  /**
+   * 'sslcommerz' = real gateway. 'mock' = simulated checkout for demos, which never
+   * contacts a gateway and never moves money.
+   */
+  PAYMENT_MODE: z.enum(['sslcommerz', 'mock']).default('sslcommerz'),
   PLATFORM_COMMISSION_BPS: z.coerce.number().int().min(0).max(10_000).default(250),
   ESCROW_AUTO_RELEASE_DAYS: z.coerce.number().int().min(1).max(60).default(7),
   PAYMENT_WINDOW_HOURS: z.coerce.number().int().min(1).max(720).default(48),
@@ -144,6 +149,16 @@ function buildEnv(): Env {
       `AI_PROVIDER=${env.AI_PROVIDER} still requires GEMINI_API_KEY for embeddings`,
     );
   }
+  // Refuse the one combination that could confuse simulated money with real money.
+  // A mock checkout endpoint that can mark payments captured must never coexist with a
+  // live gateway configuration.
+  if (env.PAYMENT_MODE === 'mock' && env.SSLCZ_IS_LIVE) {
+    throw new Error(
+      'PAYMENT_MODE=mock cannot be combined with SSLCZ_IS_LIVE=true — refusing to run a ' +
+        'simulated checkout alongside live gateway credentials',
+    );
+  }
+
   if (env.NODE_ENV === 'production') {
     if (env.DEMO_MODE && !env.DEMO_PASSWORD) {
       throw new Error('DEMO_MODE=true in production requires DEMO_PASSWORD');

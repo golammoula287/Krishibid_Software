@@ -74,6 +74,10 @@ services:
         value: '1536'
       - key: SSLCZ_IS_LIVE
         value: 'false'
+      # Set to 'mock' in the dashboard to demo escrow without gateway credentials.
+      # Cannot be combined with SSLCZ_IS_LIVE=true — the server refuses to boot.
+      - key: PAYMENT_MODE
+        value: mock
       - key: PLATFORM_COMMISSION_BPS
         value: '250'
       - key: ESCROW_AUTO_RELEASE_DAYS

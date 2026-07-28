@@ -1,5 +1,8 @@
 {
-  "app": { "name": "KrishiBid", "tagline": "Farmer to buyer, directly" },
+  "app": {
+    "name": "KrishiBid",
+    "tagline": "Farmer to buyer, directly"
+  },
   "nav": {
     "market": "Market",
     "diagnose": "Diagnose",
@@ -106,7 +109,15 @@
     "balance": "Balance",
     "escrow": "Held in escrow",
     "available": "Available",
-    "backToOrders": "Back to orders"
+    "backToOrders": "Back to orders",
+    "mockBanner": "Test payment — no real money moves",
+    "mockTitle": "Simulated checkout",
+    "mockHelp": "This is for demonstration. The buttons below run the same escrow logic as the real gateway, but nothing is charged.",
+    "mockTranId": "Transaction ID",
+    "mockPaySuccess": "Simulate successful payment",
+    "mockPayFail": "Simulate failed payment",
+    "mockDisabled": "Simulated payments are disabled on this server.",
+    "simulatedBadge": "SIMULATED"
   },
   "common": {
     "loading": "Loading…",

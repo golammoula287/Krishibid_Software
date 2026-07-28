@@ -93,6 +93,40 @@ export async function initiatePayment(
     tranId,
   });
 
+  /**
+   * Mock mode: hand back an in-app checkout URL instead of contacting a gateway.
+   *
+   * Nothing else about the flow changes — the mock completion endpoint runs the same
+   * `capture()`, writes the same double-entry ledger transaction and drives the same
+   * order transitions. That is the point: a demo that bypassed the ledger would prove
+   * nothing about the escrow design.
+   */
+  if (env().PAYMENT_MODE === 'mock') {
+    payment.status = 'pending';
+    payment.simulated = true;
+    payment.gatewayHistory.push({
+      at: new Date(),
+      kind: 'mock_session_created',
+      payload: { note: 'simulated checkout — no gateway contacted' },
+    });
+    await payment.save();
+
+    logger.warn(
+      { paymentId: String(payment._id), tranId },
+      'SIMULATED payment session created (PAYMENT_MODE=mock)',
+    );
+
+    const mockUrl = new URL('/payment/mock', env().WEB_PUBLIC_URL);
+    mockUrl.searchParams.set('tran', tranId);
+
+    return {
+      gatewayUrl: mockUrl.toString(),
+      tranId,
+      amountPoisha: order.agreedAmountPoisha,
+      expiresAt: order.paymentDeadline.toISOString(),
+    };
+  }
+
   const session = await gateway.createSession({
     tranId,
     amountPoisha: order.agreedAmountPoisha,
@@ -230,6 +264,7 @@ async function capture(
   payment: PaymentDoc,
   bankTranId: string | undefined,
   cardType: string | undefined,
+  simulated = false,
 ): Promise<void> {
   // Two concurrent IPN deliveries race here; exactly one wins the claim.
   const claimed = await Payment.findOneAndUpdate(
@@ -265,13 +300,15 @@ async function capture(
             account: 'gateway_clearing',
             amountPoisha: -claimed.amountPoisha,
             userId: null,
-            memo: `capture ${claimed.tranId}`,
+            // The memo carries the simulated marker too, so a ledger export read on its
+            // own — without joining back to the payment — still shows what was real.
+            memo: `${simulated ? '[SIMULATED] ' : ''}capture ${claimed.tranId}`,
           },
           {
             account: 'farmer_escrow',
             amountPoisha: claimed.amountPoisha,
             userId: String(claimed.farmerId),
-            memo: `escrow held for order ${String(claimed.orderId)}`,
+            memo: `${simulated ? '[SIMULATED] ' : ''}escrow held for order ${String(claimed.orderId)}`,
           },
         ],
       });
@@ -280,7 +317,7 @@ async function capture(
         String(claimed.orderId),
         'confirmed',
         null,
-        'payment held in escrow',
+        simulated ? 'simulated payment held in escrow' : 'payment held in escrow',
         session,
       );
     };
@@ -302,6 +339,69 @@ async function capture(
       amountPoisha: claimed.amountPoisha,
     });
   }
+}
+
+/**
+ * Simulated checkout completion — the mock gateway's equivalent of the IPN.
+ *
+ * Only reachable when `PAYMENT_MODE=mock`; the route is not even registered otherwise,
+ * and `env()` refuses to boot with `PAYMENT_MODE=mock` alongside `SSLCZ_IS_LIVE=true`.
+ *
+ * Unlike the real IPN this endpoint IS authenticated, and deliberately more restrictive:
+ * the caller must be the order's own buyer. The real IPN cannot require auth because a
+ * gateway calls it, and it earns its trust instead by re-validating server-to-server.
+ * A mock endpoint has no such external source of truth, so identity is the guard —
+ * otherwise anyone could mark any order paid.
+ *
+ * The amount is taken from the order rather than the request. There is no external party
+ * to tamper with it, and accepting a client-supplied amount would make the mock a worse
+ * model of the real flow, not a better one.
+ */
+export async function completeMockPayment(
+  buyerId: string,
+  tranId: string,
+  outcome: 'success' | 'fail',
+): Promise<{ status: string; orderId: string }> {
+  if (env().PAYMENT_MODE !== 'mock') {
+    throw forbidden('simulated payments are disabled');
+  }
+
+  const payment = await Payment.findOne({ tranId });
+  if (!payment) throw notFound('payment');
+
+  if (String(payment.buyerId) !== buyerId) {
+    throw forbidden('only the buyer of this order can complete its payment');
+  }
+
+  // Idempotent, matching the real IPN's behaviour on redelivery.
+  if (payment.status === 'held' || payment.status === 'released') {
+    return { status: payment.status, orderId: String(payment.orderId) };
+  }
+  if (payment.status !== 'created' && payment.status !== 'pending') {
+    throw conflict('not_payable', `this payment is ${payment.status}`);
+  }
+
+  payment.gatewayHistory.push({
+    at: new Date(),
+    kind: 'mock_completion',
+    payload: { outcome, by: buyerId },
+  });
+  await payment.save();
+
+  if (outcome === 'fail') {
+    await markFailed(payment, 'simulated payment failure');
+    return { status: 'failed', orderId: String(payment.orderId) };
+  }
+
+  // Same capture path as a real payment: same ledger, same order transition.
+  await capture(payment, `MOCK-${tranId}`, 'SIMULATED', true);
+
+  logger.warn(
+    { paymentId: String(payment._id), tranId, amountPoisha: payment.amountPoisha },
+    'SIMULATED payment captured into escrow — no real money moved',
+  );
+
+  return { status: 'held', orderId: String(payment.orderId) };
 }
 
 async function markFailed(payment: PaymentDoc, reason: string): Promise<void> {
