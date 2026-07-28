@@ -9,7 +9,7 @@
  * makes cost-per-query measurable across providers.
  */
 
-export type ProviderName = 'gemini' | 'claude';
+export type ProviderName = 'gemini' | 'claude' | 'groq';
 
 export interface UsageInfo {
   inputTokens: number;
@@ -61,6 +61,10 @@ export interface ProviderConfig {
     embedModel: string;
   };
   claude?: {
+    apiKey: string;
+    chatModel: string;
+  };
+  groq?: {
     apiKey: string;
     chatModel: string;
   };

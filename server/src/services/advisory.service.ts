@@ -34,6 +34,7 @@ function getProvider(): AiProvider {
       embedModel: e.GEMINI_EMBED_MODEL,
     },
     claude: { apiKey: e.ANTHROPIC_API_KEY, chatModel: e.CLAUDE_CHAT_MODEL },
+    groq: { apiKey: e.GROQ_API_KEY, chatModel: e.GROQ_CHAT_MODEL },
   });
   return provider;
 }
