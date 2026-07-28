@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger.js';
 import { AiProviderError, AiQuotaError } from './errors.js';
 import { estimateCostUsd, estimateTokens } from './pricing.js';
 import { withRetry } from './retry.js';
@@ -26,6 +27,8 @@ interface GeminiGenerateResponse {
   usageMetadata?: {
     promptTokenCount?: number;
     candidatesTokenCount?: number;
+    /** Reasoning tokens — billed against maxOutputTokens on 3.x models. */
+    thoughtsTokenCount?: number;
   };
   error?: { message: string; status?: string };
 }
@@ -121,6 +124,13 @@ export class GeminiProvider implements AiProvider {
       maxOutputTokens: options.maxOutputTokens ?? 2048,
     };
 
+    // Gemini 3.x reasons by default and charges those tokens against
+    // maxOutputTokens, so a modest budget can be spent entirely on thinking and
+    // return nothing at all. Opting out is what makes the token budget predictable.
+    if (options.disableThinking) {
+      generationConfig.thinkingConfig = { thinkingBudget: 0 };
+    }
+
     // Native JSON mode. Constraining the shape server-side is what lets the
     // caller treat `sufficient` as a real signal instead of grepping prose.
     if (options.jsonSchema) {
@@ -155,6 +165,21 @@ export class GeminiProvider implements AiProvider {
 
     const candidate = body.candidates?.[0];
     const text = candidate?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+
+    // A thinking model that exhausts its budget returns MAX_TOKENS with truncated or
+    // empty text and no error. Logging it turns a silent quality regression into
+    // something diagnosable.
+    if (candidate?.finishReason === 'MAX_TOKENS') {
+      logger.warn(
+        {
+          model: this.chatModel,
+          thoughtTokens: body.usageMetadata?.thoughtsTokenCount ?? 0,
+          outputTokens: body.usageMetadata?.candidatesTokenCount ?? 0,
+          textLength: text.length,
+        },
+        'gemini hit MAX_TOKENS — output may be truncated (thinking tokens share this budget)',
+      );
+    }
 
     const inputTokens = body.usageMetadata?.promptTokenCount ?? estimateTokens(prompt);
     const outputTokens = body.usageMetadata?.candidatesTokenCount ?? estimateTokens(text);

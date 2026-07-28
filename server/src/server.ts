@@ -26,7 +26,13 @@ async function main(): Promise<void> {
       { port: e.PORT, env: e.NODE_ENV, aiProvider: e.AI_PROVIDER },
       `KrishiBid API listening on :${e.PORT}`,
     );
-    if (!e.SSLCZ_STORE_ID) {
+    // Accurate per mode: in mock mode payments DO work, so the old unconditional
+    // "payment routes will return 503" warning was actively misleading in the logs.
+    if (e.PAYMENT_MODE === 'mock') {
+      logger.warn(
+        'PAYMENT_MODE=mock — checkout is SIMULATED, no gateway is contacted and no real money moves',
+      );
+    } else if (!e.SSLCZ_STORE_ID) {
       logger.warn('SSLCOMMERZ is not configured — payment routes will return 503');
     }
     if (!e.API_PUBLIC_URL.startsWith('https://')) {

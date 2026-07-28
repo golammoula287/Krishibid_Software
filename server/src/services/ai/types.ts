@@ -31,6 +31,15 @@ export interface CompleteOptions {
   maxOutputTokens?: number;
   /** Abort signal so a slow provider cannot hold an HTTP handler open. */
   signal?: AbortSignal;
+  /**
+   * Ask the provider to skip internal reasoning where it supports doing so.
+   *
+   * Gemini 3.x models think by default, and **thinking tokens are drawn from the same
+   * `maxOutputTokens` budget as the answer**. For a grounded extraction task — restate
+   * what the retrieved passages say, with citations — reasoning buys little and can
+   * consume the whole budget, yielding truncated or empty output.
+   */
+  disableThinking?: boolean;
 }
 
 export interface CompleteResult {

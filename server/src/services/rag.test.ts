@@ -1,6 +1,6 @@
 import type { RetrievedChunk } from '@krishibid/shared';
 import { describe, expect, it } from 'vitest';
-import { validateCitations } from './advisory.service.js';
+import { salvageAnswerField, validateCitations } from './advisory.service.js';
 import { reciprocalRankFusion } from './retrieval.service.js';
 
 const candidate = (id: string) => ({
@@ -136,5 +136,41 @@ describe('RAG — citation grounding guardrail', () => {
     const result = validateCitations('A [5]. B [5]. C [1].', [5, 1], chunks);
     expect(result.answer).not.toContain('[5]');
     expect(result.citations.map((c) => c.n)).toEqual([1]);
+  });
+});
+
+describe('RAG — salvaging truncated model output', () => {
+  it('recovers the answer from JSON truncated mid-string', () => {
+    // Exactly what a thinking model returns when it exhausts maxOutputTokens.
+    const truncated = '{"answer":"আলুর নাবি ধ্বসা রোগ Phytophthora infestans দ্বারা হয় [1]। প্রতিকার';
+    const out = salvageAnswerField(truncated);
+    expect(out).toContain('Phytophthora infestans');
+    expect(out).not.toContain('{"answer"');
+  });
+
+  it('unescapes newlines and quotes', () => {
+    // `\\n` so the fixture holds the two-character escape sequence a model actually
+    // emits. A single `\n` here would be a real newline, which is invalid inside a JSON
+    // string — a different case, covered by the test below.
+    const raw = '{"answer":"Line one.\\nLine \\"two\\".","sufficient":true}';
+    expect(salvageAnswerField(raw)).toBe('Line one.\nLine "two".');
+  });
+
+  it('returns null when a real newline makes the JSON invalid', () => {
+    expect(salvageAnswerField('{"answer":"Line one.\nLine two."}')).toBeNull();
+  });
+
+  it('recovers from complete, well-formed JSON too', () => {
+    const raw = '{"answer":"Apply at flowering [1].","citedMarkers":[1],"sufficient":true}';
+    expect(salvageAnswerField(raw)).toBe('Apply at flowering [1].');
+  });
+
+  it('returns null when there is nothing to salvage', () => {
+    // Null rather than empty string, so the caller uses the honest "no answer" path
+    // instead of rendering a blank bubble.
+    expect(salvageAnswerField('')).toBeNull();
+    expect(salvageAnswerField('total nonsense, no json here')).toBeNull();
+    expect(salvageAnswerField('{"answer":""}')).toBeNull();
+    expect(salvageAnswerField('{"sufficient":false}')).toBeNull();
   });
 });
