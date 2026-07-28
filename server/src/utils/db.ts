@@ -8,10 +8,23 @@ export async function connectDb(uri = env().MONGODB_URI): Promise<void> {
   if (connected) return;
 
   mongoose.set('strictQuery', true);
-  // Reject any query object containing operator-shaped keys that arrived from
-  // user input. Combined with the sanitize middleware this closes NoSQL
-  // injection at two layers.
-  mongoose.set('sanitizeFilter', true);
+
+  /**
+   * `sanitizeFilter` is deliberately NOT enabled.
+   *
+   * It wraps any filter value containing `$` keys in `$eq`, which does block query
+   * selector injection — but it cannot distinguish untrusted input from the
+   * application's own operators. It therefore breaks every legitimate `$in`, `$lte`
+   * and `$ne` this codebase relies on, including the `status: { $in: [...] }` guard
+   * that makes payment capture idempotent. Turning it on trades a defended attack for
+   * a broken payment path.
+   *
+   * NoSQL injection is instead closed at the boundary where untrusted data actually
+   * enters: `sanitizeInput` (middleware/sanitize.ts) rejects any request whose body,
+   * query or params contain an operator-shaped key, before it can reach a query at
+   * all. That keeps user input safe while leaving trusted server code free to use
+   * operators normally.
+   */
 
   await mongoose.connect(uri, {
     serverSelectionTimeoutMS: 10_000,

@@ -51,10 +51,49 @@ degraded ordering beats failing a question the retrieval already answered.
 - Two index slots consumed (ADR-003).
 - Both legs run concurrently, so latency is the slower leg, not the sum.
 - `npm run eval:rag` compares dense-only vs hybrid vs hybrid+rerank on a hand-labelled
-  golden set, so this decision is **measured rather than asserted**. It writes
-  `docs/rag-eval.md`; if the recall@4 delta comes out flat, this ADR is wrong and
-  should be revised rather than defended. It is not run in CI because it needs a
-  populated KB and live API quota.
+  golden set and writes `docs/rag-eval.md`. Not run in CI: it needs a populated KB and
+  live API quota.
+
+## Measured result — the claim is currently UNPROVEN
+
+First live run, 2026-07-27, against Atlas Vector Search + Atlas Search with Gemini
+embeddings:
+
+| Configuration | recall@4 | MRR |
+|---|---|---|
+| Dense only | 72.7% | 0.727 |
+| Hybrid (RRF) | 72.7% | 0.727 |
+| Hybrid + rerank | 72.7% | 0.727 |
+
+**No delta.** This ADR said that if the numbers came out flat the decision should be
+revised rather than defended, so: as measured, hybrid retrieval is not yet justified by
+evidence.
+
+The reason is corpus size, not mechanism. **The corpus is 8 chunks and k = 4** — half of
+everything in the knowledge base lands in the context window regardless of ranking, so
+there is essentially no ranking problem left for fusion to solve. The metric cannot
+distinguish the configurations at this size; it is uninformative rather than negative.
+
+Both legs were verified working independently, so the flat result is not a broken
+pipeline:
+
+- Dense returns sensible cosine scores (1.000 / 0.909 / 0.863 on a self-match probe).
+- **BM25 retrieved the potato late-blight document for the query `Phytophthora
+  infestans`** — precisely the exact-Latin-term case this ADR predicts dense retrieval
+  smears away. The mechanism works; it just does not change recall@4 when k covers half
+  the corpus.
+
+**What would settle it:** re-run at 300+ chunks, where k = 4 is a genuine selection
+problem. Until then the honest statement is "hybrid is implemented and its lexical leg
+demonstrably matches exact terms, but its benefit is unmeasured on this corpus" — not
+"hybrid improved recall by X".
+
+Two secondary findings from the same run, both now reflected elsewhere: the Gemini free
+tier allows **5 requests/minute** on `gemini-3.6-flash` (tighter than the ~10 assumed),
+and the quota-degradation path worked correctly under real 429s — answers fell back to
+retrieval-only with valid citations and `degraded: true` rather than erroring. Refusal on
+unanswerable questions was **100%** and citation validity **100%**, both meaningful at
+any corpus size.
 - One extra LLM call per question, which counts against the free-tier cap. Hence the
   answer cache and the per-user hourly limit.
 
