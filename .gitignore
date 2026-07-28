@@ -67,3 +67,5 @@ temp/
 *.pptx
 *.heic
 *.docx
+
+.vercel
