@@ -81,8 +81,8 @@ services:
       - key: PAYMENT_WINDOW_HOURS
         value: '48'
       - key: DISEASE_MODEL_PATH
-        value: ./ml/artifacts/model-v1.onnx
+        value: ../ml/artifacts/model-v1.onnx
       - key: DISEASE_LABELS_PATH
-        value: ./ml/artifacts/labels.json
+        value: ../ml/artifacts/labels.json
       - key: DEMO_MODE
         value: 'true'
