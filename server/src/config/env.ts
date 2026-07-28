@@ -1,10 +1,52 @@
 import { config as loadDotenv } from 'dotenv';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { z } from 'zod';
 
-// Monorepo root .env, so api + scripts + tests all read one file.
-loadDotenv({ path: path.resolve(process.cwd(), '../../.env') });
-loadDotenv();
+/**
+ * Finds the single repo-root `.env` by walking upward from the working directory.
+ *
+ * A hardcoded relative path is wrong for at least one caller no matter which depth is
+ * chosen: `npm run dev` runs from `server/`, a root `npm run seed --workspace=server`
+ * also lands in `server/`, and the compiled bundle runs from wherever the host puts it.
+ * An earlier version used `../../.env` — correct for the original `apps/api/` layout,
+ * silently wrong after the move to `server/`, and it failed with "MONGODB_URI Required"
+ * while the variable was plainly set, which is a maximally confusing way to fail.
+ *
+ * Walking up and stopping at the first hit makes the loader independent of cwd. The
+ * search is bounded so a missing file cannot climb to the filesystem root.
+ */
+function loadRootEnv(): void {
+  /**
+   * Tests are hermetic: they never read the developer's `.env`.
+   *
+   * Otherwise a test run depends on whoever's machine it is on. This bit us for real —
+   * once the loader started finding the root file correctly, tests inherited
+   * `SSLCZ_STORE_PASSWORD=` (an empty string, which `??=` will not overwrite) and the
+   * IPN signature tests began failing for reasons that had nothing to do with the code.
+   * `test/setup.ts` sets every value the suite needs explicitly.
+   */
+  if (process.env.NODE_ENV === 'test' || process.env.VITEST) return;
+
+  let dir = process.cwd();
+
+  for (let depth = 0; depth < 5; depth++) {
+    const candidate = path.join(dir, '.env');
+    if (existsSync(candidate)) {
+      loadDotenv({ path: candidate });
+      break;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // reached the filesystem root
+    dir = parent;
+  }
+
+  // Real environment variables always win over the file: on Render and Vercel the
+  // values are injected by the platform and there is no .env at all.
+  loadDotenv();
+}
+
+loadRootEnv();
 
 const boolish = z
   .string()

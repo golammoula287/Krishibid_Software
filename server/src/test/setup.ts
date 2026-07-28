@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { afterAll, afterEach, beforeAll, inject } from 'vitest';
+import { connectDb, disconnectDb } from '../utils/db.js';
 
 /**
  * Environment is set at MODULE TOP LEVEL, not inside `beforeAll`.
@@ -11,17 +12,26 @@ import { afterAll, afterEach, beforeAll, inject } from 'vitest';
  */
 process.env.NODE_ENV = 'test';
 process.env.MONGODB_URI = inject('mongoUri');
-process.env.JWT_ACCESS_SECRET ??= 'test-access-secret-that-is-long-enough-000000';
-process.env.JWT_REFRESH_SECRET ??= 'test-refresh-secret-that-is-long-enough-00000';
-process.env.GEMINI_API_KEY ??= 'test-key';
+process.env.JWT_ACCESS_SECRET = 'test-access-secret-that-is-long-enough-000000';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-that-is-long-enough-00000';
+process.env.GEMINI_API_KEY = 'test-key';
 // SSLCZ_STORE_PASSWORD must match the password the signature test signs with.
-process.env.SSLCZ_STORE_ID ??= 'testbox';
-process.env.SSLCZ_STORE_PASSWORD ??= 'testpass';
-process.env.DEMO_PASSWORD ??= 'demo-password';
+process.env.SSLCZ_STORE_ID = 'testbox';
+process.env.SSLCZ_STORE_PASSWORD = 'testpass';
+process.env.DEMO_PASSWORD = 'demo-password';
 
+/**
+ * Connects through the application's own `connectDb`, not a bare `mongoose.connect`.
+ *
+ * The distinction matters: an earlier version connected directly, so every setting
+ * applied inside `connectDb` was exercised only in production. That let a global
+ * `sanitizeFilter` ship untested — it silently rewrote legitimate `$in` filters and
+ * broke KB ingest and payment capture while the whole suite stayed green.
+ *
+ * Tests should share the production connection path so configuration is covered too.
+ */
 beforeAll(async () => {
-  mongoose.set('strictQuery', true);
-  await mongoose.connect(inject('mongoUri'), { serverSelectionTimeoutMS: 30_000 });
+  await connectDb(inject('mongoUri'));
 }, 60_000);
 
 afterEach(async () => {
@@ -35,5 +45,5 @@ afterEach(async () => {
 });
 
 afterAll(async () => {
-  await mongoose.disconnect();
+  await disconnectDb();
 });

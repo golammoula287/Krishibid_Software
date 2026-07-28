@@ -215,6 +215,15 @@ The golden set deliberately includes a question asking for a specific pesticide 
 the sources do not state. Inventing a number there is the most harmful failure this
 pillar can produce, so it is tested rather than hoped about.
 
+**First live run (8-chunk corpus):** refusal on unanswerable questions **100%**,
+citation validity **100%** — both meaningful at any size. Retrieval recall@4 was
+**72.7% for all three configurations**, i.e. hybrid showed no measurable gain. That is a
+corpus-size artifact rather than a verdict: with 8 chunks and k=4, half the KB reaches
+the context window regardless of ranking. Both legs were verified working independently
+(BM25 correctly matched `Phytophthora infestans` to the Bangla late-blight document), so
+the honest claim today is "implemented and mechanically correct, benefit unmeasured" —
+see [ADR-004](docs/adr/ADR-004-hybrid-retrieval.md). Re-run at 300+ chunks to settle it.
+
 > Needs a populated KB and live API quota, so it is **not** run in CI — the committed
 > `docs/rag-eval.md` is the record.
 

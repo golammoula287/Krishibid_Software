@@ -87,18 +87,61 @@ async function createIndexes(): Promise<void> {
     },
   ];
 
+  /**
+   * Atlas refuses to create a search index on a collection that does not exist yet,
+   * failing with NamespaceNotFound. On a fresh cluster that makes this script
+   * order-dependent — it would only work after something had already written data.
+   *
+   * Creating the empty collections first makes it runnable at any point, which is what
+   * the documented setup sequence assumes.
+   */
+  const existing = new Set((await db.collections()).map((c) => c.collectionName));
+  const needed = [...new Set(definitions.map((d) => d.collection))];
+
+  for (const name of needed) {
+    if (existing.has(name)) continue;
+    try {
+      await db.createCollection(name);
+      logger.info({ collection: name }, 'created empty collection for indexing');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      // A concurrent run may have created it between the check and the call.
+      if (!/already exists/i.test(message)) throw err;
+    }
+  }
+
+  let created = 0;
+  let skipped = 0;
+  let failed = 0;
+
   for (const { collection, definition } of definitions) {
     try {
       await db.command({ createSearchIndexes: collection, indexes: [definition] });
       logger.info({ collection, index: definition.name }, 'search index created');
+      created++;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      if (/already exists/i.test(message)) {
+      if (/already exists|IndexAlreadyExists|Duplicate Index/i.test(message)) {
         logger.info({ index: definition.name }, 'search index already exists — skipping');
+        skipped++;
       } else {
-        logger.error({ err, index: definition.name }, 'failed to create search index');
+        // M0 permits a maximum of 3 search indexes; exceeding it fails here rather
+        // than silently producing a retrieval path that returns nothing.
+        logger.error(
+          { index: definition.name, collection, reason: message.slice(0, 300) },
+          'failed to create search index',
+        );
+        failed++;
       }
     }
+  }
+
+  logger.info({ created, skipped, failed, total: definitions.length }, 'index run complete');
+
+  if (failed > 0) {
+    throw new Error(
+      `${failed} of ${definitions.length} search indexes failed — retrieval will not work until they exist`,
+    );
   }
 
   logger.info(
