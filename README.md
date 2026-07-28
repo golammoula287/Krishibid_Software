@@ -11,9 +11,13 @@ A farmer-to-buyer **bidding marketplace** with **escrow payments**, **CNN crop-d
 detection**, and a **Bangla RAG advisory assistant**, built for smallholder farmers in
 Bangladesh.
 
-> **Status:** feature-complete backend and frontend, 68 passing tests, not yet
-> deployed. The disease model ships as a placeholder until the training notebook is
-> run (see [Disease model](#4-disease-model-optional)).
+> **Live client:** <https://krishibid.vercel.app>
+>
+> **Status:** frontend deployed, 68 passing tests, verified end-to-end against live
+> MongoDB Atlas and Gemini. The API is not deployed yet — it cannot run on serverless
+> (interval jobs, WebSockets, native ONNX/sharp binaries), so it needs Render; see
+> [Deployment](#deployment-free-tier). Until then the client loads but API calls fail.
+> The disease model ships as a placeholder until the training notebook is run.
 
 ---
 
@@ -273,7 +277,7 @@ Krishibid/
 
 | Component | Host | Constraint |
 |---|---|---|
-| Client | Cloudflare Pages | none meaningful |
+| Client | **Vercel** ([live](https://krishibid.vercel.app)) | none meaningful |
 | Server | Render / Fly.io | 512 MB RAM, sleeps when idle |
 | Database | Atlas M0 | 512 MB, 3 search indexes |
 | Images | Cloudinary | 25 GB bandwidth/month |
