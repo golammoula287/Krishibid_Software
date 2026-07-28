@@ -45,6 +45,30 @@ export function setProvider(p: AiProvider | null): void {
 }
 
 /**
+ * Last-resort recovery of the `answer` field from malformed or truncated model output.
+ *
+ * Structured output normally makes this unnecessary, but a thinking model that exhausts
+ * its token budget returns a half-written JSON object — and the previous fallback handed
+ * that raw string straight through as the answer, so a farmer was shown
+ * `{"answer":"আলুর নাবি...` verbatim. Salvaging the readable prose is strictly better
+ * than surfacing JSON internals, and returning null lets the caller fall back to the
+ * honest "no answer" path instead of guessing.
+ */
+export function salvageAnswerField(raw: string): string | null {
+  // Match "answer":"..." allowing escaped quotes, tolerating a missing closing quote.
+  const match = /"answer"\s*:\s*"((?:[^"\\]|\\.)*)/.exec(raw);
+  if (!match?.[1]) return null;
+
+  try {
+    // Re-parse as a JSON string so \n and \" become real characters.
+    const decoded = JSON.parse(`"${match[1]}"`) as string;
+    return decoded.trim().length > 0 ? decoded : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Cache key.
  *
  * Normalising (lowercase, collapse whitespace, strip terminal punctuation) means
@@ -84,8 +108,11 @@ async function rerank(
     const result = await getProvider().complete(buildRerankPrompt(question, candidates), {
       system: RERANK_SYSTEM,
       jsonSchema: RERANK_SCHEMA as unknown as Record<string, unknown>,
-      maxOutputTokens: 512,
-      signal: AbortSignal.timeout(15_000),
+      // Same thinking-budget trap as the answer call: 512 tokens could be entirely
+      // consumed by reasoning, silently degrading every rerank to the RRF fallback.
+      maxOutputTokens: 2048,
+      disableThinking: true,
+      signal: AbortSignal.timeout(20_000),
     });
 
     const parsed = extractJson(result.text) as { scores?: { n: number; score: number }[] } | null;
@@ -238,8 +265,19 @@ export async function ask(userId: string, input: AskInput): Promise<AnswerDto> {
       {
         system: SYSTEM_PROMPT,
         jsonSchema: ANSWER_SCHEMA as unknown as Record<string, unknown>,
-        maxOutputTokens: 1500,
-        signal: AbortSignal.timeout(30_000),
+        /**
+         * Generous, because two things share this budget on a thinking model: the
+         * reasoning tokens and the answer. Bengali also costs roughly 2.5x more tokens
+         * per character than Latin script. At 1500 the budget was sometimes consumed
+         * entirely by thinking, returning truncated JSON or nothing at all.
+         */
+        maxOutputTokens: 8192,
+        /**
+         * Reasoning adds latency (9s observed) and competes for the token budget, while
+         * buying little on a task that is restating retrieved passages with citations.
+         */
+        disableThinking: true,
+        signal: AbortSignal.timeout(45_000),
       },
     );
 
@@ -252,10 +290,34 @@ export async function ask(userId: string, input: AskInput): Promise<AnswerDto> {
       citedMarkers = parsed.data.citedMarkers;
       sufficient = parsed.data.sufficient;
     } else {
-      // Shape violation: keep the raw text rather than discard a possibly-good
-      // answer, but do not claim it was grounded.
-      logger.warn({ issues: parsed.error.issues }, 'answer failed schema; using raw text');
-      answerText = result.text;
+      /**
+       * Malformed or truncated output. Recover just the prose rather than passing the
+       * raw string through — the previous behaviour showed a farmer
+       * `{"answer":"আলুর নাবি...` verbatim, JSON internals and all.
+       *
+       * `sufficient` stays false either way: whatever survived cannot be claimed as
+       * verified grounding, and markers are left empty so the citation guardrail derives
+       * them from the prose alone.
+       */
+      const salvaged = salvageAnswerField(result.text);
+      logger.warn(
+        {
+          issues: parsed.error.issues.slice(0, 3),
+          stopReason: result.stopReason,
+          salvaged: salvaged !== null,
+        },
+        'answer failed schema; recovering the answer field',
+      );
+
+      if (salvaged) {
+        answerText = salvaged;
+      } else {
+        // Nothing usable — say so rather than emit JSON or an empty bubble.
+        answerText =
+          locale === 'bn'
+            ? 'উত্তর তৈরি করা সম্ভব হয়নি। অনুগ্রহ করে আবার চেষ্টা করুন, অথবা স্থানীয় কৃষি সম্প্রসারণ কর্মকর্তার সঙ্গে যোগাযোগ করুন।'
+            : 'I could not produce an answer. Please try again, or consult your local agricultural extension officer.';
+      }
       sufficient = false;
     }
   } catch (err) {
