@@ -56,6 +56,26 @@ export interface InitiatePaymentResult {
   expiresAt: string;
 }
 
+/**
+ * Simulated checkout completion. Only accepted when the server runs with
+ * PAYMENT_MODE=mock; the route does not exist otherwise.
+ */
+export const completeMockPaymentSchema = z.object({
+  tranId: z.string().min(1).max(120),
+  outcome: z.enum(['success', 'fail']),
+});
+export type CompleteMockPaymentInput = z.infer<typeof completeMockPaymentSchema>;
+
+/** Advertised by GET /api/payments/config so the UI can label simulated payments. */
+export interface PaymentConfigDto {
+  mode: 'sslcommerz' | 'mock';
+  /** False when the gateway has no credentials — payment routes will 503. */
+  configured: boolean;
+  currency: 'BDT';
+  commissionBps: number;
+  escrowAutoReleaseDays: number;
+}
+
 export const confirmDeliverySchema = z.object({
   orderId: objectId,
   /** Optional buyer note recorded on the release ledger entry. */
