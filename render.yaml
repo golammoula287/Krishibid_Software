@@ -17,7 +17,13 @@ services:
     branch: main
 
     # Build from the repo root so npm workspaces resolves @krishibid/shared.
-    buildCommand: npm ci && npm run build --workspace=server
+    #
+    # `--include=dev` is required, not cosmetic. Render sets NODE_ENV=production, and
+    # `npm ci` under that skips devDependencies — which is where the build toolchain
+    # lives. Without the flag Render installed 237 packages instead of 828 and the build
+    # died with `sh: 1: tsup: not found`. The failure is confusing because the same
+    # command works locally, where NODE_ENV is unset.
+    buildCommand: npm ci --include=dev && npm run build --workspace=server
     startCommand: npm run start --workspace=server
 
     healthCheckPath: /health
