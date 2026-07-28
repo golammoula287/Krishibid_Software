@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout.js';
+import Toaster from './components/Toaster.js';
 import { Spinner } from './components/ui.js';
 import { useAuth } from './lib/auth.js';
 import { disconnectSocket } from './lib/socket.js';
@@ -53,6 +54,8 @@ export default function App() {
 
   return (
     <Suspense fallback={<Spinner />}>
+      <Toaster />
+
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
