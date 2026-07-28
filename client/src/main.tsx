@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -6,8 +6,37 @@ import App from './App.js';
 import './index.css';
 import './lib/i18n.js';
 import { ApiRequestError } from './lib/api.js';
+import { loadMessages } from './lib/messages.js';
+import { useToast } from './lib/toast.js';
+
+/**
+ * Fetch the server-authoritative message catalogue before the first render.
+ *
+ * Not awaited: a cached copy is used immediately if present, and a missing catalogue
+ * degrades to the built-in bilingual fallback. Copy must never gate the app rendering.
+ */
+void loadMessages();
+
+/**
+ * Every failed mutation reports itself.
+ *
+ * Centralised in the MutationCache rather than repeated in each component's `onError`,
+ * because the failure mode that matters is the one someone forgot to handle. A silent
+ * failure on a bid or a payment is far worse than a duplicate toast.
+ *
+ * Queries are deliberately NOT wired up here: a background refetch failing while cached
+ * data is on screen is not something to interrupt the user about.
+ */
+const mutationCache = new MutationCache({
+  onError: (error, _vars, _ctx, mutation) => {
+    // Opt out per-mutation with meta.silent when a component renders the error inline.
+    if (mutation.options.meta?.silent) return;
+    useToast.getState().showError(error);
+  },
+});
 
 const queryClient = new QueryClient({
+  mutationCache,
   defaultOptions: {
     queries: {
       // 30s: long enough to avoid refetch storms while navigating, short enough that
