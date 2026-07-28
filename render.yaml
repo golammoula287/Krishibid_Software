@@ -1,0 +1,88 @@
+# Render blueprint for the API.
+#
+# The server cannot run on Vercel or any serverless platform: it owns three
+# setInterval sweeps (closing auctions, auto-releasing escrow, cancelling unpaid
+# orders), a Socket.IO server holding persistent connections, and native
+# onnxruntime-node / sharp binaries. All three need a long-lived process.
+#
+# The client deploys separately to Vercel as a static SPA.
+#
+# Usage: Render dashboard -> New -> Blueprint -> point at this repo.
+services:
+  - type: web
+    name: krishibid-api
+    runtime: node
+    plan: free
+    region: singapore # closest region to Bangladesh
+    branch: main
+
+    # Build from the repo root so npm workspaces resolves @krishibid/shared.
+    buildCommand: npm ci && npm run build --workspace=server
+    startCommand: npm run start --workspace=server
+
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: '22'
+
+      # Render injects PORT; the server reads it.
+      - key: PORT
+        value: '10000'
+
+      # --- set these in the Render dashboard, never in this file ---
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true # Render generates a strong secret once
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: SSLCZ_STORE_ID
+        sync: false
+      - key: SSLCZ_STORE_PASSWORD
+        sync: false
+      - key: DEMO_PASSWORD
+        generateValue: true
+
+      # --- must match the deployed URLs exactly ---
+      # API_PUBLIC_URL is where SSLCOMMERZ posts the IPN, so it must be this
+      # service's own public https URL or payments silently never confirm.
+      - key: API_PUBLIC_URL
+        sync: false
+      # WEB_PUBLIC_URL and CORS_ORIGINS must be the Vercel origin. The server
+      # compares these two hostnames to decide the refresh cookie's SameSite
+      # value, so a mismatch logs users out on every reload.
+      - key: WEB_PUBLIC_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+      # --- non-secret defaults ---
+      - key: AI_PROVIDER
+        value: gemini
+      - key: EMBEDDING_DIMENSIONS
+        value: '1536'
+      - key: SSLCZ_IS_LIVE
+        value: 'false'
+      - key: PLATFORM_COMMISSION_BPS
+        value: '250'
+      - key: ESCROW_AUTO_RELEASE_DAYS
+        value: '7'
+      - key: PAYMENT_WINDOW_HOURS
+        value: '48'
+      - key: DISEASE_MODEL_PATH
+        value: ./ml/artifacts/model-v1.onnx
+      - key: DISEASE_LABELS_PATH
+        value: ./ml/artifacts/labels.json
+      - key: DEMO_MODE
+        value: 'true'
