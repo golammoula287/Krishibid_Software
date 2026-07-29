@@ -7,6 +7,7 @@ import {
 import { Router } from 'express';
 import * as controller from '../controllers/marketplace.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { enforceBidCeiling, requireActiveAccount, requireApprovedFarmer } from '../middleware/gate.js';
 import { validate } from '../middleware/validate.js';
 
 export const marketplaceRoutes = Router();
@@ -19,10 +20,17 @@ marketplaceRoutes.get('/listings/mine', requireAuth, controller.myListings);
 marketplaceRoutes.get('/listings/:id', controller.getListing);
 marketplaceRoutes.get('/listings/:id/bids', controller.listBids);
 
+/**
+ * Creating a listing requires an APPROVED farmer.
+ *
+ * Gated in middleware rather than only in the UI: hiding the button is presentation, and a
+ * request straight to the API must be refused too or the requirement is decorative.
+ */
 marketplaceRoutes.post(
   '/listings',
   requireAuth,
   requireRole('farmer'),
+  requireApprovedFarmer,
   validate(createListingSchema),
   controller.createListing,
 );
@@ -31,17 +39,24 @@ marketplaceRoutes.delete(
   '/listings/:id',
   requireAuth,
   requireRole('farmer'),
+  requireActiveAccount,
   controller.cancelListing,
 );
 
 // ---- bids ----
 marketplaceRoutes.get('/bids/mine', requireAuth, controller.myBids);
 
+/**
+ * Bidding is capped by the buyer's trust tier. Validation runs first so the ceiling check
+ * sees a parsed integer amount rather than whatever arrived on the wire.
+ */
 marketplaceRoutes.post(
   '/bids',
   requireAuth,
   requireRole('buyer'),
+  requireActiveAccount,
   validate(placeBidSchema),
+  enforceBidCeiling,
   controller.placeBid,
 );
 

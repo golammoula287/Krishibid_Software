@@ -4,13 +4,14 @@ import {
   ANTI_SNIPE_WINDOW_SECONDS,
   MIN_BID_INCREMENT_POISHA,
   type AcceptBidInput,
+  type BidDto,
   type PlaceBidInput,
 } from '@krishibid/shared';
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { conflict, forbidden, notFound, unprocessable } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
-import { Bid } from '../models/Bid.js';
+import { Bid, type BidDoc } from '../models/Bid.js';
 import { Listing } from '../models/Listing.js';
 import { Order } from '../models/Order.js';
 
@@ -311,14 +312,47 @@ export async function acceptBid(
   }
 }
 
-export async function listBidsForListing(listingId: string) {
-  return Bid.find({ listingId })
+/**
+ * Maps a bid document to the wire contract.
+ *
+ * This mapper exists because its absence was a real bug. These endpoints previously returned
+ * raw `.lean()` documents, where `populate('buyerId')` makes `buyerId` an **object** rather
+ * than a string. The client, typed as `BidDto[]`, called `bid.buyerId.slice(-6)` — `.slice`
+ * on an object throws, React unmounted the tree, and the listing page rendered blank. Only
+ * for listings that had bids, because an empty array never reaches the map.
+ *
+ * The shared-types contract cannot catch that on its own: `api.get<BidDto[]>` is an assertion
+ * about what the server sends, not a check. Mapping explicitly at the boundary is what makes
+ * the assertion true.
+ */
+function toBidDto(doc: BidDoc | (Omit<BidDoc, 'buyerId'> & { buyerId: unknown })): BidDto {
+  const buyer = doc.buyerId as unknown as { _id?: unknown; name?: string } | string;
+  const populated = typeof buyer === 'object' && buyer !== null && 'name' in buyer;
+
+  return {
+    id: String(doc._id),
+    listingId: String(doc.listingId),
+    buyerId: String(populated ? (buyer as { _id: unknown })._id : buyer),
+    buyerName: populated ? ((buyer as { name?: string }).name ?? '') : '',
+    amountPoisha: doc.amountPoisha,
+    status: doc.status as BidDto['status'],
+    createdAt: (doc as unknown as { createdAt: Date }).createdAt.toISOString(),
+  };
+}
+
+export async function listBidsForListing(listingId: string): Promise<BidDto[]> {
+  const docs = await Bid.find({ listingId })
     .sort({ amountPoisha: -1 })
     .limit(50)
     .populate<{ buyerId: { _id: unknown; name: string } }>('buyerId', 'name')
     .lean();
+
+  return docs.map((d) => toBidDto(d as never));
 }
 
-export async function listMyBids(buyerId: string) {
-  return Bid.find({ buyerId }).sort({ createdAt: -1 }).limit(50).lean();
+export async function listMyBids(buyerId: string): Promise<BidDto[]> {
+  const docs = await Bid.find({ buyerId }).sort({ createdAt: -1 }).limit(50).lean();
+  return docs.map((d) => toBidDto(d as never));
 }
+
+export { toBidDto };
