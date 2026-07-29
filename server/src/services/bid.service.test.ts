@@ -1,7 +1,7 @@
 import { MIN_BID_INCREMENT_POISHA } from '@krishibid/shared';
 import { describe, expect, it } from 'vitest';
 import { Bid, Listing, Order, makeListing, makeUser } from '../test/factories.js';
-import { acceptBid, placeBid } from './bid.service.js';
+import { acceptBid, listBidsForListing, listMyBids, placeBid } from './bid.service.js';
 
 describe('bidding engine — concurrency', () => {
   /**
@@ -244,5 +244,59 @@ describe('bidding engine — accepting a bid', () => {
         expectedVersion: fresh!.version,
       }),
     ).rejects.toMatchObject({ code: 'forbidden' });
+  });
+});
+
+describe('bidding engine — wire contract', () => {
+  /**
+   * Regression test for a real crash.
+   *
+   * These endpoints used to return raw `.lean()` documents, where `populate('buyerId')` makes
+   * `buyerId` an object rather than a string. The client — typed `BidDto[]` — called
+   * `bid.buyerId.slice(-6)`, which throws on an object, so React unmounted and the listing
+   * page rendered blank. Only for listings that HAD bids, since an empty array never reaches
+   * the map, which is exactly why it survived earlier testing.
+   *
+   * `api.get<BidDto[]>` is an assertion about the server, not a check on it. This asserts the
+   * actual shape instead.
+   */
+  it('returns buyerId as a string and buyerName populated, never a nested object', async () => {
+    const farmer = await makeUser('farmer');
+    const buyer = await makeUser('buyer');
+    const listing = await makeListing({ farmerId: farmer._id });
+
+    await placeBid(String(buyer._id), {
+      listingId: String(listing._id),
+      amountPoisha: 200_000,
+    });
+
+    const bids = await listBidsForListing(String(listing._id));
+    expect(bids).toHaveLength(1);
+
+    const bid = bids[0]!;
+    expect(typeof bid.buyerId).toBe('string');
+    // The precise operation that used to throw.
+    expect(() => bid.buyerId.slice(-6)).not.toThrow();
+    expect(bid.buyerName).toBe(buyer.name);
+    expect(typeof bid.id).toBe('string');
+    expect(typeof bid.createdAt).toBe('string');
+  });
+
+  it('returns the same contract from listMyBids, which has no populate', async () => {
+    const farmer = await makeUser('farmer');
+    const buyer = await makeUser('buyer');
+    const listing = await makeListing({ farmerId: farmer._id });
+
+    await placeBid(String(buyer._id), {
+      listingId: String(listing._id),
+      amountPoisha: 200_000,
+    });
+
+    const mine = await listMyBids(String(buyer._id));
+    expect(mine).toHaveLength(1);
+    // Unpopulated here, so buyerName is empty — but buyerId must still be a string, or the
+    // same crash reappears on the buyer's own bids screen.
+    expect(typeof mine[0]!.buyerId).toBe('string');
+    expect(() => mine[0]!.buyerId.slice(-6)).not.toThrow();
   });
 });

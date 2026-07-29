@@ -252,6 +252,171 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     en: { title: 'The advisory service is busy', hint: 'Please try again shortly.' },
   },
 
+  // ---- identity: phone / OTP ----
+  otp_invalid: {
+    tone: 'error',
+    bn: { title: 'কোডটি সঠিক নয়', hint: 'আবার দেখে লিখুন।' },
+    en: { title: 'That code is not correct', hint: 'Check the digits and try again.' },
+  },
+  otp_expired: {
+    tone: 'warning',
+    bn: { title: 'কোডের সময় শেষ', hint: 'নতুন কোড নিন।' },
+    en: { title: 'That code has expired', hint: 'Request a new one.' },
+  },
+  otp_used: {
+    tone: 'warning',
+    bn: { title: 'এই কোড ইতিমধ্যে ব্যবহার হয়েছে' },
+    en: { title: 'That code has already been used' },
+  },
+  phone_required: {
+    tone: 'error',
+    bn: { title: 'নতুন মোবাইল নম্বর লিখুন' },
+    en: { title: 'Enter the new mobile number' },
+  },
+  same_phone: {
+    tone: 'info',
+    bn: { title: 'এটি ইতিমধ্যে আপনার নম্বর' },
+    en: { title: 'That is already your number' },
+  },
+  already_verified: {
+    tone: 'info',
+    bn: { title: 'আপনার নম্বর ইতিমধ্যে যাচাই করা আছে' },
+    en: { title: 'Your number is already verified' },
+  },
+  phone_unverified: {
+    tone: 'warning',
+    bn: {
+      title: 'আগে মোবাইল নম্বর যাচাই করুন',
+      hint: 'অ্যাকাউন্ট বিভাগে গিয়ে যাচাই করুন।',
+    },
+    en: {
+      title: 'Verify your phone number first',
+      hint: 'Go to your account section to verify it.',
+    },
+  },
+
+  // ---- identity: profile ----
+  email_taken: {
+    tone: 'error',
+    bn: { title: 'এই ইমেইলে অন্য অ্যাকাউন্ট আছে' },
+    en: { title: 'Another account already uses that email' },
+  },
+  password_unchanged: {
+    tone: 'error',
+    bn: { title: 'আগে ব্যবহার করা পাসওয়ার্ড দেওয়া যাবে না' },
+    en: { title: 'Choose a password you have not used here' },
+  },
+  no_permitted_fields: {
+    tone: 'error',
+    bn: { title: 'এই তথ্যগুলো আপনার অ্যাকাউন্টে প্রযোজ্য নয়' },
+    en: { title: 'None of those fields apply to your account' },
+  },
+  user_missing: {
+    tone: 'error',
+    bn: { title: 'অ্যাকাউন্ট পাওয়া যায়নি' },
+    en: { title: 'Account not found' },
+  },
+
+  // ---- identity: KYC ----
+  documents_missing: {
+    tone: 'warning',
+    bn: {
+      title: 'সব কাগজপত্র এখনো দেওয়া হয়নি',
+      hint: 'এনআইডির দুই পাশ ও নিজের ছবি দিতে হবে।',
+    },
+    en: {
+      title: 'Some documents are still missing',
+      hint: 'Both sides of your NID and a selfie are needed.',
+    },
+  },
+  bad_document_kind: {
+    tone: 'error',
+    bn: { title: 'কাগজের ধরন সঠিক নয়' },
+    en: { title: 'That document type is not recognised' },
+  },
+  kyc_locked: {
+    tone: 'info',
+    bn: {
+      title: 'আপনার আবেদন যাচাই চলছে',
+      hint: 'এই সময়ে কাগজপত্র বদলানো যাবে না।',
+    },
+    en: {
+      title: 'Your application is under review',
+      hint: 'Documents cannot be changed while it is being checked.',
+    },
+  },
+  kyc_approved: {
+    tone: 'info',
+    bn: { title: 'আপনার পরিচয় ইতিমধ্যে যাচাই হয়েছে' },
+    en: { title: 'Your identity is already verified' },
+  },
+  kyc_pending: {
+    tone: 'info',
+    bn: {
+      title: 'যাচাই এখনো চলছে',
+      hint: 'অনুমোদন পেলে ফসল তালিকায় দিতে পারবেন।',
+    },
+    en: {
+      title: 'Your verification is still being reviewed',
+      hint: 'You can list produce once it is approved.',
+    },
+  },
+  kyc_rejected: {
+    tone: 'error',
+    bn: {
+      title: 'আপনার যাচাই আবেদন গ্রহণ করা হয়নি',
+      hint: 'কারণ দেখে আবার আবেদন করুন।',
+    },
+    en: {
+      title: 'Your verification was not accepted',
+      hint: 'Check the reason given and submit again.',
+    },
+  },
+  kyc_not_started: {
+    tone: 'warning',
+    bn: {
+      title: 'ফসল বিক্রি করতে আগে পরিচয় যাচাই করুন',
+      hint: 'অ্যাকাউন্ট বিভাগে গিয়ে শুরু করুন।',
+    },
+    en: {
+      title: 'Verify your identity before listing produce',
+      hint: 'Start from your account section.',
+    },
+  },
+  kyc_not_pending: {
+    tone: 'warning',
+    bn: { title: 'এই আবেদনের সিদ্ধান্ত ইতিমধ্যে হয়ে গেছে' },
+    en: { title: 'That application has already been decided' },
+  },
+  reason_required: {
+    tone: 'error',
+    bn: { title: 'কারণ লিখুন', hint: 'আবেদনকারী যেন সংশোধন করতে পারেন।' },
+    en: { title: 'A reason is required', hint: 'So the applicant can correct it.' },
+  },
+  storage_unconfigured: {
+    tone: 'error',
+    bn: { title: 'কাগজপত্র সংরক্ষণ সেবা এখন চালু নেই' },
+    en: { title: 'Document storage is not available right now' },
+  },
+
+  // ---- buyer trust ----
+  bid_over_ceiling: {
+    tone: 'warning',
+    bn: {
+      title: 'এই দর আপনার বর্তমান সীমার চেয়ে বেশি',
+      hint: 'অ্যাকাউন্ট যাচাই করলে সীমা বাড়বে।',
+    },
+    en: {
+      title: 'This bid is above your current limit',
+      hint: 'Verify your account to raise the limit.',
+    },
+  },
+  account_suspended: {
+    tone: 'error',
+    bn: { title: 'আপনার অ্যাকাউন্ট স্থগিত আছে', hint: 'সহায়তার জন্য যোগাযোগ করুন।' },
+    en: { title: 'Your account is suspended', hint: 'Please contact support.' },
+  },
+
   // ---- generic / transport ----
   validation_failed: {
     tone: 'error',
@@ -358,6 +523,49 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
       hint: 'The payment stays held until it is resolved.',
     },
   },
+  otp_sent: {
+    tone: 'info',
+    bn: { title: 'কোড পাঠানো হয়েছে' },
+    en: { title: 'A code has been sent' },
+  },
+  phone_verified: {
+    tone: 'info',
+    bn: { title: 'মোবাইল নম্বর যাচাই হয়েছে' },
+    en: { title: 'Your phone number is verified' },
+  },
+  phone_changed: {
+    tone: 'info',
+    bn: { title: 'নম্বর পরিবর্তন হয়েছে', hint: 'নিরাপত্তার জন্য আবার লগইন করুন।' },
+    en: { title: 'Your number has been changed', hint: 'Please log in again for security.' },
+  },
+  profile_updated: {
+    tone: 'info',
+    bn: { title: 'তথ্য সংরক্ষণ হয়েছে' },
+    en: { title: 'Your details have been saved' },
+  },
+  password_changed: {
+    tone: 'info',
+    bn: { title: 'পাসওয়ার্ড পরিবর্তন হয়েছে', hint: 'আবার লগইন করুন।' },
+    en: { title: 'Your password has been changed', hint: 'Please log in again.' },
+  },
+  document_uploaded: {
+    tone: 'info',
+    bn: { title: 'কাগজ যোগ হয়েছে' },
+    en: { title: 'Document uploaded' },
+  },
+  kyc_submitted: {
+    tone: 'info',
+    bn: { title: 'আবেদন জমা হয়েছে', hint: 'যাচাই শেষ হলে আপনাকে জানানো হবে।' },
+    en: {
+      title: 'Your application has been submitted',
+      hint: 'You will be notified once it is reviewed.',
+    },
+  },
+  review_recorded: {
+    tone: 'info',
+    bn: { title: 'সিদ্ধান্ত সংরক্ষণ হয়েছে' },
+    en: { title: 'Decision recorded' },
+  },
   refund_issued: {
     tone: 'info',
     bn: { title: 'টাকা ফেরত দেওয়া হয়েছে' },
@@ -375,7 +583,7 @@ export interface MessageBundle {
 }
 
 /** Wording revision. Bump on any copy change so caches invalidate. */
-export const MESSAGE_VERSION = '1';
+export const MESSAGE_VERSION = '2';
 
 function flatten(
   catalogue: Record<string, MessageEntry>,

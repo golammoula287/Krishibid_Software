@@ -98,6 +98,21 @@ const envSchema = z.object({
   DISEASE_LABELS_PATH: z.string().default('./ml/artifacts/labels.json'),
   DISEASE_CONFIDENCE_THRESHOLD: z.coerce.number().min(0).max(1).default(0.6),
 
+  /**
+   * Face embedding model, used to score a selfie against an NID photo locally so no
+   * biometric data leaves the deployment. Optional: without it KYC review is fully manual.
+   */
+  FACE_MODEL_PATH: z.string().default('../ml/artifacts/face-embed.onnx'),
+  /**
+   * Cosine-similarity threshold, mapped to 0..1. Advisory only — it flags a submission for
+   * closer attention and never approves or rejects on its own.
+   */
+  FACE_MATCH_THRESHOLD: z.coerce.number().min(0).max(1).default(0.62),
+
+  /** Signed KYC document URLs expire this quickly. Long enough to view, short enough that a
+   *  copied link is useless soon after. */
+  KYC_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(300),
+
   RAG_VECTOR_INDEX: z.string().default('kb_vector_index'),
   RAG_TEXT_INDEX: z.string().default('kb_text_index'),
   RAG_NUM_CANDIDATES: z.coerce.number().int().positive().default(150),

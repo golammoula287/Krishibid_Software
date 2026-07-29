@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { getMessages } from '../controllers/messages.controller.js';
 import { Crop } from '../models/Crop.js';
+import { accountRoutes } from './account.routes.js';
 import { advisoryRoutes } from './advisory.routes.js';
 import { authRoutes } from './auth.routes.js';
 import { diagnosisRoutes } from './diagnosis.routes.js';
@@ -11,6 +12,7 @@ import { paymentRoutes } from './payment.routes.js';
 export const apiRoutes = Router();
 
 apiRoutes.use('/auth', authRoutes);
+apiRoutes.use('/account', accountRoutes);
 apiRoutes.use('/marketplace', marketplaceRoutes);
 apiRoutes.use('/orders', orderRoutes);
 apiRoutes.use('/payments', paymentRoutes);
