@@ -47,7 +47,13 @@
     "acceptBid": "Accept this bid",
     "createListing": "List a crop for sale",
     "myListings": "My listings",
-    "empty": "No listings right now"
+    "empty": "No listings right now",
+    "youWillBid": "You are bidding {{amount}}",
+    "confirmBidTitle": "Confirm your bid",
+    "confirmBidBody": "A bid cannot be changed once placed. Please check the amount carefully.",
+    "confirmBidYes": "Yes, bid this amount",
+    "signupToBid": "You need an account to bid — it is free to create one",
+    "onlyBuyersBid": "Only buyers can place bids"
   },
   "diagnose": {
     "title": "Crop disease detection",

@@ -3,12 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import ConfirmDialog from '../components/ConfirmDialog.js';
 import { CardSkeleton, ErrorNote, Spinner } from '../components/ui.js';
 import { api, ApiRequestError } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
 import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 import { getSocket, watchListing } from '../lib/socket.js';
+import { useToast } from '../lib/toast.js';
 
 /** 1 BDT, matching MIN_BID_INCREMENT_POISHA on the server. */
 const MIN_INCREMENT_POISHA = 100;
@@ -22,7 +24,9 @@ export default function ListingDetailPage() {
   const queryClient = useQueryClient();
 
   const [bidBdt, setBidBdt] = useState('');
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [tick, setTick] = useState(0);
+  const toast = useToast();
 
   const listing = useQuery({
     queryKey: ['listing', id],
@@ -79,9 +83,14 @@ export default function ListingDetailPage() {
       }),
     onSuccess: () => {
       setBidBdt('');
+      setConfirmOpen(false);
+      toast.showSuccess('bid_placed');
       void queryClient.invalidateQueries({ queryKey: ['listing', id] });
       void queryClient.invalidateQueries({ queryKey: ['bids', id] });
     },
+    // Dismiss the dialog on failure too: leaving it open over a toast that says "someone bid
+    // higher" invites a second blind confirm at a price that is no longer valid.
+    onError: () => setConfirmOpen(false),
   });
 
   const acceptBid = useMutation({
@@ -105,7 +114,10 @@ export default function ListingDetailPage() {
 
   const remaining = timeRemaining(data.bidClosesAt, locale);
   const isOwner = user?.id === data.farmerId;
-  const canBid = user?.role === 'buyer' && data.status === 'open' && remaining !== null;
+  /** Open for bidding regardless of who is looking — guests included. */
+  const biddingOpen = data.status === 'open' && remaining !== null;
+  const amountPoisha = Math.round(Number(bidBdt) * 100);
+  const minimumLabel = formatBdt(minimumPoisha, locale);
 
   return (
     <div className="space-y-4">
@@ -153,12 +165,42 @@ export default function ListingDetailPage() {
         </div>
       </div>
 
-      {canBid && (
+      {/**
+       * The bid form is shown to EVERYONE while the lot is open, including guests.
+       *
+       * Hiding it from visitors hides the entire point of the platform: someone deciding
+       * whether to sign up needs to see what bidding involves. So the form renders, and the
+       * account requirement is enforced at the moment of action rather than by concealment.
+       */}
+      {biddingOpen && !isOwner && (
         <form
           className="card space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
-            placeBid.mutate();
+
+            if (!user) {
+              // Guests get told what to do, not silently blocked.
+              toast.showError(
+                new ApiRequestError(401, 'signup_required', t('market.signupToBid')),
+              );
+              navigate('/login', { state: { from: `/listing/${id}`, intent: 'bid' } });
+              return;
+            }
+
+            if (user.role !== 'buyer') {
+              toast.showError(new ApiRequestError(403, 'forbidden', t('market.onlyBuyersBid')));
+              return;
+            }
+
+            if (!Number.isFinite(amountPoisha) || amountPoisha < minimumPoisha) {
+              toast.showError(
+                new ApiRequestError(422, 'bid_too_low', t('market.minimum', { amount: minimumLabel })),
+              );
+              return;
+            }
+
+            // Step one of two: nothing is submitted until the amount is confirmed.
+            setConfirmOpen(true);
           }}
         >
           <h2 className="font-bold text-brand-900">{t('market.placeBid')}</h2>
@@ -178,17 +220,39 @@ export default function ListingDetailPage() {
               required
             />
             <p className="mt-1 text-xs text-slate-500">
-              {t('market.minimum', { amount: formatBdt(minimumPoisha, locale) })}
+              {t('market.minimum', { amount: minimumLabel })}
             </p>
-          </div>
 
-          {placeBid.isError && <ErrorNote error={placeBid.error} />}
+            {/* Echo the parsed figure back immediately. Seeing "৳50,000" under a field where
+                ৳5,000 was meant is what catches a mistyped amount before the confirm step. */}
+            {bidBdt !== '' && Number.isFinite(amountPoisha) && (
+              <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-900">
+                {t('market.youWillBid', { amount: formatBdt(amountPoisha, locale) })}
+              </p>
+            )}
+          </div>
 
           <button type="submit" className="btn-primary w-full" disabled={placeBid.isPending}>
             {placeBid.isPending ? t('common.loading') : t('market.submitBid')}
           </button>
+
+          {!user && (
+            <p className="text-center text-xs text-slate-500">{t('market.signupToBid')}</p>
+          )}
         </form>
       )}
+
+      {/* Step two of two. Errors and successes arrive as toasts, so no inline error note. */}
+      <ConfirmDialog
+        open={confirmOpen}
+        title={t('market.confirmBidTitle')}
+        amount={Number.isFinite(amountPoisha) ? formatBdt(amountPoisha, locale) : ''}
+        body={t('market.confirmBidBody')}
+        confirmLabel={t('market.confirmBidYes')}
+        busy={placeBid.isPending}
+        onConfirm={() => placeBid.mutate()}
+        onCancel={() => setConfirmOpen(false)}
+      />
 
       <div className="card">
         <h2 className="mb-3 font-bold text-brand-900">
