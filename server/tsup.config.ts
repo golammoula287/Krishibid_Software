@@ -22,6 +22,9 @@ export default defineConfig({
     ingestKb: 'src/scripts/ingestKb.ts',
     createIndexes: 'src/scripts/createIndexes.ts',
     evalRag: 'src/scripts/evalRag.ts',
+    // The one-off email migration, which has to be runnable on the deployed box — it must run
+    // before the new code serves traffic, and that box has no tsx.
+    migrateEmails: 'src/scripts/migrateEmails.ts',
   },
   outDir: 'dist',
   format: ['esm'],

@@ -15,6 +15,8 @@
     "seed": "tsx src/scripts/seed.ts",
     "ingest:kb": "tsx src/scripts/ingestKb.ts",
     "create:indexes": "tsx src/scripts/createIndexes.ts",
+    "migrate:emails": "tsx src/scripts/migrateEmails.ts",
+    "migrate:emails:prod": "node dist/migrateEmails.js",
     "seed:prod": "node dist/seed.js",
     "ingest:kb:prod": "node dist/ingestKb.js",
     "create:indexes:prod": "node dist/createIndexes.js",

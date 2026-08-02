@@ -106,6 +106,30 @@ Everything else is optional in development. Without Cloudinary, images are store
 inline; without SSLCOMMERZ, payment routes return 503; without the ONNX model,
 `/api/diagnosis` returns 503 — the rest of the app runs regardless.
 
+### Upgrading an existing deployment — run this FIRST
+
+`users.email` is now **required and unique**. On a database whose users predate that, two things
+break, both measured rather than assumed:
+
+- every login calls `user.save()` to rotate the refresh-token hash, and mongoose validates the
+  whole document — so a user with no email fails with `Path `email` is required` and **cannot log
+  in at all**;
+- the unique index cannot build over two documents with a missing email — they collide on null.
+
+```bash
+npm run migrate:emails -- --dry   # report only
+npm run migrate:emails            # backfill, then build the unique index
+```
+
+It is idempotent. Accounts with no address get a placeholder at `@krishibid.invalid` — a domain
+reserved by RFC 2606, so it can never deliver to a real stranger — marked **unverified**, because
+nobody proved it. Those users set a real address from Account → Verify your email → "Wrong
+address? Change it". Until they do, a farmer among them cannot list produce and a buyer stays at
+the `basic` bid ceiling, which is the correct consequence of an unproven address rather than an
+oversight.
+
+Run it **before** the new server takes traffic. On Render: `npm run migrate:emails:prod`.
+
 ### Signing up, and why the codes go to email
 
 Signup is four steps for a farmer and three for a buyer, because a farmer uploads identity
