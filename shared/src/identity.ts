@@ -1,12 +1,52 @@
 import { z } from 'zod';
-import { districtSchema, localeSchema, objectId, phoneSchema } from './common.js';
+import { districtSchema, localeSchema, objectId } from './common.js';
 
 /**
  * Account-level state, set by an admin. Orthogonal to verification: a fully verified
  * farmer can still be suspended, and an unverified one is not "inactive".
  */
-export const accountStatusSchema = z.enum(['active', 'suspended']);
+export const accountStatusSchema = z.enum([
+  'active',
+  /** Farmer has applied and is waiting for an admin. Login is refused in this state. */
+  'pending_approval',
+  /**
+   * Application rejected. Login is deliberately ALLOWED here — refusing it would leave the
+   * applicant unable to log in to fix what the reviewer flagged and unable to re-register,
+   * because their phone and email are already taken. They get a resubmit-only session.
+   */
+  'rejected',
+  'suspended',
+]);
 export type AccountStatus = z.infer<typeof accountStatusSchema>;
+
+/** Statuses that may hold a session at all. */
+export const LOGIN_ALLOWED_STATUSES: readonly AccountStatus[] = ['active', 'rejected'] as const;
+
+/** Statuses that may actually *do* anything beyond viewing and resubmitting. */
+export const OPERATIONAL_STATUSES: readonly AccountStatus[] = ['active'] as const;
+
+/**
+ * Where an OTP code is delivered.
+ *
+ * `email` only, for now. There is no usable free SMS provider for Bangladesh, so every code —
+ * signup, password reset, status lookup — travels by email. The type exists so adding `sms`
+ * later is a delivery change rather than a schema migration.
+ */
+export const otpChannelSchema = z.enum(['email']);
+export type OtpChannel = z.infer<typeof otpChannelSchema>;
+
+/**
+ * What a code is for. Scoped so a code obtained for one action cannot be replayed to perform
+ * another — a reset code must not be usable to verify an email address, and vice versa.
+ */
+export const otpPurposeSchema = z.enum([
+  'verify_email',
+  'change_email',
+  'reset_password',
+  'signup_verify',
+  'status_lookup',
+]);
+export type OtpPurpose = z.infer<typeof otpPurposeSchema>;
 
 /**
  * Identity-verification state. Shared by both roles, which is why it is not called
@@ -68,10 +108,17 @@ export type BuyerType = z.infer<typeof buyerTypeSchema>;
 // Phone / email verification
 // ---------------------------------------------------------------------------
 
+/**
+ * Account-level OTP, for the address already on file or for changing it.
+ *
+ * `phone` is absent here on purpose: the number is no longer OTP-verified, because there is no
+ * usable free SMS provider for Bangladesh. It stays required and unique as contact information
+ * and a weak uniqueness control, and it is never labelled "verified".
+ */
 export const requestOtpSchema = z.object({
-  /** Omitted to verify the number already on the account; supplied to change it. */
-  phone: phoneSchema.optional(),
-  purpose: z.enum(['verify_current', 'change_phone']).default('verify_current'),
+  /** Omitted to verify the address already on the account; supplied to change it. */
+  email: z.string().trim().toLowerCase().email().max(160).optional(),
+  purpose: z.enum(['verify_email', 'change_email']).default('verify_email'),
 });
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
 
@@ -80,15 +127,16 @@ export const verifyOtpSchema = z.object({
     .string()
     .trim()
     .regex(/^\d{6}$/, 'the code is 6 digits'),
-  phone: phoneSchema.optional(),
-  purpose: z.enum(['verify_current', 'change_phone']).default('verify_current'),
+  email: z.string().trim().toLowerCase().email().max(160).optional(),
+  purpose: z.enum(['verify_email', 'change_email']).default('verify_email'),
 });
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 
 export interface OtpRequestResult {
+  /** Masked — a***@gmail.com. Enough to confirm the right inbox, not enough to leak it. */
   sentTo: string;
   expiresAt: string;
-  /** Only populated when no SMS provider is configured, so dev can proceed. */
+  /** Only populated outside production when no mail provider is configured, so dev can proceed. */
   devCode?: string;
 }
 
@@ -105,15 +153,15 @@ export const OTP_RESEND_COOLDOWN_SECONDS = 60;
 /**
  * Everything a user may change about themselves without review.
  *
- * Phone is NOT here: it is the login identifier and the anti-fraud anchor, so it moves
- * only through the OTP flow above.
+ * Neither `phone` nor `email` is here. The address is the verified channel, so it moves only
+ * through the OTP flow above, which proves control of the new one first. The number is the login
+ * identifier and is never re-verified, so it does not move at all.
  */
 export const updateProfileSchema = z
   .object({
     name: z.string().trim().min(2).max(80).optional(),
     district: districtSchema.optional(),
     locale: localeSchema.optional(),
-    email: z.string().trim().email().max(160).optional(),
 
     // Farmer-only. Also feeds government scheme matching, so it is worth collecting even
     // from a farmer who has no interest in the schemes tab yet.

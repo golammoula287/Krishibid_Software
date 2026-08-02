@@ -12,7 +12,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import * as controller from '../controllers/account.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { requireActiveAccount } from '../middleware/gate.js';
+import { requireActiveAccount, requireActiveOrRejected } from '../middleware/gate.js';
 import { authLimiter, paymentLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 
@@ -47,10 +47,10 @@ accountRoutes.post(
   controller.changePassword,
 );
 
-// ---- phone verification ----
+// ---- email verification ----
 accountRoutes.post(
   '/otp/request',
-  requireActiveAccount,
+  requireActiveOrRejected,
   authLimiter,
   validate(requestOtpSchema),
   controller.requestOtp,
@@ -58,16 +58,22 @@ accountRoutes.post(
 
 accountRoutes.post(
   '/otp/verify',
-  requireActiveAccount,
+  requireActiveOrRejected,
   authLimiter,
   validate(verifyOtpSchema),
   controller.verifyOtp,
 );
 
-// ---- KYC (both roles: required for a farmer to list, optional trust for a buyer) ----
+/**
+ * KYC (both roles: required for a farmer to list, optional trust for a buyer).
+ *
+ * `requireActiveOrRejected`, not `requireActiveAccount`: a rejected applicant is allowed to log
+ * in for exactly one purpose, and these are the routes that serve it. Gating them on `active`
+ * would give them a session that can do nothing at all.
+ */
 accountRoutes.post(
   '/kyc/documents/:kind',
-  requireActiveAccount,
+  requireActiveOrRejected,
   paymentLimiter,
   upload.single('document'),
   controller.uploadDocument,
@@ -75,7 +81,7 @@ accountRoutes.post(
 
 accountRoutes.post(
   '/kyc/submit',
-  requireActiveAccount,
+  requireActiveOrRejected,
   validate(submitKycSchema),
   controller.submitKyc,
 );

@@ -46,6 +46,68 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
       hint: 'Log in instead, or use a different number.',
     },
   },
+  /**
+   * Deliberately `info`, not `error`.
+   *
+   * Waiting for a reviewer is not a mistake the farmer made, and colouring it red tells them
+   * they did something wrong at the exact moment they are least sure of themselves.
+   */
+  account_pending_approval: {
+    tone: 'info',
+    bn: {
+      title: 'আপনার অ্যাকাউন্ট অনুমোদনের অপেক্ষায় আছে',
+      hint: 'অনুমোদন হলে ইমেইলে জানানো হবে। অবস্থা দেখতে "আবেদনের অবস্থা" পেজে যান।',
+    },
+    en: {
+      title: 'Your account is waiting for approval',
+      hint: 'We will email you when it is decided. You can also check your application status.',
+    },
+  },
+  account_rejected: {
+    tone: 'warning',
+    bn: {
+      title: 'আপনার আবেদন গ্রহণ করা হয়নি',
+      hint: 'কারণ দেখে তথ্য ঠিক করে আবার জমা দিন।',
+    },
+    en: {
+      title: 'Your application was not accepted',
+      hint: 'Check the reason, correct it and submit again.',
+    },
+  },
+  account_not_active: {
+    tone: 'warning',
+    bn: { title: 'আপনার অ্যাকাউন্ট এখনো চালু হয়নি' },
+    en: { title: 'Your account is not open yet' },
+  },
+  signup_expired: {
+    tone: 'warning',
+    bn: {
+      title: 'নিবন্ধনের সময় শেষ হয়ে গেছে',
+      hint: 'আবার শুরু করুন — বেশি সময় লাগবে না।',
+    },
+    en: { title: 'That signup has expired', hint: 'Please start again — it is quick.' },
+  },
+  registration_incomplete: {
+    tone: 'warning',
+    bn: { title: 'আগে ইমেইল যাচাই করুন' },
+    en: { title: 'Verify your email address first' },
+  },
+  documents_not_needed: {
+    tone: 'info',
+    bn: { title: 'ক্রেতা অ্যাকাউন্টের জন্য কাগজপত্র লাগে না' },
+    en: { title: 'A buyer account does not need documents' },
+  },
+  mail_send_failed: {
+    tone: 'error',
+    bn: {
+      title: 'ইমেইল পাঠানো যায়নি',
+      hint: 'ইমেইল ঠিকানা দেখে কিছুক্ষণ পরে আবার চেষ্টা করুন।',
+    },
+    en: {
+      title: 'The email could not be sent',
+      hint: 'Check the address and try again shortly.',
+    },
+  },
 
   // ---- bidding ----
   bid_too_low: {
@@ -208,6 +270,28 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'পেমেন্ট শুরু করা যায়নি', hint: 'কিছুক্ষণ পরে আবার চেষ্টা করুন।' },
     en: { title: 'Could not start the payment', hint: 'Please try again shortly.' },
   },
+  gateway_validation_failed: {
+    tone: 'warning',
+    bn: {
+      title: 'পেমেন্টের তথ্য যাচাই করা যাচ্ছে না',
+      hint: 'টাকা কাটা হলে তা নিরাপদ আছে — কিছুক্ষণ পরে অর্ডারটি দেখুন।',
+    },
+    en: {
+      title: 'The payment could not be verified with the bank',
+      hint: 'If you were charged, the money is safe — check the order again shortly.',
+    },
+  },
+  gateway_refund_failed: {
+    tone: 'error',
+    bn: {
+      title: 'ফেরত স্বয়ংক্রিয়ভাবে করা যায়নি',
+      hint: 'আপনার টাকা আটকে আছে, হারায়নি। সহায়তার জন্য যোগাযোগ করুন।',
+    },
+    en: {
+      title: 'The refund could not be completed automatically',
+      hint: 'Your money is still held, not lost. Please contact support.',
+    },
+  },
 
   // ---- diagnosis ----
   no_image: {
@@ -268,29 +352,29 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'এই কোড ইতিমধ্যে ব্যবহার হয়েছে' },
     en: { title: 'That code has already been used' },
   },
-  phone_required: {
+  email_required: {
     tone: 'error',
-    bn: { title: 'নতুন মোবাইল নম্বর লিখুন' },
-    en: { title: 'Enter the new mobile number' },
+    bn: { title: 'নতুন ইমেইল ঠিকানা লিখুন' },
+    en: { title: 'Enter the new email address' },
   },
-  same_phone: {
+  same_email: {
     tone: 'info',
-    bn: { title: 'এটি ইতিমধ্যে আপনার নম্বর' },
-    en: { title: 'That is already your number' },
+    bn: { title: 'এটি ইতিমধ্যে আপনার ইমেইল ঠিকানা' },
+    en: { title: 'That is already your email address' },
   },
   already_verified: {
     tone: 'info',
-    bn: { title: 'আপনার নম্বর ইতিমধ্যে যাচাই করা আছে' },
-    en: { title: 'Your number is already verified' },
+    bn: { title: 'আপনার ইমেইল ইতিমধ্যে যাচাই করা আছে' },
+    en: { title: 'Your email address is already verified' },
   },
-  phone_unverified: {
+  email_unverified: {
     tone: 'warning',
     bn: {
-      title: 'আগে মোবাইল নম্বর যাচাই করুন',
+      title: 'আগে ইমেইল ঠিকানা যাচাই করুন',
       hint: 'অ্যাকাউন্ট বিভাগে গিয়ে যাচাই করুন।',
     },
     en: {
-      title: 'Verify your phone number first',
+      title: 'Verify your email address first',
       hint: 'Go to your account section to verify it.',
     },
   },
@@ -528,15 +612,36 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'কোড পাঠানো হয়েছে' },
     en: { title: 'A code has been sent' },
   },
-  phone_verified: {
+  email_verified: {
     tone: 'info',
-    bn: { title: 'মোবাইল নম্বর যাচাই হয়েছে' },
-    en: { title: 'Your phone number is verified' },
+    bn: { title: 'ইমেইল ঠিকানা যাচাই হয়েছে' },
+    en: { title: 'Your email address is verified' },
   },
-  phone_changed: {
+  email_changed: {
     tone: 'info',
-    bn: { title: 'নম্বর পরিবর্তন হয়েছে', hint: 'নিরাপত্তার জন্য আবার লগইন করুন।' },
-    en: { title: 'Your number has been changed', hint: 'Please log in again for security.' },
+    bn: { title: 'ইমেইল ঠিকানা পরিবর্তন হয়েছে' },
+    en: { title: 'Your email address has been changed' },
+  },
+  registration_submitted: {
+    tone: 'info',
+    bn: {
+      title: 'আপনার আবেদন জমা হয়েছে',
+      hint: 'অনুমোদন হলে ইমেইলে জানানো হবে। তারপর লগইন করে ফসল বিক্রি করতে পারবেন।',
+    },
+    en: {
+      title: 'Your application has been submitted',
+      hint: 'We will email you once it is approved — then you can log in and sell produce.',
+    },
+  },
+  registration_complete: {
+    tone: 'info',
+    bn: { title: 'আপনার অ্যাকাউন্ট তৈরি হয়েছে', hint: 'এখনই বাজারে দর দিতে পারেন।' },
+    en: { title: 'Your account is ready', hint: 'You can start bidding right away.' },
+  },
+  password_reset: {
+    tone: 'info',
+    bn: { title: 'নতুন পাসওয়ার্ড সংরক্ষণ হয়েছে', hint: 'এখন লগইন করুন।' },
+    en: { title: 'Your new password is saved', hint: 'You can log in now.' },
   },
   profile_updated: {
     tone: 'info',
@@ -583,7 +688,7 @@ export interface MessageBundle {
 }
 
 /** Wording revision. Bump on any copy change so caches invalidate. */
-export const MESSAGE_VERSION = '2';
+export const MESSAGE_VERSION = '3';
 
 function flatten(
   catalogue: Record<string, MessageEntry>,

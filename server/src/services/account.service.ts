@@ -2,17 +2,17 @@ import type {
   AccountDto,
   BuyerTier,
   BuyerType,
+  OtpRequestResult,
   UpdateProfileInput,
 } from '@krishibid/shared';
 import bcrypt from 'bcryptjs';
-import mongoose from 'mongoose';
 import { env } from '../config/env.js';
-import { conflict, forbidden, notFound, unauthorized, unprocessable } from '../utils/errors.js';
+import { badRequest, conflict, notFound, unauthorized, unprocessable } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
-import { Order } from '../models/Order.js';
-import { Payment } from '../models/Payment.js';
+import { maskEmail } from '../utils/mask.js';
 import { User, type UserDoc } from '../models/User.js';
 import { toKycDto } from './kyc.service.js';
+import { consumeCode, issueCode } from './otp.service.js';
 import { ceilingForTier, countCleanCompletedOrders, evaluateTier, refreshBuyerTier } from './trust.service.js';
 
 /**
@@ -26,8 +26,14 @@ function listingEligibility(user: UserDoc): { canList: boolean; reason?: string 
   if (user.accountStatus === 'suspended') {
     return { canList: false, reason: 'account_suspended' };
   }
-  if (!user.phoneVerified) {
-    return { canList: false, reason: 'phone_unverified' };
+  if (user.accountStatus === 'pending_approval') {
+    return { canList: false, reason: 'account_pending_approval' };
+  }
+  if (user.accountStatus === 'rejected') {
+    return { canList: false, reason: 'account_rejected' };
+  }
+  if (!user.emailVerified) {
+    return { canList: false, reason: 'email_unverified' };
   }
 
   switch (user.kyc?.status) {
@@ -115,11 +121,17 @@ export async function updateProfile(
   const farmerOnly = ['farmSizeAcres', 'cropsGrown'] as const;
   const buyerOnly = ['businessName', 'buyerType', 'tradeLicenceNo'] as const;
 
+  /**
+   * `email` is absent, and so is `phone`.
+   *
+   * The address is the verified channel — every code, approval and rejection goes to it — so it
+   * moves only through the OTP flow below, which proves control of the new address before
+   * switching. A silent PATCH would let someone point their account at an inbox they do not own.
+   */
   const allowed = new Set<string>([
     ...shared,
     ...(user.role === 'farmer' ? farmerOnly : []),
     ...(user.role === 'buyer' ? buyerOnly : []),
-    'email',
   ]);
 
   const update: Record<string, unknown> = {};
@@ -129,16 +141,6 @@ export async function updateProfile(
 
   if (Object.keys(update).length === 0) {
     throw unprocessable('no_permitted_fields', 'none of those fields apply to your account');
-  }
-
-  // Changing the email invalidates its verified state — otherwise a verified badge would
-  // carry over to an address nobody has proven they control.
-  if (typeof update.email === 'string' && update.email !== user.email) {
-    const taken = await User.findOne({ email: update.email, _id: { $ne: user._id } })
-      .select('_id')
-      .lean();
-    if (taken) throw conflict('email_taken', 'another account already uses that email');
-    update.emailVerified = false;
   }
 
   await User.updateOne({ _id: user._id }, { $set: update });
@@ -175,39 +177,82 @@ export async function changePassword(
   logger.info({ userId }, 'password changed');
 }
 
+// ---------------------------------------------------------------------------
+// Email verification and change
+// ---------------------------------------------------------------------------
+
 /**
- * Whether a phone-number change is currently allowed.
+ * Sends a code to verify the address on file, or to move to a new one.
  *
- * Blocked mid-transaction because the number is how the counterparty reaches them: a buyer
- * who changes their number while holding a live bid, or a farmer with an unsettled order,
- * becomes uncontactable at exactly the moment contact matters.
+ * There is no phone equivalent any more. Without an SMS provider a number cannot be proven, and
+ * an unprovable "verification" would be worse than none — it would put a verified badge on a
+ * value nobody checked. The number stays fixed after signup for the same reason it is unique:
+ * it is how a counterparty reaches someone mid-trade.
  */
-export async function assertPhoneChangeAllowed(userId: string): Promise<void> {
-  const id = new mongoose.Types.ObjectId(userId);
+export async function requestEmailOtp(
+  userId: string,
+  purpose: 'verify_email' | 'change_email',
+  newEmail?: string,
+): Promise<OtpRequestResult> {
+  const user = await User.findById(userId).select('name email emailVerified locale');
+  if (!user) throw notFound('user');
 
-  const activeOrder = await Order.findOne({
-    $or: [{ buyerId: id }, { farmerId: id }],
-    status: { $in: ['awaiting_payment', 'confirmed', 'in_transit', 'disputed'] },
-  })
-    .select('_id status')
-    .lean();
+  let destination = user.email;
 
-  if (activeOrder) {
-    throw forbidden(
-      'you cannot change your number while an order is in progress — the other party needs to reach you',
-    );
+  if (purpose === 'change_email') {
+    if (!newEmail) throw badRequest('email_required', 'enter the new email address');
+    if (newEmail === user.email) {
+      throw unprocessable('same_email', 'that is already your email address');
+    }
+    // Checked before sending, so a blocked change does not cost a wasted code and a cooldown.
+    const taken = await User.findOne({ email: newEmail, _id: { $ne: user._id } })
+      .select('_id')
+      .lean();
+    if (taken) throw conflict('email_taken', 'another account already uses that email');
+
+    destination = newEmail;
+  } else if (user.emailVerified) {
+    throw unprocessable('already_verified', 'your email address is already verified');
   }
 
-  const heldPayment = await Payment.findOne({
-    $or: [{ buyerId: id }, { farmerId: id }],
-    status: { $in: ['pending', 'held', 'disputed'] },
-  })
-    .select('_id')
-    .lean();
+  const { expiresAt, devCode } = await issueCode(destination, purpose, {
+    userId,
+    name: user.name,
+  });
 
-  if (heldPayment) {
-    throw forbidden('you cannot change your number while a payment is being held');
+  return {
+    sentTo: maskEmail(destination),
+    expiresAt: expiresAt.toISOString(),
+    ...(devCode ? { devCode } : {}),
+  };
+}
+
+export async function verifyEmailOtp(
+  userId: string,
+  code: string,
+  purpose: 'verify_email' | 'change_email',
+  newEmail?: string,
+): Promise<{ emailChanged: boolean }> {
+  const user = await User.findById(userId);
+  if (!user) throw notFound('user');
+
+  if (purpose === 'change_email' && !newEmail) {
+    throw badRequest('email_required', 'enter the new email address');
   }
+
+  const destination = purpose === 'change_email' ? newEmail! : user.email;
+  await consumeCode(destination, code, purpose);
+
+  await User.updateOne(
+    { _id: user._id },
+    { $set: { email: destination, emailVerified: true } },
+  );
+
+  // A verified address is one of the inputs to the buyer tier, so the ceiling moves with it.
+  if (user.role === 'buyer') await refreshBuyerTier(userId);
+
+  logger.info({ userId, purpose }, 'email verified');
+  return { emailChanged: purpose === 'change_email' };
 }
 
 export const cachedCeiling = (tier: BuyerTier | undefined): number => ceilingForTier(tier);

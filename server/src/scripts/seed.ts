@@ -57,6 +57,24 @@ async function seed(): Promise<void> {
   const password = env().DEMO_PASSWORD || 'demo1234';
   const passwordHash = await bcrypt.hash(password, env().BCRYPT_ROUNDS);
 
+  /**
+   * Every seeded user needs an email, because `users.email` is now required and unique — a
+   * batch of nulls would fail the unique index outright.
+   *
+   * These are `@krishibid.invalid` on purpose: `.invalid` is reserved by RFC 2606 and can never
+   * be registered, so a stray notification to a demo account cannot reach a real stranger.
+   */
+  const demoEmail = (slug: string): string => `${slug}@krishibid.invalid`;
+
+  /**
+   * The admin's address comes from the environment, never from the source.
+   *
+   * This repository is public. A personal Gmail committed into it gets scraped permanently, and
+   * rewriting history later does not un-scrape it. Without the variable the admin still gets a
+   * placeholder so the seed runs — it simply receives nothing.
+   */
+  const adminEmail = env().ADMIN_NOTIFY_EMAIL || demoEmail('admin');
+
   logger.info('clearing previous demo data');
   await Promise.all([
     User.deleteMany({ isDemo: true }),
@@ -74,24 +92,51 @@ async function seed(): Promise<void> {
   const [demoFarmer, demoBuyer, demoAdmin] = await User.create([
     {
       phone: '01700000001',
+      email: demoEmail('farmer'),
+      emailVerified: true,
       name: 'ডেমো কৃষক (Demo Farmer)',
       passwordHash,
       role: 'farmer',
       district: 'Rangpur',
       locale: 'bn',
       isDemo: true,
+      /**
+       * Seeded already approved.
+       *
+       * Demo mode is a first-class feature: someone opening the public URL must reach a working
+       * marketplace, and a demo farmer who cannot list produce because an admin never reviewed
+       * them would look like a broken app rather than a policy. Real farmers still go through
+       * the queue — this account is created by an operator with database access, not by signup.
+       */
+      accountStatus: 'active',
+      kyc: {
+        status: 'approved',
+        fullNameOnNid: 'Demo Farmer',
+        documents: [],
+        submittedAt: new Date(),
+        decidedAt: new Date(),
+        attempts: 1,
+      },
+      farmSizeAcres: 2.5,
+      cropsGrown: ['rice', 'potato'],
     },
     {
       phone: '01700000002',
+      email: demoEmail('buyer'),
+      emailVerified: true,
       name: 'ডেমো ক্রেতা (Demo Buyer)',
       passwordHash,
       role: 'buyer',
       district: 'Dhaka',
       locale: 'bn',
       isDemo: true,
+      businessName: 'ডেমো ট্রেডার্স',
+      buyerType: 'trader',
     },
     {
       phone: '01700000003',
+      email: adminEmail,
+      emailVerified: true,
       name: 'Demo Officer',
       passwordHash,
       role: 'admin',
@@ -105,18 +150,25 @@ async function seed(): Promise<void> {
   const farmers = await User.create(
     FARMER_NAMES.map((name, i) => ({
       phone: `0171000${String(1000 + i).slice(0, 4)}`,
+      email: demoEmail(`farmer-${i + 1}`),
+      emailVerified: true,
       name,
       passwordHash,
       role: 'farmer' as const,
       district: pick(DISTRICTS, i),
       locale: 'bn' as const,
       isDemo: true,
+      // Approved for the same reason as the demo farmer: their listings are the marketplace.
+      accountStatus: 'active' as const,
+      kyc: { status: 'approved' as const, documents: [], decidedAt: new Date(), attempts: 1 },
     })),
   );
 
   const buyers = await User.create(
     BUYER_NAMES.map((name, i) => ({
       phone: `0172000${String(2000 + i).slice(0, 4)}`,
+      email: demoEmail(`buyer-${i + 1}`),
+      emailVerified: true,
       name,
       passwordHash,
       role: 'buyer' as const,

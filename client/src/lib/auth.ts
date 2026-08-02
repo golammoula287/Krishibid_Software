@@ -7,7 +7,6 @@ interface AuthState {
   /** True until the initial silent refresh completes, so routes don't flash. */
   initialising: boolean;
   login: (phone: string, password: string) => Promise<void>;
-  register: (input: Record<string, unknown>) => Promise<void>;
   demoLogin: (role: Role) => Promise<void>;
   logout: () => Promise<void>;
   /** Attempts to restore a session from the httpOnly refresh cookie. */
@@ -24,12 +23,13 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user: result.user });
   },
 
-  register: async (input) => {
-    const result = await api.post<AuthResult>('/auth/register', input);
-    setAccessToken(result.accessToken);
-    set({ user: result.user });
-  },
-
+  /**
+   * There is no `register` here on purpose.
+   *
+   * Signup is four calls now (see `lib/signup.ts`), because a farmer attaches documents before
+   * any account exists. A one-shot register that returned a session was exactly what let someone
+   * create an account and never verify anything.
+   */
   demoLogin: async (role) => {
     const result = await api.post<AuthResult>('/auth/demo', { role });
     setAccessToken(result.accessToken);

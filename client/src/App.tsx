@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout.js';
 import Toaster from './components/Toaster.js';
 import { Spinner } from './components/ui.js';
+import type { Role } from '@krishibid/shared';
 import { useAuth } from './lib/auth.js';
 import { disconnectSocket } from './lib/socket.js';
 
@@ -26,7 +27,18 @@ const PaymentReturnPage = lazy(() => import('./pages/PaymentReturnPage.js'));
 // Lazy like the rest, so the simulated-checkout page costs nothing in the initial
 // bundle for the real-gateway configuration that never routes to it.
 const MockCheckoutPage = lazy(() => import('./pages/MockCheckoutPage.js'));
+const VerifyEmailPage = lazy(() => import('./pages/VerifyEmailPage.js'));
+const VerifyIdentityPage = lazy(() => import('./pages/VerifyIdentityPage.js'));
+const AdminReviewPage = lazy(() => import('./pages/AdminReviewPage.js'));
 const LoginPage = lazy(() => import('./pages/LoginPage.js'));
+/**
+ * Signup, status and password reset are lazy like everything else — and that matters more here
+ * than elsewhere. The market feed is the landing page for someone who has not signed up yet, so
+ * it must not pay for a four-step wizard and an image-upload path they may never open.
+ */
+const SignupPage = lazy(() => import('./pages/SignupPage.js'));
+const SignupStatusPage = lazy(() => import('./pages/SignupStatusPage.js'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.js'));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, initialising } = useAuth();
@@ -36,6 +48,24 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   // authenticated user to the login screen for a frame.
   if (initialising) return <Spinner />;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  return <>{children}</>;
+}
+
+/**
+ * Role gate for a route.
+ *
+ * Redirects to the market rather than rendering an empty screen or a bare "forbidden": a buyer
+ * who lands on /diagnose by an old link or a typed URL should end up somewhere useful.
+ *
+ * Presentation only — every one of these routes is also gated server-side. If this component
+ * were the sole protection, a request straight to the API would still succeed.
+ */
+function RequireRole({ roles, children }: { roles: Role[]; children: React.ReactNode }) {
+  const { user, initialising } = useAuth();
+
+  if (initialising) return <Spinner />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!roles.includes(user.role)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -59,6 +89,12 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
 
+        {/* Public by necessity: nobody signing up has a session, and a farmer waiting for
+            approval cannot get one — the status page is their only way to find out anything. */}
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/status" element={<SignupStatusPage />} />
+        <Route path="/forgot" element={<ForgotPasswordPage />} />
+
         <Route element={<Layout />}>
           {/* Browsing the market is public — a farmer should be able to see prices
               before deciding whether to sign up. */}
@@ -68,25 +104,27 @@ export default function App() {
           <Route
             path="listing/new"
             element={
-              <RequireAuth>
+              <RequireRole roles={['farmer']}>
                 <CreateListingPage />
-              </RequireAuth>
+              </RequireRole>
             }
           />
+          {/* Farmer-only. A buyer has no use for leaf diagnosis, and these two routes are
+              what consume the 5-req/min Gemini allowance. */}
           <Route
             path="diagnose"
             element={
-              <RequireAuth>
+              <RequireRole roles={['farmer', 'admin']}>
                 <DiagnosePage />
-              </RequireAuth>
+              </RequireRole>
             }
           />
           <Route
             path="advisor"
             element={
-              <RequireAuth>
+              <RequireRole roles={['farmer', 'admin']}>
                 <AdvisorPage />
-              </RequireAuth>
+              </RequireRole>
             }
           />
           <Route
@@ -113,6 +151,34 @@ export default function App() {
               </RequireAuth>
             }
           />
+          {/* Verification. Available to both roles: required for a farmer to list, optional
+              for a buyer to reach the trusted tier. */}
+          <Route
+            path="verify"
+            element={
+              <RequireAuth>
+                <VerifyIdentityPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="verify/email"
+            element={
+              <RequireAuth>
+                <VerifyEmailPage />
+              </RequireAuth>
+            }
+          />
+
+          <Route
+            path="admin/review"
+            element={
+              <RequireRole roles={['admin']}>
+                <AdminReviewPage />
+              </RequireRole>
+            }
+          />
+
           {/* Where the payment gateway sends the browser back to. */}
           <Route path="payment/return" element={<PaymentReturnPage />} />
           {/* Simulated checkout. The server 404s /payments/mock/complete unless

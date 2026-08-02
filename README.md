@@ -106,6 +106,25 @@ Everything else is optional in development. Without Cloudinary, images are store
 inline; without SSLCOMMERZ, payment routes return 503; without the ONNX model,
 `/api/diagnosis` returns 503 — the rest of the app runs regardless.
 
+### Signing up, and why the codes go to email
+
+Signup is four steps for a farmer and three for a buyer, because a farmer uploads identity
+documents *before* their account exists and cannot log in until an admin approves it. A buyer is
+created active and lands in the market immediately.
+
+Every one-time code — signup, password reset, the `/signup/status` lookup — travels by **email**,
+not SMS: there is no usable free SMS provider for Bangladesh. That is a real weakening of the
+fraud story and it is not hidden anywhere in the UI. The phone number is still required and
+unique, because it is how a counterparty reaches someone mid-trade, but it is never labelled
+"verified" and the account page says so.
+
+With `MAIL_PROVIDER=none` (the default) nothing is sent: the code is logged and returned in the
+API response outside production, so the whole flow is usable with no mail account at all. Set
+`MAIL_PROVIDER=resend` plus `RESEND_API_KEY` to send for real, and in development set
+`ADMIN_NOTIFY_EMAIL` and `MAIL_REDIRECT_TO` to your own address — Resend's free tier refuses to
+deliver anywhere else until you verify a domain, and the redirect makes that visible instead of
+looking like mail that vanished.
+
 ---
 
 ## Full setup

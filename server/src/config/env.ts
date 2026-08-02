@@ -127,6 +127,31 @@ const envSchema = z.object({
   RATE_LIMIT_INFERENCE_MAX: z.coerce.number().int().positive().default(10),
   RATE_LIMIT_CHAT_PER_HOUR: z.coerce.number().int().positive().default(20),
 
+  /**
+   * Outgoing mail. `none` is the default so the server boots, registers buyers and approves
+   * farmers on a deployment with no mail configured, exactly as it runs without the ONNX model.
+   */
+  MAIL_PROVIDER: z.enum(['resend', 'none']).default('none'),
+  RESEND_API_KEY: z.string().default(''),
+  MAIL_FROM: z.string().default('KrishiBid <onboarding@resend.dev>'),
+  /**
+   * Where admin notifications go — new farmer applications, chiefly.
+   *
+   * An env var rather than a constant because it is a personal address and this repository is
+   * public: a Gmail committed into source gets scraped permanently, and rewriting history later
+   * does not un-scrape it.
+   */
+  ADMIN_NOTIFY_EMAIL: z.string().default(''),
+  /**
+   * Development catch-all. When set, EVERY outgoing email is redirected here with the intended
+   * recipient prefixed into the subject.
+   *
+   * Resend's free tier only delivers to the address owning the Resend account until a domain is
+   * verified, so mail to anyone else is silently dropped. Redirecting makes that visible instead of
+   * looking like a bug, and stops a development run emailing a real farmer.
+   */
+  MAIL_REDIRECT_TO: z.string().default(''),
+
   DEMO_MODE: boolish.default('true'),
   DEMO_PASSWORD: z.string().default(''),
 });
@@ -172,6 +197,10 @@ function buildEnv(): Env {
       'PAYMENT_MODE=mock cannot be combined with SSLCZ_IS_LIVE=true — refusing to run a ' +
         'simulated checkout alongside live gateway credentials',
     );
+  }
+
+  if (env.MAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) {
+    throw new Error('MAIL_PROVIDER=resend requires RESEND_API_KEY');
   }
 
   if (env.NODE_ENV === 'production') {
