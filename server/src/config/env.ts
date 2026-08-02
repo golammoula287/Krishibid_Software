@@ -214,16 +214,38 @@ function buildEnv(): Env {
     );
   }
 
-  if (env.MAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) {
-    throw new Error('MAIL_PROVIDER=resend requires RESEND_API_KEY');
-  }
-  if (env.MAIL_PROVIDER === 'smtp' && (!env.SMTP_USER || !env.SMTP_PASS)) {
-    // Caught at boot rather than at the first signup, where the symptom would be a user waiting
-    // for a code that was never dispatched.
-    throw new Error(
-      'MAIL_PROVIDER=smtp requires SMTP_USER and SMTP_PASS (for Gmail, a 16-character App ' +
-        'Password from https://myaccount.google.com/apppasswords)',
+  /**
+   * Mail credentials missing: degrade LOUDLY, never refuse to boot.
+   *
+   * An earlier version threw here, on the reasoning that a half-configured mail setup breaks
+   * signup while looking fine. That reasoning was right about the symptom and badly wrong about
+   * the remedy: it took the entire API down — market, bidding, orders, escrow — because email
+   * was unconfigured. A live deployment crash-looped on it.
+   *
+   * Email is an optional service like the ONNX model and the payment gateway, and this codebase
+   * already has a rule for those: run without them and say so. Signup will still fail for want of
+   * a code, which is bad; every farmer losing the marketplace is far worse. The warning is
+   * deliberately shouted so this is never mistaken for working mail.
+   */
+  const missingMailCredentials =
+    (env.MAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) ||
+    (env.MAIL_PROVIDER === 'smtp' && (!env.SMTP_USER || !env.SMTP_PASS));
+
+  if (missingMailCredentials) {
+    const missing =
+      env.MAIL_PROVIDER === 'resend'
+        ? 'RESEND_API_KEY'
+        : 'SMTP_USER and SMTP_PASS (for Gmail, a 16-character App Password from ' +
+          'https://myaccount.google.com/apppasswords)';
+
+    // console, not the logger: this must be visible before logging is configured, and it is the
+    // one thing worth reading in a boot log that otherwise looks completely healthy.
+    console.error(
+      `\n*** MAIL DISABLED ***\nMAIL_PROVIDER=${env.MAIL_PROVIDER} but ${missing} is not set.\n` +
+        'The server is starting WITHOUT email. Nobody can sign up, reset a password or check an ' +
+        'application status until this is configured — every other feature works.\n',
     );
+    env.MAIL_PROVIDER = 'none';
   }
 
   if (env.NODE_ENV === 'production') {
