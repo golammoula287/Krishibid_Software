@@ -65,8 +65,20 @@ services:
       # only logged, and the devCode fallback is suppressed when NODE_ENV=production
       # on purpose — so leaving this unset does not degrade signup, it stops it dead:
       # the user waits for an email that is never sent and has no other way through.
+      # smtp, not resend: Resend's free tier refuses to deliver anywhere except the
+      # Resend account owner's address until a domain is verified, so on it only the
+      # project owner could ever finish signing up. Gmail delivers to anybody.
       - key: MAIL_PROVIDER
-        value: resend
+        value: smtp
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: '465'
+      - key: SMTP_USER
+        sync: false
+      # A Google App Password, not the account password.
+      - key: SMTP_PASS
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
