@@ -25,7 +25,8 @@
     "ingest:kb": "npm run ingest:kb --workspace=server",
     "eval:rag": "npm run eval:rag --workspace=server",
     "create:indexes": "npm run create:indexes --workspace=server",
-    "migrate:emails": "npm run migrate:emails --workspace=server"
+    "migrate:emails": "npm run migrate:emails --workspace=server",
+    "mail:test": "npm run mail:test --workspace=server"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -131,9 +131,24 @@ const envSchema = z.object({
    * Outgoing mail. `none` is the default so the server boots, registers buyers and approves
    * farmers on a deployment with no mail configured, exactly as it runs without the ONNX model.
    */
-  MAIL_PROVIDER: z.enum(['resend', 'none']).default('none'),
+  MAIL_PROVIDER: z.enum(['resend', 'smtp', 'none']).default('none'),
   RESEND_API_KEY: z.string().default(''),
-  MAIL_FROM: z.string().default('KrishiBid <onboarding@resend.dev>'),
+
+  /**
+   * SMTP, for Gmail and anything else that speaks it.
+   *
+   * Preferred over Resend on the free tier for one decisive reason: Resend will not deliver to
+   * any address except the Resend account owner's until a domain is verified, and since every
+   * one-time code now travels by email, that means only the project owner can finish signing up.
+   * Gmail delivers to anybody today. `SMTP_PASS` must be a Google **App Password**, not the
+   * account password — Google disabled plain-password SMTP.
+   */
+  SMTP_HOST: z.string().default('smtp.gmail.com'),
+  SMTP_PORT: z.coerce.number().int().positive().default(465),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
+
+  MAIL_FROM: z.string().default(''),
   /**
    * Where admin notifications go — new farmer applications, chiefly.
    *
@@ -202,6 +217,14 @@ function buildEnv(): Env {
   if (env.MAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) {
     throw new Error('MAIL_PROVIDER=resend requires RESEND_API_KEY');
   }
+  if (env.MAIL_PROVIDER === 'smtp' && (!env.SMTP_USER || !env.SMTP_PASS)) {
+    // Caught at boot rather than at the first signup, where the symptom would be a user waiting
+    // for a code that was never dispatched.
+    throw new Error(
+      'MAIL_PROVIDER=smtp requires SMTP_USER and SMTP_PASS (for Gmail, a 16-character App ' +
+        'Password from https://myaccount.google.com/apppasswords)',
+    );
+  }
 
   if (env.NODE_ENV === 'production') {
     if (env.DEMO_MODE && !env.DEMO_PASSWORD) {
@@ -214,8 +237,22 @@ function buildEnv(): Env {
     }
   }
 
+  /**
+   * The sender, defaulted per transport rather than to one literal.
+   *
+   * Gmail rewrites — and on some configurations rejects — a From that is not the authenticated
+   * account, so under SMTP the safe default is the SMTP user itself. Under Resend it is the
+   * shared sandbox sender, which works with no domain set up.
+   */
+  const mailFrom =
+    env.MAIL_FROM ||
+    (env.MAIL_PROVIDER === 'smtp'
+      ? env.SMTP_USER && `KrishiBid <${env.SMTP_USER}>`
+      : 'KrishiBid <onboarding@resend.dev>');
+
   return {
     ...env,
+    MAIL_FROM: mailFrom,
     corsOrigins: env.CORS_ORIGINS.split(',')
       .map((o) => o.trim())
       .filter(Boolean),

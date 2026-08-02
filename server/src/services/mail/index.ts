@@ -2,6 +2,7 @@ import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { serviceUnavailable } from '../../utils/errors.js';
 import { sendViaResend } from './resend.js';
+import { sendViaSmtp } from './smtp.js';
 
 export interface MailMessage {
   to: string;
@@ -43,10 +44,11 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
   /**
    * Development redirect.
    *
-   * Resend's free tier only delivers to the address that owns the Resend account until a domain is
-   * verified, so mail to anyone else is silently dropped. Redirecting everything to one inbox with
-   * the intended recipient in the subject makes that visible instead of looking like a bug — and it
-   * also means a development run cannot accidentally email a real farmer.
+   * Chiefly for Resend, whose free tier only delivers to the address that owns the Resend account
+   * until a domain is verified, so mail to anyone else is silently dropped. Redirecting everything
+   * to one inbox with the intended recipient in the subject makes that visible instead of looking
+   * like a bug — and it means a development run cannot accidentally email a real farmer, which is
+   * worth having under SMTP too, where delivery to strangers actually works.
    */
   const redirect = e.MAIL_REDIRECT_TO;
   const outgoing: MailMessage = redirect
@@ -58,9 +60,20 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
     : message;
 
   try {
-    await sendViaResend(outgoing, e.RESEND_API_KEY, e.MAIL_FROM);
+    // One line per transport, and nothing above or below this switch knows which one ran.
+    if (e.MAIL_PROVIDER === 'smtp') {
+      await sendViaSmtp(outgoing, e.MAIL_FROM);
+    } else {
+      await sendViaResend(outgoing, e.RESEND_API_KEY, e.MAIL_FROM);
+    }
+
     logger.info(
-      { to: maskEmail(outgoing.to), redirected: Boolean(redirect), subject: message.subject },
+      {
+        provider: e.MAIL_PROVIDER,
+        to: maskEmail(outgoing.to),
+        redirected: Boolean(redirect),
+        subject: message.subject,
+      },
       'email sent',
     );
     return { delivered: true };
