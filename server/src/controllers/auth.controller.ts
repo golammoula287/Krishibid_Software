@@ -1,7 +1,14 @@
+import {
+  KYC_DOCUMENT_KINDS,
+  SIGNUP_TOKEN_HEADER,
+  type KycDocumentKind,
+} from '@krishibid/shared';
 import type { CookieOptions, Request, Response } from 'express';
 import { env, isProd } from '../config/env.js';
-import { forbidden, unauthorized } from '../utils/errors.js';
+import { badRequest, forbidden, unauthorized } from '../utils/errors.js';
 import * as authService from '../services/auth.service.js';
+import { sniffImage } from '../services/diagnosis.service.js';
+import * as registrationService from '../services/registration.service.js';
 
 export const REFRESH_COOKIE = 'krishibid_rt';
 
@@ -89,4 +96,95 @@ export async function demoLogin(req: Request, res: Response): Promise<void> {
 
 export async function me(req: Request, res: Response): Promise<void> {
   res.json(await authService.getMe(req.user!.id));
+}
+
+// ---------------------------------------------------------------------------
+// Signup — four steps, because a farmer must attach documents before an account exists
+// ---------------------------------------------------------------------------
+
+const signupToken = (req: Request): string | undefined => {
+  const value = req.header(SIGNUP_TOKEN_HEADER);
+  return value?.trim() || undefined;
+};
+
+export async function startRegistration(req: Request, res: Response): Promise<void> {
+  res.status(201).json(await registrationService.startRegistration(req.body));
+}
+
+export async function verifyRegistration(req: Request, res: Response): Promise<void> {
+  const { email, code } = req.body as { email: string; code: string };
+  res.json(await registrationService.verifyRegistration(email, code));
+}
+
+export async function uploadRegistrationDocument(req: Request, res: Response): Promise<void> {
+  if (!req.file) throw badRequest('no_image', 'attach the document image');
+
+  const kind = String(req.params.kind) as KycDocumentKind;
+  if (!(KYC_DOCUMENT_KINDS as readonly string[]).includes(kind)) {
+    throw badRequest('bad_document_kind', `kind must be one of: ${KYC_DOCUMENT_KINDS.join(', ')}`);
+  }
+
+  // Magic-byte check, not the client-declared MIME type, which is trivially spoofed.
+  if (!sniffImage(req.file.buffer)) {
+    throw badRequest('bad_image', 'that file is not a valid JPEG, PNG or WebP');
+  }
+
+  res
+    .status(201)
+    .json(
+      await registrationService.uploadRegistrationDocument(
+        signupToken(req),
+        kind,
+        req.file.buffer,
+      ),
+    );
+}
+
+export async function completeRegistration(req: Request, res: Response): Promise<void> {
+  const { result, refreshToken } = await registrationService.completeRegistration(
+    signupToken(req),
+    req.body,
+  );
+
+  /**
+   * Only a buyer gets a cookie here.
+   *
+   * A farmer's account exists at this point but cannot be logged into, so issuing a session
+   * would contradict the entire flow — and a browser holding a refresh cookie for a blocked
+   * account would keep silently trying to restore it.
+   */
+  if (refreshToken) res.cookie(REFRESH_COOKIE, refreshToken, refreshCookieOptions());
+
+  res.status(201).json(result);
+}
+
+// ---- password reset ----
+
+export async function requestPasswordReset(req: Request, res: Response): Promise<void> {
+  const { email } = req.body as { email: string };
+  res.json(await authService.requestPasswordReset(email));
+}
+
+export async function confirmPasswordReset(req: Request, res: Response): Promise<void> {
+  const { email, code, newPassword } = req.body as {
+    email: string;
+    code: string;
+    newPassword: string;
+  };
+  await authService.confirmPasswordReset(email, code, newPassword);
+
+  // 204: every session was just revoked, so there is nothing to hand back — they log in again.
+  res.status(204).send();
+}
+
+// ---- approval status, without a session ----
+
+export async function requestStatusCode(req: Request, res: Response): Promise<void> {
+  const { email } = req.body as { email: string };
+  res.json(await registrationService.requestStatusCode(email));
+}
+
+export async function checkStatus(req: Request, res: Response): Promise<void> {
+  const { email, code } = req.body as { email: string; code: string };
+  res.json(await registrationService.checkStatus(email, code));
 }

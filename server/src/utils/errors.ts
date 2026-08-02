@@ -26,6 +26,16 @@ export const unauthorized = (message = 'authentication required') =>
 export const forbidden = (message = 'not permitted') =>
   new AppError(403, 'forbidden', message);
 
+/**
+ * 403 carrying a specific code.
+ *
+ * For refusals the client must render differently rather than as one generic "not allowed" —
+ * an account awaiting approval is not a mistake the user made, and showing it in the same red
+ * box as a permission error tells them they did something wrong when they did not.
+ */
+export const refused = (code: string, message: string, details?: unknown) =>
+  new AppError(403, code, message, details);
+
 export const notFound = (resource: string) =>
   new AppError(404, 'not_found', `${resource} not found`);
 

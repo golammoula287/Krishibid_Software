@@ -1,14 +1,19 @@
 import { ceilingForTier } from '../services/trust.service.js';
 import type { NextFunction, Request, Response } from 'express';
-import { forbidden, unprocessable } from '../utils/errors.js';
+import { forbidden, refused, unprocessable } from '../utils/errors.js';
 import { User } from '../models/User.js';
 
 /**
- * Blocks a suspended account.
+ * Blocks any account that is not fully active.
  *
- * Applied to every mutating authenticated route. Suspension also bumps `tokenVersion`, so an
- * existing session dies at its next request — but a token minted moments before suspension
- * would otherwise still work, and this closes that window.
+ * Applied to every mutating authenticated route. Three statuses are refused here:
+ *
+ * - `suspended`, which also bumps `tokenVersion`, so an existing session dies at its next
+ *   request. A token minted moments before suspension would otherwise still work.
+ * - `pending_approval`, which `login()` refuses outright — but a token minted just before a
+ *   status change must not outlive it.
+ * - `rejected`, which CAN log in on purpose, so that someone can fix what the reviewer flagged.
+ *   The session exists to resubmit and to read; it must not be able to do anything else.
  */
 export async function requireActiveAccount(
   req: Request,
@@ -21,16 +26,57 @@ export async function requireActiveAccount(
       .lean();
 
     if (!user) return next(forbidden('account no longer exists'));
-    if (user.accountStatus === 'suspended') {
-      return next(
-        forbidden(
-          user.suspensionReason
-            ? `your account is suspended: ${user.suspensionReason}`
-            : 'your account is suspended',
-        ),
-      );
+
+    switch (user.accountStatus) {
+      case 'active':
+        return next();
+      case 'suspended':
+        return next(
+          refused(
+            'account_suspended',
+            user.suspensionReason
+              ? `your account is suspended: ${user.suspensionReason}`
+              : 'your account is suspended',
+          ),
+        );
+      case 'pending_approval':
+        return next(
+          refused(
+            'account_pending_approval',
+            'your account is waiting for approval — we will email you when it is decided',
+          ),
+        );
+      case 'rejected':
+        return next(
+          refused(
+            'account_rejected',
+            'your application was not accepted — please correct it and submit again',
+          ),
+        );
+      default:
+        return next(refused('account_not_active', 'this account cannot do that right now'));
     }
-    next();
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * The one exception to the rule above: resubmitting after a rejection.
+ *
+ * A rejected applicant is allowed a session precisely so they can fix what the reviewer
+ * flagged. If the routes that accept the correction were behind `requireActiveAccount` they
+ * would be refused, and the session would be a door into a room with no exits.
+ */
+export async function requireActiveOrRejected(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const user = await User.findById(req.user!.id).select('accountStatus').lean();
+    if (user?.accountStatus === 'rejected') return next();
+    await requireActiveAccount(req, res, next);
   } catch (e) {
     next(e);
   }
@@ -53,18 +99,23 @@ export async function requireApprovedFarmer(
 ): Promise<void> {
   try {
     const user = await User.findById(req.user!.id)
-      .select('role accountStatus phoneVerified kyc.status kyc.rejectionReason')
+      .select('role accountStatus emailVerified kyc.status kyc.rejectionReason')
       .lean();
 
     if (!user) return next(forbidden('account no longer exists'));
     if (user.role !== 'farmer') return next(forbidden('only a farmer can list produce'));
 
-    if (user.accountStatus === 'suspended') {
-      return next(forbidden('your account is suspended'));
-    }
-    if (!user.phoneVerified) {
+    if (user.accountStatus !== 'active') {
       return next(
-        unprocessable('phone_unverified', 'verify your phone number before listing produce'),
+        refused(
+          'account_not_active',
+          'your account is not open yet — an admin has to approve it first',
+        ),
+      );
+    }
+    if (!user.emailVerified) {
+      return next(
+        unprocessable('email_unverified', 'verify your email address before listing produce'),
       );
     }
 

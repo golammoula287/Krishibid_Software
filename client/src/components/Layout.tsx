@@ -3,15 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router-dom';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
+import { tabsForRole } from '../lib/nav.js';
 
-/** Bottom tab bar on mobile, top bar from md up. */
-const TABS = [
-  { to: '/', key: 'market', icon: '🌾' },
-  { to: '/diagnose', key: 'diagnose', icon: '🔍' },
-  { to: '/advisor', key: 'advisor', icon: '💬' },
-  { to: '/orders', key: 'orders', icon: '📦' },
-  { to: '/account', key: 'account', icon: '👤' },
-] as const;
+
 
 function OfflineBanner() {
   const { t } = useTranslation();
@@ -57,6 +51,12 @@ export default function Layout() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
 
+  /**
+   * Tabs come from the role, not a fixed list. A guest sees only the market, which is
+   * deliberately public so prices are visible before signing up.
+   */
+  const tabs = tabsForRole(user?.role);
+
   return (
     <div className="flex min-h-screen flex-col">
       <OfflineBanner />
@@ -78,7 +78,7 @@ export default function Layout() {
         {/* Desktop nav */}
         <nav className="hidden border-t border-brand-700 md:block">
           <div className="mx-auto flex max-w-5xl gap-1 px-4">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <NavLink
                 key={tab.to}
                 to={tab.to}
@@ -108,7 +108,7 @@ export default function Layout() {
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <NavLink
               key={tab.to}
               to={tab.to}

@@ -69,3 +69,6 @@ temp/
 *.docx
 
 .vercel
+
+# Local working plan — scratch thinking, not part of the published repo.
+plan.md

@@ -1,10 +1,13 @@
-import { KYC_DOCUMENT_KINDS, type KycDocumentKind } from '@krishibid/shared';
+import {
+  KYC_DOCUMENT_KINDS,
+  type AccountStatus,
+  type KycDocumentKind,
+} from '@krishibid/shared';
 import type { Request, Response } from 'express';
 import { badRequest } from '../utils/errors.js';
 import * as accountService from '../services/account.service.js';
 import { sniffImage } from '../services/diagnosis.service.js';
 import * as kycService from '../services/kyc.service.js';
-import * as otpService from '../services/otp.service.js';
 
 // ---- profile ----
 
@@ -26,37 +29,25 @@ export async function changePassword(req: Request, res: Response): Promise<void>
   res.status(204).send();
 }
 
-// ---- phone verification / change ----
+// ---- email verification / change ----
 
 export async function requestOtp(req: Request, res: Response): Promise<void> {
-  const { purpose, phone } = req.body as {
-    purpose: 'verify_current' | 'change_phone';
-    phone?: string;
+  const { purpose, email } = req.body as {
+    purpose: 'verify_email' | 'change_email';
+    email?: string;
   };
 
-  // Checked before sending an SMS rather than after, so a blocked change does not cost the
-  // user a wasted code and a 60-second cooldown.
-  if (purpose === 'change_phone') {
-    await accountService.assertPhoneChangeAllowed(req.user!.id);
-  }
-
-  res.json(await otpService.requestOtp(req.user!.id, purpose, phone));
+  res.json(await accountService.requestEmailOtp(req.user!.id, purpose, email));
 }
 
 export async function verifyOtp(req: Request, res: Response): Promise<void> {
-  const { code, purpose } = req.body as {
+  const { code, purpose, email } = req.body as {
     code: string;
-    purpose: 'verify_current' | 'change_phone';
+    purpose: 'verify_email' | 'change_email';
+    email?: string;
   };
 
-  const result = await otpService.verifyOtp(req.user!.id, code, purpose);
-
-  res.json({
-    ...result,
-    // A phone change revokes every session including this one, so the client must know to
-    // send the user back to login rather than leaving them on a dead token.
-    reauthRequired: result.phoneChanged,
-  });
+  res.json(await accountService.verifyEmailOtp(req.user!.id, code, purpose, email));
 }
 
 // ---- KYC ----
@@ -99,7 +90,7 @@ export async function reviewDecision(req: Request, res: Response): Promise<void>
 export async function setAccountStatus(req: Request, res: Response): Promise<void> {
   const { userId, status, reason } = req.body as {
     userId: string;
-    status: 'active' | 'suspended';
+    status: AccountStatus;
     reason: string;
   };
   await kycService.setAccountStatus(req.user!.id, userId, status, reason);

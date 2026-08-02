@@ -1,3 +1,4 @@
+import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { Bid } from '../models/Bid.js';
 import { Crop } from '../models/Crop.js';
@@ -9,12 +10,41 @@ import { User } from '../models/User.js';
 let counter = 0;
 const nextPhone = (): string => `018${String(10_000_000 + counter++).slice(0, 8)}`;
 
-export async function makeUser(role: 'farmer' | 'buyer' | 'admin' = 'buyer', name?: string) {
+export interface MakeUserOptions {
+  name?: string;
+  email?: string;
+  emailVerified?: boolean;
+  accountStatus?: 'active' | 'pending_approval' | 'rejected' | 'suspended';
+}
+
+/** The password every fixture user has, for tests that actually log in. */
+export const FIXTURE_PASSWORD = 'password123';
+
+/**
+ * Hashed once per run, at cost 10, and reused for every fixture.
+ *
+ * The previous version pasted a literal hash with a comment claiming it was "password123". It
+ * was not a hash of anything — no test had ever logged in with a fixture user, so nothing caught
+ * it. Hashing once here costs a few milliseconds for the whole suite and cannot drift.
+ */
+const FIXTURE_PASSWORD_HASH = bcrypt.hashSync(FIXTURE_PASSWORD, 10);
+
+export async function makeUser(
+  role: 'farmer' | 'buyer' | 'admin' = 'buyer',
+  options: MakeUserOptions | string = {},
+) {
+  // A bare string is still accepted for the name — the older call sites read fine that way.
+  const opts: MakeUserOptions = typeof options === 'string' ? { name: options } : options;
+  const n = counter;
+
   return User.create({
     phone: nextPhone(),
-    name: name ?? `${role}-${counter}`,
-    // Pre-hashed "password123"; hashing per user makes the suite noticeably slower.
-    passwordHash: '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy',
+    // Required and unique on the model now, so every fixture needs one.
+    email: opts.email ?? `${role}-${n}-${Date.now()}@example.test`,
+    emailVerified: opts.emailVerified ?? true,
+    accountStatus: opts.accountStatus ?? 'active',
+    name: opts.name ?? `${role}-${n}`,
+    passwordHash: FIXTURE_PASSWORD_HASH,
     role,
     district: 'Dhaka',
     locale: 'bn',

@@ -1,4 +1,4 @@
-import { execSync } from 'node:child_process';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -16,23 +16,36 @@ import {
  * server message instead of translated wording — a regression nobody would notice until a
  * farmer saw English text in a Bangla UI.
  */
+/**
+ * Walks the source tree with `fs` rather than shelling out to `grep`.
+ *
+ * An earlier version ran `grep -rhoE`, which meant this test — the gate that stops a new error
+ * code shipping without user-facing copy — simply errored out on Windows, where there is no
+ * grep. A coverage check that cannot run on a contributor's machine protects nothing.
+ */
+function tsFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : tsFiles(full);
+    // Test files are excluded: a code appearing in a fixture or a comment is not a code the
+    // server can emit. (This test caught its own comment before the exclusion was added.)
+    if (!entry.name.endsWith('.ts') || entry.name.endsWith('.test.ts')) return [];
+    return [full];
+  });
+}
+
 function codesInSource(): string[] {
   const srcDir = path.resolve(import.meta.dirname, '..');
 
   // Only helpers whose FIRST argument is the code. notFound()/forbidden() carry fixed
   // codes and are asserted separately below.
-  //
-  // Test files are excluded: a code appearing in a fixture or a comment is not a code the
-  // server can emit. (This test caught its own comment before the exclusion was added.)
-  const pattern = "(badRequest|conflict|unprocessable|serviceUnavailable)\\(\\s*'[a-z_]+'";
-  const out = execSync(
-    `grep -rhoE "${pattern}" "${srcDir}" --include=*.ts --exclude=*.test.ts`,
-    { encoding: 'utf8' },
-  );
+  const thrown = /(?:badRequest|refused|conflict|unprocessable|serviceUnavailable)\(\s*'([a-z_]+)'/g;
 
   const codes = new Set<string>();
-  for (const match of out.matchAll(/'([a-z_]+)'/g)) {
-    if (match[1]) codes.add(match[1]);
+  for (const file of tsFiles(srcDir)) {
+    for (const match of readFileSync(file, 'utf8').matchAll(thrown)) {
+      if (match[1]) codes.add(match[1]);
+    }
   }
   return [...codes].sort();
 }

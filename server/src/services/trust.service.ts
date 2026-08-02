@@ -47,16 +47,18 @@ export function evaluateTier(user: UserDoc, cleanOrders: number): TierEvaluation
   let tier: BuyerTier = 'basic';
   let nextRequirement: string | null = null;
 
+  // Email, not phone: it is the channel that was actually proven. The number is collected and
+  // kept unique, but nothing verifies it, so treating it as a trust signal would be a fiction.
   if (kycApproved || cleanOrders >= TRUSTED_TIER_CLEAN_ORDERS) {
     tier = 'trusted';
-  } else if (user.phoneVerified && hasBusinessDetails) {
+  } else if (user.emailVerified && hasBusinessDetails) {
     tier = 'verified';
     const remaining = TRUSTED_TIER_CLEAN_ORDERS - cleanOrders;
     nextRequirement = `Verify your NID, or complete ${remaining} more order${
       remaining === 1 ? '' : 's'
     } without a dispute, to bid without a limit`;
-  } else if (!user.phoneVerified) {
-    nextRequirement = 'Verify your phone number to raise your bid limit';
+  } else if (!user.emailVerified) {
+    nextRequirement = 'Verify your email address to raise your bid limit';
   } else {
     nextRequirement = 'Add your business name and type to raise your bid limit';
   }

@@ -63,17 +63,35 @@ const userSchema = new Schema(
     // ---- account state (admin-controlled) ----
     // Orthogonal to verification: a fully verified farmer can still be suspended, and an
     // unverified one is not "inactive".
+    //
+    // `pending_approval` and `rejected` are farmer signup states. Login is refused for the
+    // first and ALLOWED for the second — a rejected applicant who could neither log in to fix
+    // what the reviewer flagged nor re-register (their phone and email are taken) would be
+    // permanently locked out, which is a dead end rather than a policy.
     accountStatus: {
       type: String,
-      enum: ['active', 'suspended'],
+      enum: ['active', 'pending_approval', 'rejected', 'suspended'],
       default: 'active',
       index: true,
     },
     suspensionReason: { type: String, default: null },
 
     // ---- verification ----
+    /**
+     * Never OTP-verified, and never shown with a "verified" badge.
+     *
+     * There is no usable free SMS provider for Bangladesh, so verification moved to email.
+     * The number stays required and unique because it is how a counterparty actually reaches
+     * someone mid-trade, and one-number-one-account still limits bulk registration — but it is
+     * contact information plus a weak uniqueness control, not proof of identity. The field is
+     * kept so that adding an SMS provider later re-anchors verification without a migration.
+     */
     phoneVerified: { type: Boolean, default: false },
-    email: { type: String, default: null, trim: true, lowercase: true },
+    /**
+     * Required and unique: it is the verified channel and the only way to send a code, an
+     * approval or a rejection. An account without one is an account nobody can be told about.
+     */
+    email: { type: String, required: true, unique: true, index: true, trim: true, lowercase: true },
     emailVerified: { type: Boolean, default: false },
 
     /**

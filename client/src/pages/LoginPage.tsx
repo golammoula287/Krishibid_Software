@@ -1,33 +1,47 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorNote } from '../components/ui.js';
+import { ApiRequestError } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 
-const DISTRICTS = [
-  'Dhaka', 'Rangpur', 'Bogura', 'Rajshahi', 'Khulna', 'Jashore', 'Cumilla',
-  'Mymensingh', 'Sylhet', 'Dinajpur', 'Faridpur', 'Barishal', 'Chattogram', 'Rangamati',
-];
+/**
+ * Refusals that are not the user's fault.
+ *
+ * `account_pending_approval` means a reviewer has not looked yet. Rendering that in the same red
+ * box as a wrong password tells someone they did something wrong at the exact moment they are
+ * least sure of themselves — so these get a neutral panel and a link to the thing that helps.
+ */
+const EXPLAINED = ['account_pending_approval', 'account_rejected', 'account_not_active'];
+
+function LoginRefusal({ error }: { error: ApiRequestError }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4" role="status">
+      <p className="text-sm font-semibold text-amber-900">{t(`login.${error.code}`)}</p>
+      <p className="mt-1 text-sm text-amber-900">{error.message}</p>
+
+      {error.code === 'account_pending_approval' && (
+        <Link to="/signup/status" className="btn-secondary mt-3 w-full">
+          {t('signup.checkStatus')}
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const { t } = useTranslation();
   const locale = currentLocale();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, login, register, demoLogin } = useAuth();
+  const { user, login, demoLogin } = useAuth();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-
-  const [form, setForm] = useState({
-    phone: '',
-    password: '',
-    name: '',
-    role: 'farmer' as 'farmer' | 'buyer',
-    district: 'Dhaka',
-  });
+  const [form, setForm] = useState({ phone: '', password: '' });
 
   if (user) {
     const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -46,6 +60,9 @@ export default function LoginPage() {
       setBusy(false);
     }
   };
+
+  const explained =
+    error instanceof ApiRequestError && EXPLAINED.includes(error.code) ? error : null;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-4 p-4">
@@ -89,36 +106,9 @@ export default function LoginPage() {
         className="card space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          void run(() =>
-            mode === 'login'
-              ? login(form.phone, form.password)
-              : register({
-                  phone: form.phone,
-                  password: form.password,
-                  name: form.name,
-                  role: form.role,
-                  district: form.district,
-                  locale,
-                }),
-          );
+          void run(() => login(form.phone, form.password));
         }}
       >
-        {mode === 'register' && (
-          <div>
-            <label htmlFor="name" className="label">
-              {t('auth.name')}
-            </label>
-            <input
-              id="name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="field"
-              required
-              minLength={2}
-            />
-          </div>
-        )}
-
         <div>
           <label htmlFor="phone" className="label">
             {t('auth.phone')}
@@ -143,70 +133,45 @@ export default function LoginPage() {
           <input
             id="password"
             type="password"
-            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+            autoComplete="current-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             className="field"
             required
-            minLength={8}
           />
         </div>
 
-        {mode === 'register' && (
-          <>
-            <div>
-              <span className="label">{t('auth.role')}</span>
-              <div className="flex gap-2">
-                {(['farmer', 'buyer'] as const).map((role) => (
-                  <button
-                    key={role}
-                    type="button"
-                    onClick={() => setForm({ ...form, role })}
-                    className={form.role === role ? 'btn-primary flex-1' : 'btn-secondary flex-1'}
-                  >
-                    {t(`auth.${role}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="district" className="label">
-                {t('auth.district')}
-              </label>
-              <select
-                id="district"
-                value={form.district}
-                onChange={(e) => setForm({ ...form, district: e.target.value })}
-                className="field"
-              >
-                {DISTRICTS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </>
+        {explained ? (
+          <LoginRefusal error={explained} />
+        ) : (
+          error != null && <ErrorNote error={error} />
         )}
 
-        {error != null && <ErrorNote error={error} />}
-
         <button type="submit" className="btn-primary w-full" disabled={busy}>
-          {busy ? t('common.loading') : mode === 'login' ? t('auth.login') : t('auth.register')}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === 'login' ? 'register' : 'login');
-            setError(null);
-          }}
-          className="w-full text-center text-sm text-brand-700 underline"
-        >
-          {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}
+          {busy ? t('common.loading') : t('auth.login')}
         </button>
       </form>
+
+      {/* Signing up is its own flow now: a farmer collects documents there, and squeezing that
+          into a toggle on this form was what made it possible to register and never verify. */}
+      <div className="card space-y-2 text-center text-sm">
+        <p className="text-slate-600">
+          {t('auth.noAccount')}{' '}
+          <Link to="/signup" className="font-semibold text-brand-700 underline">
+            {t('auth.register')}
+          </Link>
+        </p>
+        <p>
+          <Link to="/forgot" className="text-brand-700 underline">
+            {t('login.forgotPassword')}
+          </Link>
+        </p>
+        <p>
+          <Link to="/signup/status" className="text-brand-700 underline">
+            {t('signup.checkStatus')}
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 export * from './common.js';
 export * from './auth.js';
 export * from './identity.js';
+export * from './registration.js';
 export * from './listing.js';
 export * from './bid.js';
 export * from './order.js';
