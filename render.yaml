@@ -60,6 +60,26 @@ services:
       - key: DEMO_PASSWORD
         generateValue: true
 
+      # --- outgoing mail: REQUIRED for signup to work in production ---
+      # Every one-time code travels by email. With MAIL_PROVIDER=none the code is
+      # only logged, and the devCode fallback is suppressed when NODE_ENV=production
+      # on purpose — so leaving this unset does not degrade signup, it stops it dead:
+      # the user waits for an email that is never sent and has no other way through.
+      - key: MAIL_PROVIDER
+        value: resend
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Where "a new farmer is waiting for review" goes. Without it nobody is told,
+      # and an applicant waits on somebody thinking to open the queue.
+      - key: ADMIN_NOTIFY_EMAIL
+        sync: false
+      # Leave UNSET in production. Setting it redirects every outgoing message to one
+      # inbox, which is what you want in development and never what you want live.
+      - key: MAIL_REDIRECT_TO
+        sync: false
+
       # --- must match the deployed URLs exactly ---
       # API_PUBLIC_URL is where SSLCOMMERZ posts the IPN, so it must be this
       # service's own public https URL or payments silently never confirm.
