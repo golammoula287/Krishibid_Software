@@ -7,7 +7,7 @@ import {
 } from '@krishibid/shared';
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
-import { conflict, tooManyRequests, unprocessable } from '../utils/errors.js';
+import { conflict, serviceUnavailable, tooManyRequests, unprocessable } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { OtpChallenge } from '../models/OtpChallenge.js';
 import { maskEmail, sendOrThrow } from './mail/index.js';
@@ -91,7 +91,7 @@ export async function issueCode(
   const code = generateCode();
   const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60_000);
 
-  await OtpChallenge.create({
+  const challenge = await OtpChallenge.create({
     userId: options.userId ?? null,
     destination,
     channel: 'email',
@@ -106,15 +106,54 @@ export async function issueCode(
     name: options.name,
   });
 
+  /**
+   * A code that reached nobody must not leave a challenge behind.
+   *
+   * The row is useless — its owner never saw the code — and worse, it is what the resend cooldown
+   * is measured from. Leaving it makes the user wait 60 seconds before they may retry, as a
+   * penalty for a failure that was entirely ours.
+   */
+  const abandon = async (error: Error): Promise<never> => {
+    await OtpChallenge.deleteOne({ _id: challenge._id });
+    throw error;
+  };
+
   const noProvider = e.MAIL_PROVIDER === 'none';
+  /** Outside production the code comes back in the response, so a missing provider is survivable. */
+  const codeReachesTheUser = !noProvider || e.NODE_ENV !== 'production';
 
   if (!noProvider) {
-    // Throws on failure — see the note above.
-    await sendOrThrow({ to: destination, ...body });
-  } else {
+    try {
+      await sendOrThrow({ to: destination, ...body });
+    } catch (err) {
+      return abandon(err as Error);
+    }
+  } else if (codeReachesTheUser) {
     logger.warn(
       { destination: maskEmail(destination), purpose, code },
-      'no mail provider — OTP logged instead of sent',
+      'no mail provider — OTP logged and returned as devCode instead of sent',
+    );
+  } else {
+    /**
+     * No provider, and in production the code is not returned either — so it reaches nobody.
+     *
+     * This must fail, and it is worth being precise about why. Reporting success here is the worst
+     * available outcome: the user is told a code is on its way, waits for an email that was never
+     * dispatched, and has nothing to act on. An error they can see beats a silent dead end, even
+     * though neither lets them finish signing up.
+     *
+     * Found exactly this way — a signup on the deployed site reported success and delivered
+     * nothing, because the mail credentials were missing from the deployment rather than the code.
+     */
+    logger.error(
+      { destination: maskEmail(destination), purpose },
+      'MAIL DISABLED — refusing to report a code as sent when it was not',
+    );
+    return abandon(
+      serviceUnavailable(
+        'mail_send_failed',
+        'we cannot send email right now, so we could not send your code — please try again later',
+      ),
     );
   }
 
@@ -125,10 +164,10 @@ export async function issueCode(
     /**
      * Gated on NODE_ENV, not on whether delivery happened.
      *
-     * If a provider is missing in production the correct outcome is a user who cannot verify — not
-     * one whose code is handed to whoever called the endpoint.
+     * If a provider is missing in production the correct outcome is a refusal (above) — never a
+     * live credential handed to whoever called the endpoint.
      */
-    ...(noProvider && e.NODE_ENV !== 'production' ? { devCode: code } : {}),
+    ...(noProvider ? { devCode: code } : {}),
   };
 }
 
