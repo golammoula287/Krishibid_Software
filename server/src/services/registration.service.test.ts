@@ -419,6 +419,40 @@ describe('OTP codes are scoped by purpose', () => {
   });
 });
 
+describe('mail disabled in production', () => {
+  /**
+   * The failure this pins down was found on the deployed site: a signup reported success and
+   * delivered nothing, because the mail credentials were missing from the deployment. Telling
+   * somebody a code is on its way and dispatching nothing is the worst available outcome — they
+   * wait indefinitely with nothing to act on. An error they can see is strictly better.
+   */
+  it('refuses to report a code as sent when it reaches nobody', async () => {
+    const previous = {
+      nodeEnv: process.env.NODE_ENV,
+      apiUrl: process.env.API_PUBLIC_URL,
+    };
+
+    process.env.NODE_ENV = 'production';
+    // Production additionally demands https here, and that check is not what is under test.
+    process.env.API_PUBLIC_URL = 'https://api.example.test';
+    resetEnvCache();
+
+    try {
+      await expect(
+        startRegistration(startRegistrationSchema.parse(startInput())),
+      ).rejects.toMatchObject({ code: 'mail_send_failed', status: 503 });
+
+      // And nothing is left claiming to be in flight.
+      expect(await OtpChallenge.countDocuments({ purpose: 'signup_verify' })).toBe(0);
+    } finally {
+      process.env.NODE_ENV = previous.nodeEnv;
+      if (previous.apiUrl === undefined) delete process.env.API_PUBLIC_URL;
+      else process.env.API_PUBLIC_URL = previous.apiUrl;
+      resetEnvCache();
+    }
+  });
+});
+
 describe('password reset', () => {
   it('sets the new password and kills every existing session', async () => {
     const user = await makeUser('buyer', { email: 'reset@example.test' });
