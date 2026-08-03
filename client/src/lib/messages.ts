@@ -101,6 +101,16 @@ export function resolveError(code: string, serverMessage?: string): ResolvedMess
   };
 }
 
+/**
+ * Whether the catalogue has written copy for a code.
+ *
+ * Lets a caller distinguish "the server sent a code we have words for" from "we are falling back
+ * to the raw server message", which matters for 5xx: an unknown one is not safe to show, a known
+ * one is copy we wrote for exactly that situation.
+ */
+export const hasCopyFor = (code: string): boolean =>
+  Boolean(bundle?.errors[code] ?? FALLBACK[code]);
+
 /** Resolves a success key, e.g. `bid_placed`. */
 export function resolveSuccess(key: string, fallbackTitle?: string): ResolvedMessage {
   return (

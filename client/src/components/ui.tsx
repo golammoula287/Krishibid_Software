@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiRequestError } from '../lib/api.js';
+import { hasCopyFor, resolveError } from '../lib/messages.js';
 
 export function Spinner({ label }: { label?: string }) {
   const { t } = useTranslation();
@@ -30,20 +31,31 @@ export function CardSkeleton({ count = 3 }: { count?: number }) {
 /**
  * Error display.
  *
- * Shows the server's message when it is a client error (4xx) — those messages are
- * written for users and are actionable ("your bid must exceed the current highest
- * bid"). For 5xx it shows a generic string, because an internal message is neither
- * useful nor safe to surface.
+ * Resolves through the message catalogue first, exactly as the toast does. That is the fix for a
+ * real defect: this used to show a generic string for anything 5xx, so `mail_send_failed` — a
+ * deliberate 503 whose copy was written for users, in two languages — rendered as "Something went
+ * wrong". Someone whose signup could not send a code was told nothing at all about why.
+ *
+ * The original caution still holds for codes we have no words for: an unknown 5xx is an internal
+ * failure, and its message is neither useful nor safe to put in front of a user. So the rule is
+ * about whether copy exists, not about the status number.
  */
 export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const { t } = useTranslation();
 
-  const message =
-    error instanceof ApiRequestError && error.status < 500 ? error.message : t('common.error');
+  const api = error instanceof ApiRequestError ? error : null;
+  const known = api ? hasCopyFor(api.code) : false;
+  const resolved = api && known ? resolveError(api.code, api.message) : null;
+
+  const title =
+    resolved?.title ?? (api && api.status < 500 ? api.message : t('common.error'));
 
   return (
     <div className="rounded-xl border border-red-200 bg-red-50 p-4" role="alert">
-      <p className="text-sm font-medium text-red-800">{message}</p>
+      <p className="text-sm font-medium text-red-800">{title}</p>
+      {/* The actionable next step, where there is one. Omitted rather than padded with
+          "please try again" on a failure that retrying will not fix. */}
+      {resolved?.hint && <p className="mt-1 text-sm text-red-700">{resolved.hint}</p>}
       {onRetry && (
         <button type="button" onClick={onRetry} className="btn-secondary mt-3">
           {t('common.retry')}
