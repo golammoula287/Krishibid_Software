@@ -55,40 +55,93 @@ async function resolveIpv4(host: string): Promise<string | null> {
 }
 
 /**
+ * The ports worth trying, configured one first.
+ *
+ * Gmail listens on exactly two: 465 (implicit TLS) and 587 (STARTTLS). Hosts that block outbound
+ * SMTP do not always block both — 465 is the more commonly filtered of the pair — so trying the
+ * other before giving up is the difference between "this host cannot send mail" and "this host
+ * needed the other port". Guessing which one a platform allows is not something to leave to a
+ * human reading a timeout.
+ */
+function candidatePorts(configured: number): number[] {
+  return [configured, ...[465, 587].filter((port) => port !== configured)];
+}
+
+function buildTransport(host: string, port: number, servername: string): Transporter {
+  const e = env();
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    // Derived rather than configured, because getting the pair inconsistent fails with a TLS
+    // error that names neither setting.
+    secure: port === 465,
+    // The certificate is checked against the real hostname even when connecting to an IP.
+    tls: { servername },
+    auth: { user: e.SMTP_USER, pass: e.SMTP_PASS },
+    pool: true,
+    maxConnections: 2,
+    /**
+     * Tighter than a single-port setup would need, because a blocked port fails by silence: the
+     * packets are dropped and nothing answers until the timeout. With two ports to try, a
+     * generous timeout on the first turns a working configuration into a request that takes most
+     * of a minute before it succeeds on the second.
+     */
+    connectionTimeout: 8_000,
+    greetingTimeout: 6_000,
+    socketTimeout: 20_000,
+  });
+}
+
+/**
  * One pooled transporter, not one per message.
  *
  * Each `createTransport` opens a fresh TLS handshake to Gmail; doing that per email would put a
  * multi-second connection setup inside the signup request, which is already the slowest thing a
  * new user does. Cached as the promise, so concurrent first sends share one setup instead of
  * racing to build two.
+ *
+ * `verify()` is what makes the port fallback real: it opens the connection and authenticates, so
+ * a blocked port or a bad App Password is discovered here rather than on the first message.
  */
 function getTransporter(): Promise<Transporter> {
   transporter ??= (async () => {
     const e = env();
     const ipv4 = await resolveIpv4(e.SMTP_HOST);
+    const host = ipv4 ?? e.SMTP_HOST;
+    const failures: string[] = [];
 
-    logger.info(
-      { host: e.SMTP_HOST, port: e.SMTP_PORT, ipv4: ipv4 ?? 'unresolved — using hostname' },
-      'smtp transport ready',
-    );
+    for (const port of candidatePorts(e.SMTP_PORT)) {
+      const candidate = buildTransport(host, port, e.SMTP_HOST);
 
-    return nodemailer.createTransport({
-      host: ipv4 ?? e.SMTP_HOST,
-      port: e.SMTP_PORT,
-      // 465 is implicit TLS; 587 upgrades with STARTTLS. Derived rather than configured, because
-      // getting the pair inconsistent fails with a TLS error that names neither setting.
-      secure: e.SMTP_PORT === 465,
-      // The certificate is checked against the real hostname even when connecting to an IP.
-      tls: { servername: e.SMTP_HOST },
-      auth: { user: e.SMTP_USER, pass: e.SMTP_PASS },
-      pool: true,
-      maxConnections: 2,
-      // Bounded, so an unreachable mail server cannot hold an HTTP handler open — signup waits on
-      // this call.
-      connectionTimeout: 15_000,
-      greetingTimeout: 10_000,
-      socketTimeout: 20_000,
-    });
+      try {
+        await candidate.verify();
+        logger.info(
+          { host: e.SMTP_HOST, port, ipv4: ipv4 ?? 'unresolved — using hostname' },
+          'smtp transport ready',
+        );
+        return candidate;
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : String(err);
+        failures.push(`${port}: ${reason}`);
+        candidate.close();
+
+        /**
+         * A rejected login is not a reason to try another port.
+         *
+         * The credentials are wrong on every port, and retrying would bury the one error that
+         * actually tells the operator what to fix under a second, misleading timeout.
+         */
+        if (/invalid login|username and password not accepted|badcredentials/i.test(reason)) break;
+
+        logger.warn({ port, reason }, 'smtp port unusable — trying the next one');
+      }
+    }
+
+    // Cleared so the next send retries rather than being stuck with a rejected promise forever —
+    // a blocked port can be unblocked, and a password can be corrected, without a restart.
+    transporter = null;
+    throw new Error(`no usable SMTP port — ${failures.join(' | ')}`);
   })();
 
   return transporter;
