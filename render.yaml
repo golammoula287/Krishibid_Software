@@ -65,16 +65,19 @@ services:
       # only logged, and the devCode fallback is suppressed when NODE_ENV=production
       # on purpose — so leaving this unset does not degrade signup, it stops it dead:
       # the user waits for an email that is never sent and has no other way through.
-      # Gmail over SMTP. It delivers to anybody with no domain to verify, which is the
-      # property that matters when every one-time code travels by email.
+      # Set in the DASHBOARD, not here — hence sync: false.
       #
-      # Outbound 465 from here timed out at 41 seconds — silence, not a refusal, which is
-      # what a blocked port looks like. The adapter now tries 587 as well and reports which
-      # one worked, since hosts that filter SMTP do not always filter both. If neither is
-      # reachable the boot log says so plainly, and the answer is an HTTPS transport
-      # (`brevo` or `resend`, both already implemented) rather than more SMTP tuning.
+      # A `value:` in this blueprint overwrites the dashboard on every deploy, and which
+      # transport works depends on the host rather than on the repository. Outbound SMTP
+      # from Render is blocked on both ports Gmail listens on (465 timed out at 41s, and
+      # 465+587 together at 18.8s — silence rather than a refusal, which is what a firewall
+      # looks like), so this deployment needs `brevo` or `resend` over HTTPS. A host that
+      # permits SMTP wants `smtp`. The boot log says which situation you are in:
+      #
+      #   mail transport verified — outbound SMTP works from this host
+      #   MAIL UNREACHABLE — this host appears to block outbound SMTP ...
       - key: MAIL_PROVIDER
-        value: smtp
+        sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT
