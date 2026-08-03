@@ -131,8 +131,17 @@ const envSchema = z.object({
    * Outgoing mail. `none` is the default so the server boots, registers buyers and approves
    * farmers on a deployment with no mail configured, exactly as it runs without the ONNX model.
    */
-  MAIL_PROVIDER: z.enum(['resend', 'smtp', 'none']).default('none'),
+  /**
+   * `brevo` and `resend` speak HTTPS; `smtp` needs an outbound SMTP port.
+   *
+   * That distinction is not academic. Render silently drops connections to smtp.gmail.com:465 —
+   * a 41-second timeout rather than a refusal — which is what a firewall against outbound SMTP
+   * looks like, and hosts block those ports routinely to keep their address space off spam lists.
+   * On such a host only an HTTPS transport can work, whatever the SMTP configuration says.
+   */
+  MAIL_PROVIDER: z.enum(['brevo', 'resend', 'smtp', 'none']).default('none'),
   RESEND_API_KEY: z.string().default(''),
+  BREVO_API_KEY: z.string().default(''),
 
   /**
    * SMTP, for Gmail and anything else that speaks it.
@@ -229,14 +238,17 @@ function buildEnv(): Env {
    */
   const missingMailCredentials =
     (env.MAIL_PROVIDER === 'resend' && !env.RESEND_API_KEY) ||
+    (env.MAIL_PROVIDER === 'brevo' && !env.BREVO_API_KEY) ||
     (env.MAIL_PROVIDER === 'smtp' && (!env.SMTP_USER || !env.SMTP_PASS));
 
   if (missingMailCredentials) {
     const missing =
       env.MAIL_PROVIDER === 'resend'
         ? 'RESEND_API_KEY'
-        : 'SMTP_USER and SMTP_PASS (for Gmail, a 16-character App Password from ' +
-          'https://myaccount.google.com/apppasswords)';
+        : env.MAIL_PROVIDER === 'brevo'
+          ? 'BREVO_API_KEY'
+          : 'SMTP_USER and SMTP_PASS (for Gmail, a 16-character App Password from ' +
+            'https://myaccount.google.com/apppasswords)';
 
     // console, not the logger: this must be visible before logging is configured, and it is the
     // one thing worth reading in a boot log that otherwise looks completely healthy.

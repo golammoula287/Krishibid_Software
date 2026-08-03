@@ -65,11 +65,22 @@ services:
       # only logged, and the devCode fallback is suppressed when NODE_ENV=production
       # on purpose — so leaving this unset does not degrade signup, it stops it dead:
       # the user waits for an email that is never sent and has no other way through.
-      # smtp, not resend: Resend's free tier refuses to deliver anywhere except the
-      # Resend account owner's address until a domain is verified, so on it only the
-      # project owner could ever finish signing up. Gmail delivers to anybody.
+      # brevo, over HTTPS — NOT smtp, and not by preference.
+      #
+      # Render silently drops outbound connections to smtp.gmail.com:465: a 41-second
+      # timeout rather than a refusal, which is what a firewall against outbound SMTP
+      # looks like. Hosts block those ports routinely to keep their address space off
+      # spam lists, so no SMTP configuration can work here however correct it is.
+      #
+      # Resend is the other HTTPS option but its free tier only delivers to the Resend
+      # account owner's address until a domain is verified — on it, only the project
+      # owner could ever finish signing up. Brevo delivers to anybody today.
       - key: MAIL_PROVIDER
-        value: smtp
+        value: brevo
+      - key: BREVO_API_KEY
+        sync: false
+      # Kept so the transport can be switched back with one variable if SMTP ever works
+      # from here, or a Resend domain gets verified.
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

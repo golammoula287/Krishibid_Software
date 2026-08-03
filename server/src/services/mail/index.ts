@@ -1,6 +1,7 @@
 import { env } from '../../config/env.js';
 import { logger } from '../../utils/logger.js';
 import { serviceUnavailable } from '../../utils/errors.js';
+import { sendViaBrevo } from './brevo.js';
 import { sendViaResend } from './resend.js';
 import { sendViaSmtp } from './smtp.js';
 
@@ -63,6 +64,8 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
     // One line per transport, and nothing above or below this switch knows which one ran.
     if (e.MAIL_PROVIDER === 'smtp') {
       await sendViaSmtp(outgoing, e.MAIL_FROM);
+    } else if (e.MAIL_PROVIDER === 'brevo') {
+      await sendViaBrevo(outgoing, e.BREVO_API_KEY, e.MAIL_FROM);
     } else {
       await sendViaResend(outgoing, e.RESEND_API_KEY, e.MAIL_FROM);
     }
