@@ -192,6 +192,17 @@ export async function sendViaSmtp(message: MailMessage, from: string): Promise<v
   }
 }
 
+/**
+ * Opens and authenticates a connection, without sending anything.
+ *
+ * Called at boot so a host that blocks outbound SMTP is identified in the startup log rather
+ * than by a farmer whose code never arrived. This is the difference between evaluating a new
+ * host in thirty seconds and evaluating it by attempting a signup and inferring from a timeout.
+ */
+export async function verifySmtp(): Promise<void> {
+  await getTransporter();
+}
+
 /** Test-only: forces a new transport after the environment changes. */
 export function resetTransporter(): void {
   void transporter?.then((t) => t.close()).catch(() => undefined);

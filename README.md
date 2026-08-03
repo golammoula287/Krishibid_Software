@@ -130,6 +130,56 @@ oversight.
 
 Run it **before** the new server takes traffic. On Render: `npm run migrate:emails:prod`.
 
+### Hosting the API where email can actually leave
+
+**Render blocks outbound SMTP.** Measured, not inferred: a signup there timed out after 41s on
+port 465 and 18.8s across 465 and 587 together — silence rather than a refusal, which is what a
+firewall looks like. The same code and the same Gmail App Password deliver fine from a laptop.
+Hosts filter those ports routinely to keep their address space off spam blocklists.
+
+Since every one-time code travels by email, an API on such a host cannot register anyone. Two ways
+out, and the choice is genuinely yours:
+
+1. **Host the API somewhere that permits outbound SMTP** — Railway, Fly.io, Koyeb, or any VPS. The
+   Gmail setup then works unchanged.
+2. **Switch to an HTTPS transport** — `MAIL_PROVIDER=brevo` or `resend`, both implemented, port
+   443, never blocked. Note Resend's free tier only delivers to the Resend account owner's address
+   until you verify a domain; Brevo delivers to anyone immediately.
+
+The server tells you which situation you are in, at boot:
+
+```
+mail transport verified — outbound SMTP works from this host
+MAIL UNREACHABLE — this host appears to block outbound SMTP ...
+```
+
+So evaluating a candidate host takes one deploy and a glance at the log, rather than a signup
+attempt and a guess at what a timeout meant.
+
+#### Moving the API to another host
+
+Nothing in the code is Render-specific. Any host that runs a long-lived Node process works — the
+server needs one because of its interval sweeps, its Socket.IO connections and the native
+`onnxruntime-node` / `sharp` binaries.
+
+| Setting | Value |
+|---|---|
+| Build | `npm ci --include=dev && npm run build --workspace=server` |
+| Start | `npm run start --workspace=server` |
+| Node | 22 |
+| Health check | `/health` |
+| Port | from `$PORT` |
+
+`--include=dev` is not cosmetic: hosts set `NODE_ENV=production`, under which `npm ci` skips
+devDependencies — which is where the build toolchain lives. Without it the build dies with
+`tsup: not found`.
+
+Copy every environment variable across (see `render.yaml` for the full list; the values live in
+your current host's dashboard). Then point the client at the new API by setting `VITE_API_URL` in
+Vercel, and set `CORS_ORIGINS` and `WEB_PUBLIC_URL` on the API to the Vercel origin — the server
+compares those hostnames to choose the refresh cookie's `SameSite` value, and a mismatch logs
+users out on every reload.
+
 ### Signing up, and why the codes go to email
 
 Signup is four steps for a farmer and three for a buyer, because a farmer uploads identity
