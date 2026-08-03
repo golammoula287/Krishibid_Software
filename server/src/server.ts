@@ -5,6 +5,7 @@ import { connectDb, disconnectDb } from './utils/db.js';
 import { logger } from './utils/logger.js';
 import { startJobs, stopJobs } from './jobs/index.js';
 import { loadModel } from './services/diagnosis.service.js';
+import { checkMailTransport } from './services/mail/index.js';
 import { closeSocket, initSocket } from './sockets/index.js';
 
 async function main(): Promise<void> {
@@ -41,6 +42,12 @@ async function main(): Promise<void> {
         'API_PUBLIC_URL is not https — SSLCOMMERZ cannot deliver IPN callbacks; use a tunnel in development',
       );
     }
+
+    /**
+     * Not awaited: whether mail works must never delay or block the marketplace coming up, the
+     * same rule the ONNX model follows. It reports itself in the log a moment later.
+     */
+    void checkMailTransport();
   });
 
   /**

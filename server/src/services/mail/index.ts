@@ -3,7 +3,7 @@ import { logger } from '../../utils/logger.js';
 import { serviceUnavailable } from '../../utils/errors.js';
 import { sendViaBrevo } from './brevo.js';
 import { sendViaResend } from './resend.js';
-import { sendViaSmtp } from './smtp.js';
+import { sendViaSmtp, verifySmtp } from './smtp.js';
 
 export interface MailMessage {
   to: string;
@@ -84,6 +84,42 @@ export async function sendMail(message: MailMessage): Promise<SendResult> {
     const reason = err instanceof Error ? err.message : 'unknown mail error';
     logger.error({ err, to: maskEmail(outgoing.to) }, 'email delivery failed');
     return { delivered: false, reason };
+  }
+}
+
+/**
+ * Reports at boot whether mail can actually leave this host.
+ *
+ * Worth its own check because the failure it catches is invisible otherwise. Render blocks
+ * outbound SMTP on both ports Gmail listens on, and the only symptom was a signup that timed out
+ * after 41 seconds — correct credentials, correct code, packets dropped on the way out. Every
+ * diagnosis of that cost a deploy and a guess.
+ *
+ * Now a host declares itself in the startup log. Non-blocking on purpose: the marketplace must
+ * come up whether or not mail works, exactly as it does without the ONNX model.
+ */
+export async function checkMailTransport(): Promise<void> {
+  const e = env();
+
+  if (e.MAIL_PROVIDER === 'none') return; // already shouted about at config load
+
+  if (e.MAIL_PROVIDER !== 'smtp') {
+    // The HTTP transports have no cheap probe — a check would mean sending something. They also
+    // cannot hit the failure this exists to catch, since 443 is not blocked.
+    logger.info({ provider: e.MAIL_PROVIDER }, 'mail configured (HTTPS transport)');
+    return;
+  }
+
+  try {
+    await verifySmtp();
+    logger.info('mail transport verified — outbound SMTP works from this host');
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : err },
+      'MAIL UNREACHABLE — this host appears to block outbound SMTP. Signup, password reset and ' +
+        'status lookup will fail. Either move to a host that permits it, or switch MAIL_PROVIDER ' +
+        'to an HTTPS transport (brevo or resend).',
+    );
   }
 }
 
