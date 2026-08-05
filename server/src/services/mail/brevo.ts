@@ -26,6 +26,21 @@ export async function sendViaBrevo(
   if (!apiKey) throw new Error('BREVO_API_KEY is not set');
 
   /**
+   * Brevo issues two credentials on the same settings page and they are not interchangeable: an
+   * API key (`xkeysib-`) for this HTTPS endpoint, and an SMTP key (`xsmtpsib-`) for its mail
+   * relay. Presenting the wrong one gets "401: Key not found", which does not hint that the
+   * credential is the right length, from the right account, and simply for a different protocol.
+   * The prefix is unambiguous, so say it plainly.
+   */
+  if (apiKey.startsWith('xsmtpsib-')) {
+    throw new Error(
+      'BREVO_API_KEY holds an SMTP key ("xsmtpsib-..."), which this HTTPS endpoint cannot use. ' +
+        'Take the API key ("xkeysib-...") from Brevo → SMTP & API → API keys — or set ' +
+        'MAIL_PROVIDER=smtp to use the SMTP key you have',
+    );
+  }
+
+  /**
    * `MAIL_FROM` is "Name <address>" everywhere else, but Brevo wants the two parts separately.
    * Parsed rather than demanded as two variables, so one sender setting works for every transport.
    */
