@@ -50,8 +50,12 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.js'));
  *
  * A guest gets the landing page: the case for signing up, made with live prices rather than
  * claims. Someone signed in has already made that decision, and showing them a sales pitch every
- * time they open the app would be noise — they get the market, which is the screen both roles
- * actually work from.
+ * time they open the app would be noise.
+ *
+ * They are redirected to `/market` rather than shown the market here, so the marketplace has
+ * exactly one address. Rendering it at both meant two nav links leading to the same screen, and
+ * a "Home" tab that was really the market. When the role dashboards land this stops redirecting
+ * and `/` becomes something genuinely different.
  */
 function Home() {
   const { user, initialising } = useAuth();
@@ -59,7 +63,7 @@ function Home() {
   // Waiting matters here: rendering the landing page for a frame before the silent refresh
   // resolves would flash a "Sign up" pitch at somebody who is already a member.
   if (initialising) return <Spinner />;
-  return user ? <MarketPage /> : <LandingPage />;
+  return user ? <Navigate to="/market" replace /> : <LandingPage />;
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
