@@ -79,6 +79,17 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'আপনার অ্যাকাউন্ট এখনো চালু হয়নি' },
     en: { title: 'Your account is not open yet' },
   },
+  slug_taken: {
+    tone: 'error',
+    bn: {
+      title: 'এই শিরোনামের ঠিকানা ইতিমধ্যে ব্যবহৃত',
+      hint: 'শিরোনামটি সামান্য বদলে দিন।',
+    },
+    en: {
+      title: 'That title already has an address in use',
+      hint: 'Change the title slightly.',
+    },
+  },
   code_required: {
     tone: 'info',
     bn: { title: 'ইমেইলে পাঠানো কোডটি দিন' },
@@ -670,6 +681,26 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
       title: 'Your application has been submitted',
       hint: 'You will be notified once it is reviewed.',
     },
+  },
+  post_published: {
+    tone: 'info',
+    bn: { title: 'লেখা প্রকাশিত হয়েছে' },
+    en: { title: 'Your post is live' },
+  },
+  post_saved: {
+    tone: 'info',
+    bn: { title: 'খসড়া সংরক্ষণ হয়েছে' },
+    en: { title: 'Draft saved' },
+  },
+  post_deleted: {
+    tone: 'info',
+    bn: { title: 'লেখা মুছে ফেলা হয়েছে' },
+    en: { title: 'Post deleted' },
+  },
+  message_sent: {
+    tone: 'info',
+    bn: { title: 'আপনার বার্তা পৌঁছেছে', hint: 'আমরা শীঘ্রই উত্তর দেব।' },
+    en: { title: 'Your message has been received', hint: 'We will reply shortly.' },
   },
   review_recorded: {
     tone: 'info',

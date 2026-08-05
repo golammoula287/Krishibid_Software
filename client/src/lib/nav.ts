@@ -63,6 +63,23 @@ const ADMIN: Tab[] = [
   { to: '/account', key: 'account', icon: 'account' },
 ];
 
+/**
+ * Read-occasionally links: the blog and contact, plus the admin's inbox for what arrives there.
+ *
+ * Kept out of the primary tabs on purpose. The mobile bar has five thumb-sized slots and every
+ * one spent on a page opened monthly is taken from a page opened daily, so these live in the
+ * header on desktop and in the overflow sheet on a phone.
+ */
+export function secondaryLinks(role: Role | undefined): Tab[] {
+  const links: Tab[] = [
+    { to: '/blog', key: 'blog', icon: 'learn' },
+    { to: '/contact', key: 'contact', icon: 'advisor' },
+  ];
+
+  if (role === 'admin') links.push({ to: '/admin/blog', key: 'manageBlog', icon: 'review' });
+  return links;
+}
+
 export function tabsForRole(role: Role | undefined): Tab[] {
   switch (role) {
     case 'farmer':
@@ -85,7 +102,8 @@ export function tabsForRole(role: Role | undefined): Tab[] {
 export function canAccess(role: Role | undefined, path: string): boolean {
   // Public to everyone regardless of role, and absent from most nav tables because a signed-in
   // user reaches the same screen at `/`. Listed here so a typed URL or an old link still works.
-  if (path === '/market' || path.startsWith('/listing')) return true;
+  const PUBLIC = ['/market', '/listing', '/blog', '/contact'];
+  if (PUBLIC.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return true;
 
   const tabs = tabsForRole(role);
   // Detail routes live under their section, e.g. /orders/:id.
