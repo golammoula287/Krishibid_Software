@@ -166,6 +166,30 @@ export async function startRegistration(
     pending.signupTokenExpiresAt = null;
   }
 
+  /**
+   * The code step is skipped entirely when the deployment does not require a verified address —
+   * not sent-and-ignored, but never issued. Issuing one would fail on a deployment with no
+   * working mail, and `issueCode` is deliberately loud about that: it would refuse the whole
+   * registration for a check nobody is performing.
+   */
+  if (!env().REQUIRE_EMAIL_VERIFICATION) {
+    const { token, tokenExpiresAt } = await mintSignupToken(pending);
+    await pending.save();
+
+    logger.info(
+      { email: maskEmail(input.email), role: input.role, resumed: Boolean(existing) },
+      'registration started — email verification is disabled, skipping the code step',
+    );
+
+    return {
+      email: input.email,
+      expiresAt: tokenExpiresAt.toISOString(),
+      resumed: Boolean(existing),
+      verificationRequired: false,
+      signupToken: token,
+    };
+  }
+
   await pending.save();
 
   const { devCode } = await issueCode(input.email, 'signup_verify', { name: input.name });
@@ -179,6 +203,7 @@ export async function startRegistration(
     email: input.email,
     expiresAt: expiresAt.toISOString(),
     resumed: Boolean(existing),
+    verificationRequired: true,
     ...(devCode ? { devCode } : {}),
   };
 }
@@ -186,6 +211,24 @@ export async function startRegistration(
 // ---------------------------------------------------------------------------
 // Step 2 — verify the emailed code
 // ---------------------------------------------------------------------------
+
+/**
+ * Issues the token that authorises the rest of this one registration.
+ *
+ * Mutates the document without saving, so the caller decides when — `start` and `verify` reach
+ * this point with different amounts of other work still pending.
+ */
+async function mintSignupToken(
+  pending: PendingRegistrationDoc,
+): Promise<{ token: string; tokenExpiresAt: Date }> {
+  const token = crypto.randomBytes(32).toString('base64url');
+  const tokenExpiresAt = new Date(Date.now() + SIGNUP_TOKEN_TTL_MS);
+
+  pending.signupTokenHash = hashToken(token);
+  pending.signupTokenExpiresAt = tokenExpiresAt;
+
+  return { token, tokenExpiresAt };
+}
 
 export async function verifyRegistration(
   email: string,
@@ -199,12 +242,8 @@ export async function verifyRegistration(
   // Purpose-scoped: a reset code presented here finds no challenge and fails.
   await consumeCode(email, code, 'signup_verify');
 
-  const token = crypto.randomBytes(32).toString('base64url');
-  const tokenExpiresAt = new Date(Date.now() + SIGNUP_TOKEN_TTL_MS);
-
+  const { token, tokenExpiresAt } = await mintSignupToken(pending);
   pending.emailVerified = true;
-  pending.signupTokenHash = hashToken(token);
-  pending.signupTokenExpiresAt = tokenExpiresAt;
   await pending.save();
 
   logger.info({ email: maskEmail(email) }, 'registration email verified');
@@ -297,7 +336,7 @@ export async function completeRegistration(
 ): Promise<{ result: CompleteRegistrationResult; refreshToken?: string }> {
   const pending = await resolveSignupToken(token);
 
-  if (!pending.emailVerified) {
+  if (env().REQUIRE_EMAIL_VERIFICATION && !pending.emailVerified) {
     throw unprocessable('registration_incomplete', 'verify your email address first');
   }
 
@@ -340,8 +379,14 @@ async function createUser(
       role: pending.role,
       district: pending.district,
       locale: pending.locale,
-      // The address was proven by the code that issued the signup token.
-      emailVerified: true,
+      /**
+       * Carried across rather than asserted.
+       *
+       * True only when a code sent to that address actually came back. Where verification is
+       * disabled this stays false, and the account page says "not verified" — which is the
+       * truth, and is what stops a badge appearing on an address nobody checked.
+       */
+      emailVerified: Boolean(pending.emailVerified),
       ...extra,
     });
   } catch (err) {

@@ -19,6 +19,15 @@ process.env.GEMINI_API_KEY = 'test-key';
 process.env.SSLCZ_STORE_ID = 'testbox';
 process.env.SSLCZ_STORE_PASSWORD = 'testpass';
 process.env.DEMO_PASSWORD = 'demo-password';
+/**
+ * Pinned ON, though the application currently defaults it off.
+ *
+ * The OTP flow is paused, not deleted — it comes back the day a domain is verified — so its
+ * tests must keep exercising it. Inheriting the default would have silently turned a dozen
+ * assertions into tests of a code path nobody runs. The disabled path has its own coverage,
+ * which sets this to false for the duration.
+ */
+process.env.REQUIRE_EMAIL_VERIFICATION = 'true';
 
 /**
  * Connects through the application's own `connectDb`, not a bare `mongoose.connect`.

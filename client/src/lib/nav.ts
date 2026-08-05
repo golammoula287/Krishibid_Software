@@ -22,7 +22,16 @@ export interface Tab {
  * Guests get the market alone: browsing is deliberately public so someone can see real prices
  * before deciding whether to sign up.
  */
-const GUEST: Tab[] = [{ to: '/', key: 'market', icon: '🌾' }];
+/**
+ * A guest gets the front door and the market, and nothing else.
+ *
+ * `/` is the landing page for them rather than the market, so the two are separate entries —
+ * collapsing them would leave no way back to the page that explains what this is.
+ */
+const GUEST: Tab[] = [
+  { to: '/', key: 'home', icon: '🏠' },
+  { to: '/market', key: 'market', icon: '🌾' },
+];
 
 const FARMER: Tab[] = [
   { to: '/', key: 'market', icon: '🌾' },
@@ -67,6 +76,10 @@ export function tabsForRole(role: Role | undefined): Tab[] {
  * typing a URL but absent from the nav would otherwise be a silent inconsistency.
  */
 export function canAccess(role: Role | undefined, path: string): boolean {
+  // Public to everyone regardless of role, and absent from most nav tables because a signed-in
+  // user reaches the same screen at `/`. Listed here so a typed URL or an old link still works.
+  if (path === '/market' || path.startsWith('/listing')) return true;
+
   const tabs = tabsForRole(role);
   // Detail routes live under their section, e.g. /orders/:id.
   return tabs.some((tab) => (tab.to === '/' ? path === '/' : path.startsWith(tab.to)));

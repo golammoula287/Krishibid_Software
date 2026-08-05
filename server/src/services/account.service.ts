@@ -10,6 +10,7 @@ import { env } from '../config/env.js';
 import { badRequest, conflict, notFound, unauthorized, unprocessable } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { maskEmail } from '../utils/mask.js';
+import { emailIsProven } from '../utils/verification.js';
 import { User, type UserDoc } from '../models/User.js';
 import { toKycDto } from './kyc.service.js';
 import { consumeCode, issueCode } from './otp.service.js';
@@ -32,7 +33,7 @@ function listingEligibility(user: UserDoc): { canList: boolean; reason?: string 
   if (user.accountStatus === 'rejected') {
     return { canList: false, reason: 'account_rejected' };
   }
-  if (!user.emailVerified) {
+  if (!emailIsProven(user.emailVerified)) {
     return { canList: false, reason: 'email_unverified' };
   }
 
