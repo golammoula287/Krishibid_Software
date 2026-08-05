@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Icon } from './icons.js';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
 import { tabsForRole } from '../lib/nav.js';
@@ -136,9 +137,7 @@ export default function Layout() {
                 }`
               }
             >
-              <span aria-hidden className="text-lg leading-none">
-                {tab.icon}
-              </span>
+              <Icon name={tab.icon} className="h-5 w-5" strokeWidth={2} />
               {t(`nav.${tab.key}`)}
             </NavLink>
           ))}

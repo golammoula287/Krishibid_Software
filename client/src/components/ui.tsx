@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiRequestError } from '../lib/api.js';
 import { hasCopyFor, resolveError } from '../lib/messages.js';
+import { Icon, type IconName } from './icons.js';
 
 export function Spinner({ label }: { label?: string }) {
   const { t } = useTranslation();
@@ -65,11 +66,20 @@ export function ErrorNote({ error, onRetry }: { error: unknown; onRetry?: () => 
   );
 }
 
-export function EmptyState({ icon, title, action }: { icon: string; title: string; action?: ReactNode }) {
+export function EmptyState({
+  icon,
+  title,
+  action,
+}: {
+  icon: IconName;
+  title: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="card flex flex-col items-center gap-3 py-10 text-center">
-      <span aria-hidden className="text-4xl">
-        {icon}
+      {/* Circled and muted: an empty state should read as "nothing here yet", not as an alert. */}
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+        <Icon name={icon} className="h-7 w-7" strokeWidth={1.5} />
       </span>
       <p className="text-slate-600">{title}</p>
       {action}

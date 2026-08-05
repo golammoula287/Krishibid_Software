@@ -2,6 +2,7 @@ import type { ListingDto, Page } from '@krishibid/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { Icon, type IconName } from '../components/icons.js';
 import { CardSkeleton } from '../components/ui.js';
 import { api } from '../lib/api.js';
 import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
@@ -17,6 +18,10 @@ import { currentLocale } from '../lib/i18n.js';
  * Browsing stays public for the same reason — a marketplace that demands registration before it
  * will show you a price is asking for trust it has not earned yet. Acting on a listing is where
  * the account becomes necessary, and that is exactly where the prompt appears.
+ *
+ * The photography is WebP re-encoded from the source images (1.5 MB → 446 KB), and everything
+ * below the hero is lazy. This audience pays for its data by the megabyte, so a decorative
+ * background that costs someone real money would not be elegant, whatever it looked like.
  */
 
 interface Crop {
@@ -33,7 +38,7 @@ function PreviewCard({ listing, cropName }: { listing: ListingDto; cropName: str
   return (
     <Link
       to={`/listing/${listing.id}`}
-      className="group flex flex-col rounded-2xl border border-brand-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group flex flex-col rounded-2xl border border-brand-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-2">
         <p className="truncate font-bold text-brand-900">{cropName}</p>
@@ -67,7 +72,7 @@ function PreviewCard({ listing, cropName }: { listing: ListingDto; cropName: str
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
     <li className="flex gap-3">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-800">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-800">
         {n}
       </span>
       <div>
@@ -75,6 +80,37 @@ function Step({ n, title, body }: { n: number; title: string; body: string }) {
         <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{body}</p>
       </div>
     </li>
+  );
+}
+
+/** One of the three trust points, over a photograph. */
+function ValueCard({ icon, image, title, body }: {
+  icon: IconName;
+  image: string;
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm">
+      <div className="relative h-28">
+        <img
+          src={image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+        />
+        {/* The wash keeps the icon legible whatever the photo underneath happens to be. */}
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-900/70 to-brand-900/10" />
+        <span className="absolute bottom-3 left-3 flex h-9 w-9 items-center justify-center rounded-xl bg-white/95 text-brand-800 shadow-sm">
+          <Icon name={icon} />
+        </span>
+      </div>
+      <div className="p-4">
+        <p className="font-bold text-brand-900">{title}</p>
+        <p className="mt-1 text-sm leading-relaxed text-slate-600">{body}</p>
+      </div>
+    </div>
   );
 }
 
@@ -97,18 +133,32 @@ export default function LandingPage() {
     crops.data?.find((c) => c.slug === slug)?.names[locale] ?? slug;
 
   return (
-    <div className="space-y-12 pb-8">
+    <div className="space-y-14 pb-10">
       {/* ---- hero ---- */}
-      <section className="-mx-4 -mt-4 bg-gradient-to-b from-brand-800 via-brand-800 to-brand-900 px-4 pb-12 pt-10 text-white sm:rounded-b-3xl">
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="badge bg-brand-700/60 text-brand-100 ring-1 ring-inset ring-brand-400/40">
+      <section className="relative -mx-4 -mt-4 overflow-hidden px-4 pb-14 pt-12 text-white sm:rounded-b-3xl">
+        <img
+          src="/crops/hero.webp"
+          alt=""
+          // The only image above the fold, so it is the only one fetched eagerly. High priority
+          // because it is the largest thing painted and everything else waits behind it.
+          fetchPriority="high"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        {/* Two layers, not one: a dark base for contrast plus a brand tint, so the photograph
+            reads as part of the product rather than as stock imagery behind it. */}
+        <div className="absolute inset-0 bg-brand-950/70" style={{ backgroundColor: 'rgb(8 46 25 / 0.72)' }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-brand-900 via-brand-900/40 to-transparent" />
+
+        <div className="relative mx-auto max-w-3xl text-center">
+          <span className="badge bg-white/15 text-brand-50 ring-1 ring-inset ring-white/25 backdrop-blur-sm">
             {t('landing.badge')}
           </span>
 
-          <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-5xl">
+          <h1 className="mt-4 text-3xl font-bold leading-tight drop-shadow-sm sm:text-5xl">
             {t('landing.heroTitle')}
           </h1>
-          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-brand-100 sm:text-lg">
+          <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-brand-50/90 sm:text-lg">
             {t('landing.heroBody')}
           </p>
 
@@ -117,21 +167,23 @@ export default function LandingPage() {
           <div className="mx-auto mt-7 flex max-w-md flex-col gap-2.5 sm:flex-row">
             <Link
               to="/signup?role=farmer"
-              className="btn min-h-touch flex-1 bg-white text-brand-800 shadow-sm hover:bg-brand-50"
+              className="btn min-h-touch flex-1 bg-white text-brand-800 shadow-lg hover:bg-brand-50"
             >
-              🌾 {t('landing.ctaFarmer')}
+              <Icon name="sprout" />
+              {t('landing.ctaFarmer')}
             </Link>
             <Link
               to="/signup?role=buyer"
-              className="btn min-h-touch flex-1 bg-brand-600 text-white shadow-sm hover:bg-brand-500"
+              className="btn min-h-touch flex-1 bg-brand-600 text-white shadow-lg ring-1 ring-inset ring-white/20 hover:bg-brand-500"
             >
-              🛒 {t('landing.ctaBuyer')}
+              <Icon name="basket" />
+              {t('landing.ctaBuyer')}
             </Link>
           </div>
 
-          <p className="mt-3 text-sm text-brand-200">
+          <p className="mt-3 text-sm text-brand-100">
             {t('landing.haveAccount')}{' '}
-            <Link to="/login" className="font-semibold text-white underline">
+            <Link to="/login" className="font-semibold text-white underline underline-offset-2">
               {t('auth.login')}
             </Link>
           </p>
@@ -140,17 +192,24 @@ export default function LandingPage() {
 
       {/* ---- why it is safe to use ---- */}
       <section className="mx-auto grid max-w-4xl gap-3 sm:grid-cols-3">
-        {(['escrow', 'verified', 'direct'] as const).map((key) => (
-          <div key={key} className="card">
-            <span aria-hidden className="text-2xl">
-              {key === 'escrow' ? '🔒' : key === 'verified' ? '✅' : '📈'}
-            </span>
-            <p className="mt-2 font-bold text-brand-900">{t(`landing.value.${key}.title`)}</p>
-            <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              {t(`landing.value.${key}.body`)}
-            </p>
-          </div>
-        ))}
+        <ValueCard
+          icon="shield"
+          image="/crops/field.webp"
+          title={t('landing.value.escrow.title')}
+          body={t('landing.value.escrow.body')}
+        />
+        <ValueCard
+          icon="verified"
+          image="/crops/seedling.webp"
+          title={t('landing.value.verified.title')}
+          body={t('landing.value.verified.body')}
+        />
+        <ValueCard
+          icon="trending"
+          image="/crops/harvest.webp"
+          title={t('landing.value.direct.title')}
+          body={t('landing.value.direct.body')}
+        />
       </section>
 
       {/* ---- live market: the actual argument for signing up ---- */}
@@ -164,6 +223,7 @@ export default function LandingPage() {
           </div>
           <Link to="/market" className="btn-secondary shrink-0 text-sm">
             {t('landing.seeAll')}
+            <Icon name="arrowRight" className="h-4 w-4" />
           </Link>
         </div>
 
@@ -189,42 +249,64 @@ export default function LandingPage() {
       {/* ---- how it works, per role ---- */}
       <section className="mx-auto grid max-w-4xl gap-4 sm:grid-cols-2">
         <div className="card">
-          <h3 className="font-bold text-brand-900">🌾 {t('landing.forFarmers')}</h3>
-          <ol className="mt-3 space-y-3">
+          <h3 className="flex items-center gap-2 font-bold text-brand-900">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-800">
+              <Icon name="sprout" />
+            </span>
+            {t('landing.forFarmers')}
+          </h3>
+          <ol className="mt-4 space-y-3">
             <Step n={1} title={t('landing.farmer.s1')} body={t('landing.farmer.b1')} />
             <Step n={2} title={t('landing.farmer.s2')} body={t('landing.farmer.b2')} />
             <Step n={3} title={t('landing.farmer.s3')} body={t('landing.farmer.b3')} />
           </ol>
-          <Link to="/signup?role=farmer" className="btn-primary mt-4 w-full">
+          <Link to="/signup?role=farmer" className="btn-primary mt-5 w-full">
             {t('landing.ctaFarmer')}
           </Link>
         </div>
 
         <div className="card">
-          <h3 className="font-bold text-brand-900">🛒 {t('landing.forBuyers')}</h3>
-          <ol className="mt-3 space-y-3">
+          <h3 className="flex items-center gap-2 font-bold text-brand-900">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-100 text-brand-800">
+              <Icon name="basket" />
+            </span>
+            {t('landing.forBuyers')}
+          </h3>
+          <ol className="mt-4 space-y-3">
             <Step n={1} title={t('landing.buyer.s1')} body={t('landing.buyer.b1')} />
             <Step n={2} title={t('landing.buyer.s2')} body={t('landing.buyer.b2')} />
             <Step n={3} title={t('landing.buyer.s3')} body={t('landing.buyer.b3')} />
           </ol>
-          <Link to="/signup?role=buyer" className="btn-secondary mt-4 w-full">
+          <Link to="/signup?role=buyer" className="btn-secondary mt-5 w-full">
             {t('landing.ctaBuyer')}
           </Link>
         </div>
       </section>
 
       {/* ---- closing ---- */}
-      <section className="mx-auto max-w-3xl rounded-2xl bg-brand-800 px-6 py-8 text-center text-white">
-        <h2 className="text-xl font-bold sm:text-2xl">{t('landing.closingTitle')}</h2>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-brand-100">
-          {t('landing.closingBody')}
-        </p>
-        <Link
-          to="/signup"
-          className="btn mx-auto mt-5 w-full max-w-xs bg-white text-brand-800 hover:bg-brand-50"
-        >
-          {t('landing.ctaStart')}
-        </Link>
+      <section className="relative mx-auto max-w-3xl overflow-hidden rounded-3xl px-6 py-10 text-center text-white">
+        <img
+          src="/crops/vegetables.webp"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0" style={{ backgroundColor: 'rgb(8 46 25 / 0.82)' }} />
+
+        <div className="relative">
+          <h2 className="text-xl font-bold sm:text-2xl">{t('landing.closingTitle')}</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-brand-50/90">
+            {t('landing.closingBody')}
+          </p>
+          <Link
+            to="/signup"
+            className="btn mx-auto mt-6 w-full max-w-xs bg-white text-brand-800 shadow-lg hover:bg-brand-50"
+          >
+            {t('landing.ctaStart')}
+            <Icon name="arrowRight" className="h-4 w-4" />
+          </Link>
+        </div>
       </section>
     </div>
   );

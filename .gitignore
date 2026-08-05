@@ -72,3 +72,12 @@ temp/
 
 # Local working plan — scratch thinking, not part of the published repo.
 plan.md
+
+# Source photography for the landing page.
+# The optimised WebP in client/public/crops/ is what ships (1.5 MB -> 446 KB); these originals
+# stay on disk for re-encoding at other sizes but are not worth carrying in the repo forever.
+client/public/*.jpg
+client/public/*.jpeg
+client/public/*.jfif
+client/public/*.avif
+client/public/*.png
