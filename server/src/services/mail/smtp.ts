@@ -178,9 +178,24 @@ export async function sendViaSmtp(message: MailMessage, from: string): Promise<v
      * By far the most common failure, and the one whose raw message explains nothing: Gmail
      * refuses the account password and says only "Username and Password not accepted".
      */
-    const hint = /invalid login|username and password not accepted|badcredentials/i.test(reason)
-      ? ' — Gmail needs a 16-character App Password (with 2-Step Verification enabled on the ' +
-        'account), not your normal password: https://myaccount.google.com/apppasswords'
+    /**
+     * The hint has to follow the host.
+     *
+     * An earlier version advised generating a Gmail App Password whatever the server was, so a
+     * rejected Brevo login sent the operator to a Google settings page that could not possibly
+     * help. A confidently wrong diagnosis costs more than none at all.
+     */
+    const authHint = /brevo|sendinblue/i.test(e.SMTP_HOST)
+      ? ' — Brevo wants the SMTP login shown on SMTP & API → SMTP (like 9xxxxxx001@smtp-brevo.com) ' +
+        'with an SMTP key ("xsmtpsib-..."), not your account email or password. A brand-new Brevo ' +
+        'account also has to be activated before it may send'
+      : /gmail|google/i.test(e.SMTP_HOST)
+        ? ' — Gmail needs a 16-character App Password (with 2-Step Verification enabled on the ' +
+          'account), not your normal password: https://myaccount.google.com/apppasswords'
+        : ' — check SMTP_USER and SMTP_PASS against the provider’s own SMTP settings page';
+
+    const hint = /invalid login|username and password not accepted|badcredentials|535/i.test(reason)
+      ? authHint
       : /ENETUNREACH|EHOSTUNREACH/i.test(reason)
         ? ' — the host has no route to that address family; the transport pins IPv4, so if this ' +
           'persists the platform is likely blocking outbound SMTP (try SMTP_PORT=587)'
