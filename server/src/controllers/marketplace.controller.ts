@@ -36,6 +36,16 @@ export async function myBids(req: Request, res: Response): Promise<void> {
   res.json(await bidService.listMyBids(req.user!.id));
 }
 
+/**
+ * The same bids with their lots attached, for the buyer's own bidding screen.
+ *
+ * A separate endpoint rather than a flag on the one above: the plain list is used where the
+ * listing is already on screen, and joining it there would be work thrown away.
+ */
+export async function myBidsDetailed(req: Request, res: Response): Promise<void> {
+  res.json(await bidService.listMyBidsDetailed(req.user!.id));
+}
+
 export async function placeBid(req: Request, res: Response): Promise<void> {
   // Captured before the bid lands so we know who to notify about being displaced.
   const previousLeader = (await listingService.getListing(req.body.listingId)).highestBid;

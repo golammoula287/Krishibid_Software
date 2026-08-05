@@ -75,7 +75,7 @@ const FARMER: Tab[] = [
 
 const BUYER: Tab[] = [
   { to: '/market', key: 'market', icon: 'market', primary: true },
-  { to: '/insights', key: 'insights', icon: 'insights', primary: true },
+  { to: '/bids', key: 'bids', icon: 'trending', primary: true },
   { to: '/orders', key: 'orders', icon: 'orders', primary: true },
   { to: '/account', key: 'account', icon: 'account', primary: true },
   ...PUBLIC_TAIL,
