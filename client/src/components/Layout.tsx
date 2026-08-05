@@ -60,17 +60,25 @@ function Brand({ dark = true }: { dark?: boolean }) {
   return (
     <Link to="/" className="flex items-center gap-2.5">
       <span
-        className={`flex h-9 w-9 items-center justify-center rounded-xl ${
-          dark ? 'bg-white/15 text-white ring-1 ring-inset ring-white/20' : 'bg-brand-50 text-brand-700'
+        className={`flex h-9 w-9 items-center justify-center rounded-xl shadow-sm ${
+          dark
+            ? 'bg-gradient-to-br from-brand-400 to-brand-600 text-white'
+            : 'bg-brand-50 text-brand-700'
         }`}
       >
         <Icon name="sprout" strokeWidth={2} />
       </span>
       <span className="leading-tight">
-        <span className={`block font-bold ${dark ? 'text-white' : 'text-brand-900'}`}>
+        <span
+          className={`block text-[17px] font-bold tracking-tight ${dark ? 'text-white' : 'text-brand-900'}`}
+        >
           {t('app.name')}
         </span>
-        <span className={`block text-[11px] ${dark ? 'text-brand-200' : 'text-slate-500'}`}>
+        {/* Hidden once the nav needs the room — the tagline is scene-setting, and the links
+            are what people came for. */}
+        <span
+          className={`hidden text-[11px] lg:block ${dark ? 'text-brand-200/80' : 'text-slate-500'}`}
+        >
           {t('app.tagline')}
         </span>
       </span>
@@ -101,11 +109,48 @@ export default function Layout() {
     <div className="flex min-h-screen flex-col">
       <OfflineBanner />
 
-      <header className="sticky top-0 z-30 bg-brand-800 text-white shadow-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+      {/**
+       * One band, not two.
+       *
+       * The header and the nav rail were separate full-width green bars stacked on top of each
+       * other — about 130px of solid colour before any content, and two edges competing to look
+       * like the boundary of the page. Folding the links into the same row halves the height and
+       * leaves a single, definite edge.
+       */}
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 text-white shadow-lg shadow-brand-900/10">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
           <Brand />
 
-          <div className="flex items-center gap-1.5">
+          {/* Inline, centred, and the reason the second rail is gone. */}
+          <nav className="mx-auto hidden items-center gap-0.5 md:flex">
+            {tabs.map((tab) => (
+              <NavLink
+                key={tab.to}
+                to={tab.to}
+                end={tab.to === '/'}
+                className={({ isActive }) =>
+                  `flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition ${
+                    isActive
+                      ? 'bg-white/15 font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
+                      : 'font-medium text-brand-100/90 hover:bg-white/10 hover:text-white'
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      name={tab.icon}
+                      className="h-4 w-4 opacity-90"
+                      strokeWidth={isActive ? 2.2 : 1.75}
+                    />
+                    {t(`nav.${tab.key}`)}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="ml-auto flex items-center gap-1.5 md:ml-0">
             <LocaleToggle />
 
             {user ? (
@@ -170,44 +215,6 @@ export default function Layout() {
           </div>
         </div>
 
-        {/**
-         * One nav rail, holding every destination in order.
-         *
-         * News and Contact used to sit up in the header while everything else sat down here, so
-         * the two groups never lined up and the bar looked like two half-finished navigations.
-         * Rendering one list once removes the possibility.
-         */}
-        <nav className="hidden border-t border-white/10 md:block">
-          <div className="mx-auto flex max-w-5xl items-center gap-0.5 px-4">
-            {tabs.map((tab) => (
-              <NavLink
-                key={tab.to}
-                to={tab.to}
-                end={tab.to === '/'}
-                className={({ isActive }) =>
-                  `relative flex items-center gap-2 px-3 py-3 text-sm font-medium tracking-tight transition ${
-                    isActive ? 'text-white' : 'text-brand-200 hover:text-white'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon name={tab.icon} className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.75} />
-                    {t(`nav.${tab.key}`)}
-                    {/* An inset underline rather than a border on the link, so the indicator
-                        sits flush with the header edge and does not shift the row height. */}
-                    <span
-                      className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full transition ${
-                        isActive ? 'bg-brand-400' : 'bg-transparent'
-                      }`}
-                    />
-                  </>
-                )}
-              </NavLink>
-            ))}
-          </div>
-        </nav>
-
         {/* Mobile overflow sheet */}
         {menuOpen && (
           <div className="border-t border-white/10 bg-brand-800 px-4 py-3 md:hidden">
@@ -256,7 +263,7 @@ export default function Layout() {
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4 pb-24 md:pb-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 pb-24 md:pb-10">
         <Outlet />
       </main>
 
