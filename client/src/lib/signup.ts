@@ -195,9 +195,17 @@ export function useRequestStatusCode() {
   });
 }
 
+/**
+ * Looks up an application by address, and only asks for a code if the server demands one.
+ *
+ * Adaptive rather than configured on the client: whether a code is required is a server-side
+ * setting, and a client that assumed either way would be wrong on one of the two deployments.
+ * A `code_required` refusal is the signal to show the code step.
+ */
 export function useCheckStatus() {
   return useMutation({
-    mutationFn: (input: { email: string; code: string }) =>
+    ...inlineErrors,
+    mutationFn: (input: { email: string; code?: string }) =>
       api.post<ApprovalStatusDto>('/auth/status/check', input),
   });
 }

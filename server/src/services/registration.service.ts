@@ -20,7 +20,7 @@ import bcrypt from 'bcryptjs';
 import type { HydratedDocument } from 'mongoose';
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
-import { badRequest, conflict, unauthorized, unprocessable } from '../utils/errors.js';
+import { badRequest, conflict, notFound, unauthorized, unprocessable } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { maskEmail } from '../utils/mask.js';
 import { formatBdt } from '../utils/money.js';
@@ -570,14 +570,34 @@ export async function requestStatusCode(email: string): Promise<OpaqueRequestRes
   return { sent: true, ...(devCode ? { devCode } : {}) };
 }
 
-export async function checkStatus(email: string, code: string): Promise<ApprovalStatusDto> {
-  await consumeCode(email, code, 'status_lookup');
+/**
+ * Reports where an application stands.
+ *
+ * The code is required only where email verification is enabled. Where it is not, there is no
+ * way to send one, and demanding it would leave a farmer who cannot log in with no way to learn
+ * anything at all — which is the exact dead end this page exists to prevent.
+ *
+ * The cost of that is real and worth naming: without a code, anyone who knows an address can see
+ * whether it has an account and what was decided about it. That is account enumeration. What
+ * keeps it bounded is that the response carries nothing beyond the status, the dates and the
+ * reviewer's reason — no name, no phone, no documents — and the route is behind the login rate
+ * limiter. Turning `REQUIRE_EMAIL_VERIFICATION` back on closes it properly.
+ */
+export async function checkStatus(email: string, code?: string): Promise<ApprovalStatusDto> {
+  if (env().REQUIRE_EMAIL_VERIFICATION) {
+    if (!code) {
+      throw badRequest('code_required', 'enter the code we emailed you');
+    }
+    await consumeCode(email, code, 'status_lookup');
+  }
 
   const user = await User.findOne({ email })
     .select('accountStatus kyc.status kyc.submittedAt kyc.decidedAt kyc.rejectionReason')
     .lean();
 
-  if (!user) throw unauthorized('that account no longer exists');
+  if (!user) {
+    throw notFound('application');
+  }
 
   return {
     status: user.accountStatus as ApprovalStatusDto['status'],
