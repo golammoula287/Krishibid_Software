@@ -5,6 +5,8 @@ import {
   MIN_BID_INCREMENT_POISHA,
   type AcceptBidInput,
   type BidDto,
+  type BidSummaryDto,
+  type MyBidDto,
   type PlaceBidInput,
 } from '@krishibid/shared';
 import mongoose from 'mongoose';
@@ -353,6 +355,76 @@ export async function listBidsForListing(listingId: string): Promise<BidDto[]> {
 export async function listMyBids(buyerId: string): Promise<BidDto[]> {
   const docs = await Bid.find({ buyerId }).sort({ createdAt: -1 }).limit(50).lean();
   return docs.map((d) => toBidDto(d as never));
+}
+
+/**
+ * A buyer's bids, each carrying enough of its lot to be worth reading.
+ *
+ * The listings are fetched in ONE query keyed by the ids on the bids, not per row. Fifty bids
+ * would otherwise be fifty round trips, and this screen is opened by someone on mobile data who
+ * wants a single answer: am I still winning anything.
+ */
+export async function listMyBidsDetailed(
+  buyerId: string,
+): Promise<{ bids: MyBidDto[]; summary: BidSummaryDto }> {
+  const bids = await Bid.find({ buyerId }).sort({ createdAt: -1 }).limit(50).lean();
+  if (bids.length === 0) {
+    return {
+      bids: [],
+      summary: { leading: 0, outbid: 0, won: 0, activeCommitmentPoisha: 0 },
+    };
+  }
+
+  const listings = await Listing.find({ _id: { $in: bids.map((b) => b.listingId) } })
+    .select('cropSlug quantityKg district bidClosesAt status highestBid')
+    .lean();
+
+  const byId = new Map(listings.map((l) => [String(l._id), l]));
+
+  const detailed: MyBidDto[] = bids.map((bid) => {
+    const listing = byId.get(String(bid.listingId));
+    const highest = listing?.highestBid?.amountPoisha ?? bid.amountPoisha;
+
+    return {
+      ...toBidDto(bid as never),
+      cropSlug: listing?.cropSlug ?? '',
+      quantityKg: listing?.quantityKg ?? 0,
+      district: listing?.district ?? '',
+      bidClosesAt: (listing?.bidClosesAt ?? new Date()).toISOString(),
+      listingStatus: (listing?.status ?? 'expired') as MyBidDto['listingStatus'],
+      highestAmountPoisha: highest,
+      /**
+       * Compared by bid id, not by amount.
+       *
+       * Two bids can share an amount — the increment rule makes it unlikely but not impossible
+       * across relisted lots — and matching on the number would then show two buyers that they
+       * are both winning.
+       */
+      isLeading:
+        listing?.status === 'open' &&
+        String(listing.highestBid?.bidId ?? '') === String(bid._id),
+    };
+  });
+
+  const summary = detailed.reduce<BidSummaryDto>(
+    (acc, bid) => {
+      if (bid.status === 'won') acc.won++;
+      else if (bid.listingStatus === 'open') {
+        if (bid.isLeading) acc.leading++;
+        else if (bid.status === 'active' || bid.status === 'outbid') acc.outbid++;
+      }
+
+      // What is still at stake: bids that can yet be called in. A lost or withdrawn bid commits
+      // nothing, and counting it would overstate what the buyer owes.
+      if (bid.listingStatus === 'open' && (bid.status === 'active' || bid.status === 'outbid')) {
+        acc.activeCommitmentPoisha += bid.amountPoisha;
+      }
+      return acc;
+    },
+    { leading: 0, outbid: 0, won: 0, activeCommitmentPoisha: 0 },
+  );
+
+  return { bids: detailed, summary };
 }
 
 export { toBidDto };

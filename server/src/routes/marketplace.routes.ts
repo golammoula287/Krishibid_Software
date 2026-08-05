@@ -45,6 +45,8 @@ marketplaceRoutes.delete(
 
 // ---- bids ----
 marketplaceRoutes.get('/bids/mine', requireAuth, controller.myBids);
+// Declared before any '/bids/:id' would be, for the same reason as '/listings/mine'.
+marketplaceRoutes.get('/bids/mine/detailed', requireAuth, controller.myBidsDetailed);
 
 /**
  * Bidding is capped by the buyer's trust tier. Validation runs first so the ceiling check

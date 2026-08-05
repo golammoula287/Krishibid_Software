@@ -16,7 +16,8 @@
     "blog": "News",
     "contact": "Contact",
     "manageBlog": "Publishing",
-    "menu": "Menu"
+    "menu": "Menu",
+    "bids": "My Bids"
   },
   "auth": {
     "login": "Log in",
@@ -409,5 +410,27 @@
     "sentTitle": "Message received",
     "sentBody": "Thank you — we have your message and will get back to you at the address you gave.",
     "sendAnother": "Send another"
+  },
+  "bids": {
+    "title": "My Bids",
+    "subtitle": "Everything you have bid on, and where each one stands right now.",
+    "leading": "Leading",
+    "outbid": "Outbid",
+    "won": "Won",
+    "closed": "Closed",
+    "yourBid": "Your bid",
+    "currentHighest": "Current highest",
+    "leadingCount": "Lots you are leading",
+    "outbidCount": "Lots you have been outbid on",
+    "committed": "Committed if all win",
+    "empty": "You have not bid on anything yet",
+    "emptyFilter": "Nothing in this group",
+    "browseMarket": "Browse the marketplace",
+    "filter": {
+      "all": "All",
+      "leading": "Leading",
+      "outbid": "Outbid",
+      "won": "Won"
+    }
   }
 }

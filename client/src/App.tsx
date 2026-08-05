@@ -41,6 +41,7 @@ const BlogPage = lazy(() => import('./pages/BlogPage.js'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage.js'));
 const AdminBlogPage = lazy(() => import('./pages/AdminBlogPage.js'));
 const ContactPage = lazy(() => import('./pages/ContactPage.js'));
+const MyBidsPage = lazy(() => import('./pages/MyBidsPage.js'));
 const SignupPage = lazy(() => import('./pages/SignupPage.js'));
 const SignupStatusPage = lazy(() => import('./pages/SignupStatusPage.js'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.js'));
@@ -168,6 +169,16 @@ export default function App() {
             element={
               <RequireRole roles={['farmer', 'admin']}>
                 <AdvisorPage />
+              </RequireRole>
+            }
+          />
+          {/* Buyer-only: a farmer never places a bid, so the screen would always be empty
+              for them and the tab would be a dead end. */}
+          <Route
+            path="bids"
+            element={
+              <RequireRole roles={['buyer']}>
+                <MyBidsPage />
               </RequireRole>
             }
           />
