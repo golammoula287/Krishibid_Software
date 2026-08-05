@@ -11,7 +11,8 @@
     "account": "Account",
     "learn": "Learn",
     "insights": "Insights",
-    "review": "Review"
+    "review": "Review",
+    "home": "Home"
   },
   "auth": {
     "login": "Log in",
@@ -56,7 +57,9 @@
     "confirmBidBody": "A bid cannot be changed once placed. Please check the amount carefully.",
     "confirmBidYes": "Yes, bid this amount",
     "signupToBid": "You need an account to bid — it is free to create one",
-    "onlyBuyersBid": "Only buyers can place bids"
+    "onlyBuyersBid": "Only buyers can place bids",
+    "loginToAct": "Log in to bid",
+    "guestPrompt": "Create a free account to bid on this lot"
   },
   "diagnose": {
     "title": "Crop disease detection",
@@ -305,5 +308,51 @@
       "rejected": "Not accepted this time. You can correct it and submit again.",
       "suspended": "This account is suspended. Please contact support."
     }
+  },
+  "landing": {
+    "badge": "Direct from the field",
+    "heroTitle": "Sell your crop at the price it is worth",
+    "heroBody": "Buyers bid against each other for your produce, and the money is held safely until you have been paid. No middleman deciding your price.",
+    "ctaFarmer": "I want to sell",
+    "ctaBuyer": "I want to buy",
+    "haveAccount": "Already have an account?",
+    "value": {
+      "escrow": {
+        "title": "Money held safely",
+        "body": "The buyer pays before anything ships, and the money is only released once delivery is confirmed."
+      },
+      "verified": {
+        "title": "Checked sellers",
+        "body": "Every farmer is reviewed by our team before they can list produce, so buyers know who they are bidding with."
+      },
+      "direct": {
+        "title": "Real market prices",
+        "body": "See what your crop is fetching across the country today, not what one trader tells you it is worth."
+      }
+    },
+    "liveTitle": "Selling right now",
+    "liveBody": "Live auctions from farmers across Bangladesh. Browse without an account.",
+    "seeAll": "See all",
+    "forFarmers": "For farmers",
+    "forBuyers": "For buyers",
+    "farmer": {
+      "s1": "Create your account",
+      "b1": "Your details are checked by our team once, so buyers can trust the listing.",
+      "s2": "List your crop",
+      "b2": "Quantity, grade and your lowest acceptable price. Buyers bid upward from there.",
+      "s3": "Get paid",
+      "b3": "The winning buyer pays into escrow before you ship. The money reaches you once delivery is confirmed."
+    },
+    "buyer": {
+      "s1": "Create your account",
+      "b1": "Takes a minute. You can start bidding immediately, up to your limit.",
+      "s2": "Bid on what you need",
+      "b2": "Search by crop and district, see every bid, and place yours in one tap.",
+      "s3": "Pay safely",
+      "b3": "Your money is held until you confirm the goods arrived — it is not handed over on trust."
+    },
+    "closingTitle": "Free to join, free to bid",
+    "closingBody": "We take a small commission only when a sale completes. Nothing to pay to list produce or to place a bid.",
+    "ctaStart": "Create an account"
   }
 }

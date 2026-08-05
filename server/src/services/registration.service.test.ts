@@ -419,6 +419,81 @@ describe('OTP codes are scoped by purpose', () => {
   });
 });
 
+describe('when the deployment does not require a verified email', () => {
+  /**
+   * The configuration the app actually ships with today.
+   *
+   * Free transactional email to arbitrary recipients turns out to need an owned domain, so
+   * verification is paused and accounts are approved by hand instead. What must not happen is
+   * signup asking for a code that was never sent — a dead end with no way past it.
+   */
+  const withVerificationOff = async (run: () => Promise<void>): Promise<void> => {
+    process.env.REQUIRE_EMAIL_VERIFICATION = 'false';
+    resetEnvCache();
+    try {
+      await run();
+    } finally {
+      process.env.REQUIRE_EMAIL_VERIFICATION = 'true';
+      resetEnvCache();
+    }
+  };
+
+  it('issues the signup token immediately and sends no code', async () => {
+    await withVerificationOff(async () => {
+      const result = await startRegistration(
+        startRegistrationSchema.parse(startInput({ role: 'buyer', email: 'skip@example.test' })),
+      );
+
+      expect(result.verificationRequired).toBe(false);
+      expect(result.signupToken).toBeTruthy();
+      // Not merely unsent — never issued. Issuing one would fail loudly on a deployment with no
+      // working mail and take the whole registration down with it.
+      expect(await OtpChallenge.countDocuments({ purpose: 'signup_verify' })).toBe(0);
+      expect(result.devCode).toBeUndefined();
+    });
+  });
+
+  it('completes registration straight from that token', async () => {
+    await withVerificationOff(async () => {
+      const started = await startRegistration(
+        startRegistrationSchema.parse(startInput({ role: 'buyer', email: 'skip2@example.test' })),
+      );
+
+      const { result } = await completeRegistration(started.signupToken, {});
+      expect(result.status).toBe('active');
+
+      const user = await User.findOne({ email: 'skip2@example.test' }).lean();
+      // False, and honestly so: nobody proved this address. The account page says "not
+      // verified", which is the truth rather than a badge on an unchecked value.
+      expect(user?.emailVerified).toBe(false);
+    });
+  });
+
+  it('still lets an approved farmer list produce, despite the unverified address', async () => {
+    await withVerificationOff(async () => {
+      const farmer = await makeUser('farmer', {
+        email: 'unverified-farmer@example.test',
+        emailVerified: false,
+      });
+      await User.updateOne({ _id: farmer._id }, { $set: { 'kyc.status': 'approved' } });
+
+      const { requireApprovedFarmer } = await import('../middleware/gate.js');
+      let passed: unknown = 'not called';
+      await requireApprovedFarmer(
+        { user: { id: String(farmer._id) } } as never,
+        {} as never,
+        ((err?: unknown) => {
+          passed = err;
+        }) as never,
+      );
+
+      // Gating on a check the deployment does not perform would leave an admin-approved farmer
+      // with an account that refuses to work and no explanation on screen.
+      expect(passed).toBeUndefined();
+    });
+  });
+});
+
 describe('mail disabled in production', () => {
   /**
    * The failure this pins down was found on the deployed site: a signup reported success and

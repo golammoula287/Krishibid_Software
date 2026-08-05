@@ -139,6 +139,22 @@ const envSchema = z.object({
    * looks like, and hosts block those ports routinely to keep their address space off spam lists.
    * On such a host only an HTTPS transport can work, whatever the SMTP configuration says.
    */
+  /**
+   * Whether signup demands a verified email address.
+   *
+   * OFF for now, deliberately, and it is worth being precise about what that costs. Free
+   * transactional email to arbitrary recipients turns out to require owning a domain: Resend
+   * refuses anyone but the account owner without one, Brevo will not activate a new account's
+   * transactional sending until a domain is verified, and Gmail — which does work — cannot leave
+   * a host that blocks outbound SMTP. Holding every registration hostage to that while accounts
+   * are approved by hand anyway would mean nobody can sign up at all.
+   *
+   * With it off, an address is collected and stored but not proven, so `emailVerified` stays
+   * false and the admin reviewing the application is the check. Turn it back on the day a domain
+   * is verified — the OTP machinery is untouched and still tested, just not on the critical path.
+   */
+  REQUIRE_EMAIL_VERIFICATION: boolish.default('false'),
+
   MAIL_PROVIDER: z.enum(['brevo', 'resend', 'smtp', 'none']).default('none'),
   RESEND_API_KEY: z.string().default(''),
   BREVO_API_KEY: z.string().default(''),

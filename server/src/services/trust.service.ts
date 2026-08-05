@@ -5,6 +5,7 @@ import {
 } from '@krishibid/shared';
 import mongoose from 'mongoose';
 import { logger } from '../utils/logger.js';
+import { emailIsProven } from '../utils/verification.js';
 import { Order } from '../models/Order.js';
 import { User, type UserDoc } from '../models/User.js';
 
@@ -49,15 +50,19 @@ export function evaluateTier(user: UserDoc, cleanOrders: number): TierEvaluation
 
   // Email, not phone: it is the channel that was actually proven. The number is collected and
   // kept unique, but nothing verifies it, so treating it as a trust signal would be a fiction.
+  // Where the deployment does not verify email either, it stops being a signal at all rather
+  // than becoming a requirement nobody can satisfy.
+  const emailCounts = emailIsProven(user.emailVerified);
+
   if (kycApproved || cleanOrders >= TRUSTED_TIER_CLEAN_ORDERS) {
     tier = 'trusted';
-  } else if (user.emailVerified && hasBusinessDetails) {
+  } else if (emailCounts && hasBusinessDetails) {
     tier = 'verified';
     const remaining = TRUSTED_TIER_CLEAN_ORDERS - cleanOrders;
     nextRequirement = `Verify your NID, or complete ${remaining} more order${
       remaining === 1 ? '' : 's'
     } without a dispute, to bid without a limit`;
-  } else if (!user.emailVerified) {
+  } else if (!emailCounts) {
     nextRequirement = 'Verify your email address to raise your bid limit';
   } else {
     nextRequirement = 'Add your business name and type to raise your bid limit';

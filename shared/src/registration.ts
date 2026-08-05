@@ -96,6 +96,17 @@ export interface StartRegistrationResult {
   devCode?: string;
   /** True when an unfinished registration for this email was resumed rather than created. */
   resumed: boolean;
+  /**
+   * Whether step 2 applies at all.
+   *
+   * False when the deployment does not require a verified address — free transactional email to
+   * arbitrary recipients turns out to need an owned domain, and blocking every registration on
+   * that while accounts are approved by hand anyway would mean nobody could sign up. The client
+   * skips straight to step 3 and the signup token comes back here instead.
+   */
+  verificationRequired: boolean;
+  /** Issued immediately when `verificationRequired` is false; otherwise it comes from step 2. */
+  signupToken?: string;
 }
 
 export interface VerifyRegistrationResult {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
 import { tabsForRole } from '../lib/nav.js';
@@ -68,8 +68,25 @@ export default function Layout() {
             <p className="text-xs text-brand-200">{t('app.tagline')}</p>
           </div>
           <div className="flex items-center gap-2">
-            {user && (
+            {user ? (
               <span className="hidden text-sm text-brand-100 sm:inline">{user.name}</span>
+            ) : (
+              /* A guest could previously browse the whole app with no visible way to join it —
+                 the only route to signup was hitting a wall somewhere and being redirected. */
+              <div className="flex items-center gap-1.5">
+                <Link
+                  to="/login"
+                  className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-100 hover:bg-brand-700"
+                >
+                  {t('auth.login')}
+                </Link>
+                <Link
+                  to="/signup"
+                  className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-brand-800 hover:bg-brand-50"
+                >
+                  {t('auth.register')}
+                </Link>
+              </div>
             )}
             <LocaleToggle />
           </div>

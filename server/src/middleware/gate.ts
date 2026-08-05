@@ -1,6 +1,7 @@
 import { ceilingForTier } from '../services/trust.service.js';
 import type { NextFunction, Request, Response } from 'express';
 import { forbidden, refused, unprocessable } from '../utils/errors.js';
+import { emailIsProven } from '../utils/verification.js';
 import { User } from '../models/User.js';
 
 /**
@@ -113,7 +114,7 @@ export async function requireApprovedFarmer(
         ),
       );
     }
-    if (!user.emailVerified) {
+    if (!emailIsProven(user.emailVerified)) {
       return next(
         unprocessable('email_unverified', 'verify your email address before listing produce'),
       );

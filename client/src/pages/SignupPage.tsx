@@ -8,7 +8,7 @@ import {
 } from '@krishibid/shared';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ErrorNote } from '../components/ui.js';
 import { ApiRequestError } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
@@ -224,13 +224,27 @@ export default function SignupPage() {
 
   const saved = useRef(readDraft()).current;
 
+  /**
+   * `/signup?role=buyer` from the landing page.
+   *
+   * The two CTAs there are the whole point of splitting them — somebody who clicked "Sell my
+   * crop" has already answered this question, and asking again on the next screen would make the
+   * choice look like it did not register. The query wins over a saved draft for the same reason.
+   */
+  const [params] = useSearchParams();
+  const requestedRole = params.get('role');
+  const initialRole =
+    requestedRole === 'farmer' || requestedRole === 'buyer'
+      ? requestedRole
+      : (saved?.role ?? 'farmer');
+
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<SignupDraft>({
     name: saved?.name ?? '',
     phone: saved?.phone ?? '',
     email: saved?.email ?? '',
     district: saved?.district ?? 'Dhaka',
-    role: saved?.role ?? 'farmer',
+    role: initialRole,
     password: '',
   });
 
@@ -238,6 +252,8 @@ export default function SignupPage() {
   const [cooldown, setCooldown] = useState(0);
   const [signupToken, setSignupToken] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  /** Set from the server's answer, so the step count and Back both match what happened. */
+  const [verificationRequired, setVerificationRequired] = useState(true);
 
   // Farmer step 3.
   const [nidNumber, setNidNumber] = useState('');
@@ -284,7 +300,12 @@ export default function SignupPage() {
   const stepError = step === 1 ? start.error : step === 2 ? verify.error : complete.error;
   const errors = fieldErrors(stepError);
   const isFarmer = form.role === 'farmer';
-  const totalSteps = isFarmer ? 4 : 3;
+  // The code step disappears entirely when the server does not require it, so the indicator
+  // must not promise a step that will never come.
+  const totalSteps = (isFarmer ? 4 : 3) - (verificationRequired ? 0 : 1);
+  const shownStep = !verificationRequired && step > 2 ? step - 1 : step;
+  /** Where Back goes from step 3 — never to a code screen that was skipped. */
+  const previousStep = verificationRequired ? 2 : 1;
 
   const set = (patch: Partial<SignupDraft>): void => {
     const next = { ...form, ...patch };
@@ -370,7 +391,7 @@ export default function SignupPage() {
         </button>
       </header>
 
-      <StepIndicator step={step} total={totalSteps} />
+      <StepIndicator step={shownStep} total={totalSteps} />
 
       {/* ---- step 1: the same five fields for both roles ---- */}
       {step === 1 && (
@@ -382,6 +403,21 @@ export default function SignupPage() {
               { ...form, locale },
               {
                 onSuccess: (result) => {
+                  /**
+                   * The server decides whether step 2 happens.
+                   *
+                   * Where a verified address is not required it issues the signup token here,
+                   * and asking for a code that was never sent would be a dead end — so the
+                   * wizard is 3 steps for a farmer and 2 for a buyer in that configuration.
+                   */
+                  if (!result.verificationRequired && result.signupToken) {
+                    setVerificationRequired(false);
+                    setSignupToken(result.signupToken);
+                    setStep(3);
+                    return;
+                  }
+                  setVerificationRequired(true);
+
                   setStep(2);
                   setCooldown(OTP_RESEND_COOLDOWN_SECONDS);
                   // Prefilled when the server has no mail provider, which keeps development
@@ -758,7 +794,7 @@ export default function SignupPage() {
           <button
             type="button"
             className="w-full text-center text-sm text-brand-700 underline"
-            onClick={() => setStep(2)}
+            onClick={() => setStep(previousStep)}
           >
             {t('signup.back')}
           </button>

@@ -18,6 +18,7 @@ import { notify } from './mail/index.js';
 import { renderTemplate } from './mail/templates.js';
 import { refreshBuyerTier } from './trust.service.js';
 import { maskPhone } from '../utils/mask.js';
+import { emailIsProven } from '../utils/verification.js';
 
 let configured = false;
 
@@ -174,7 +175,7 @@ export async function submitApplication(
    * what was decided. Reviewing documents attached to an unverified address would mean
    * approving someone we cannot contact — and an approval nobody receives is not an approval.
    */
-  if (!user.emailVerified) {
+  if (!emailIsProven(user.emailVerified)) {
     throw unprocessable('email_unverified', 'verify your email address before applying');
   }
 

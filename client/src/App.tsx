@@ -16,6 +16,7 @@ import { disconnectSocket } from './lib/socket.js';
  * whole app up front.
  */
 const MarketPage = lazy(() => import('./pages/MarketPage.js'));
+const LandingPage = lazy(() => import('./pages/LandingPage.js'));
 const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage.js'));
 const CreateListingPage = lazy(() => import('./pages/CreateListingPage.js'));
 const DiagnosePage = lazy(() => import('./pages/DiagnosePage.js'));
@@ -39,6 +40,23 @@ const LoginPage = lazy(() => import('./pages/LoginPage.js'));
 const SignupPage = lazy(() => import('./pages/SignupPage.js'));
 const SignupStatusPage = lazy(() => import('./pages/SignupStatusPage.js'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.js'));
+
+/**
+ * `/` means different things to a visitor and to a member.
+ *
+ * A guest gets the landing page: the case for signing up, made with live prices rather than
+ * claims. Someone signed in has already made that decision, and showing them a sales pitch every
+ * time they open the app would be noise — they get the market, which is the screen both roles
+ * actually work from.
+ */
+function Home() {
+  const { user, initialising } = useAuth();
+
+  // Waiting matters here: rendering the landing page for a frame before the silent refresh
+  // resolves would flash a "Sign up" pitch at somebody who is already a member.
+  if (initialising) return <Spinner />;
+  return user ? <MarketPage /> : <LandingPage />;
+}
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, initialising } = useAuth();
@@ -98,7 +116,10 @@ export default function App() {
         <Route element={<Layout />}>
           {/* Browsing the market is public — a farmer should be able to see prices
               before deciding whether to sign up. */}
-          <Route index element={<MarketPage />} />
+          <Route index element={<Home />} />
+          {/* The market at its own address too, so the landing page can link to it and a
+              signed-in user's bookmark keeps working. */}
+          <Route path="market" element={<MarketPage />} />
           <Route path="listing/:id" element={<ListingDetailPage />} />
 
           <Route
