@@ -4,6 +4,7 @@ import { Crop } from '../models/Crop.js';
 import { accountRoutes } from './account.routes.js';
 import { advisoryRoutes } from './advisory.routes.js';
 import { authRoutes } from './auth.routes.js';
+import { contentRoutes } from './content.routes.js';
 import { diagnosisRoutes } from './diagnosis.routes.js';
 import { marketplaceRoutes } from './marketplace.routes.js';
 import { orderRoutes } from './order.routes.js';
@@ -18,6 +19,8 @@ apiRoutes.use('/orders', orderRoutes);
 apiRoutes.use('/payments', paymentRoutes);
 apiRoutes.use('/diagnosis', diagnosisRoutes);
 apiRoutes.use('/advisory', advisoryRoutes);
+/** Blog and contact — the parts of the site written by people rather than by the marketplace. */
+apiRoutes.use('/content', contentRoutes);
 
 /**
  * User-facing message catalogue. Server-authoritative so wording — Bangla especially, which

@@ -37,6 +37,10 @@ const LoginPage = lazy(() => import('./pages/LoginPage.js'));
  * than elsewhere. The market feed is the landing page for someone who has not signed up yet, so
  * it must not pay for a four-step wizard and an image-upload path they may never open.
  */
+const BlogPage = lazy(() => import('./pages/BlogPage.js'));
+const BlogPostPage = lazy(() => import('./pages/BlogPostPage.js'));
+const AdminBlogPage = lazy(() => import('./pages/AdminBlogPage.js'));
+const ContactPage = lazy(() => import('./pages/ContactPage.js'));
 const SignupPage = lazy(() => import('./pages/SignupPage.js'));
 const SignupStatusPage = lazy(() => import('./pages/SignupStatusPage.js'));
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.js'));
@@ -121,6 +125,21 @@ export default function App() {
               signed-in user's bookmark keeps working. */}
           <Route path="market" element={<MarketPage />} />
           <Route path="listing/:id" element={<ListingDetailPage />} />
+
+          {/* Public: an advisory or a scheme deadline is useful to a farmer who has not signed
+              up, and putting it behind an account would waste it. */}
+          <Route path="blog" element={<BlogPage />} />
+          <Route path="blog/:slug" element={<BlogPostPage />} />
+          <Route path="contact" element={<ContactPage />} />
+
+          <Route
+            path="admin/blog"
+            element={
+              <RequireRole roles={['admin']}>
+                <AdminBlogPage />
+              </RequireRole>
+            }
+          />
 
           <Route
             path="listing/new"

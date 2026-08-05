@@ -75,16 +75,37 @@ export function requireRole(...roles: Role[]) {
   };
 }
 
-/** Attaches the user when a token is present, but never rejects. */
+/**
+ * Attaches the user when a token is present, and never rejects.
+ *
+ * The `try/catch` this replaced did not work: `requireAuth` catches its own failures and passes
+ * them to `next(error)` rather than throwing, so nothing reached the catch and an expired token
+ * produced a 401 from a route that is meant to be public. Someone whose session had lapsed would
+ * have been shut out of pages a complete stranger can read.
+ *
+ * So the outcome is intercepted instead of the exception: `next` is called at most once, without
+ * an error, whatever `requireAuth` decided.
+ */
 export async function optionalAuth(
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void> {
   if (!req.headers.authorization) return next();
-  try {
-    await requireAuth(req, res, next);
-  } catch {
+
+  let settled = false;
+  const proceed = (): void => {
+    if (settled) return;
+    settled = true;
     next();
+  };
+
+  try {
+    // Swallows the error argument: a bad token means "anonymous", not "denied".
+    await requireAuth(req, res, proceed as NextFunction);
+  } catch {
+    // requireAuth is not expected to throw, but a future change must not turn that into a 500.
   }
+
+  proceed();
 }
