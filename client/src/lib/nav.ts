@@ -1,10 +1,17 @@
 import type { Role } from '@krishibid/shared';
+import type { IconName } from '../components/icons.js';
 
 export interface Tab {
   to: string;
   /** i18n key under `nav.` */
   key: string;
-  icon: string;
+  /**
+   * A drawn icon, not an emoji.
+   *
+   * Emoji render as a different picture on every platform and cannot take the colour of the
+   * active tab, so the selected state had to be carried entirely by the label.
+   */
+  icon: IconName;
 }
 
 /**
@@ -29,31 +36,31 @@ export interface Tab {
  * collapsing them would leave no way back to the page that explains what this is.
  */
 const GUEST: Tab[] = [
-  { to: '/', key: 'home', icon: '🏠' },
-  { to: '/market', key: 'market', icon: '🌾' },
+  { to: '/', key: 'home', icon: 'home' },
+  { to: '/market', key: 'market', icon: 'market' },
 ];
 
 const FARMER: Tab[] = [
-  { to: '/', key: 'market', icon: '🌾' },
-  { to: '/diagnose', key: 'diagnose', icon: '🔍' },
-  { to: '/advisor', key: 'advisor', icon: '💬' },
-  { to: '/learn', key: 'learn', icon: '🎓' },
-  { to: '/orders', key: 'orders', icon: '📦' },
-  { to: '/account', key: 'account', icon: '👤' },
+  { to: '/', key: 'market', icon: 'market' },
+  { to: '/diagnose', key: 'diagnose', icon: 'diagnose' },
+  { to: '/advisor', key: 'advisor', icon: 'advisor' },
+  { to: '/learn', key: 'learn', icon: 'learn' },
+  { to: '/orders', key: 'orders', icon: 'orders' },
+  { to: '/account', key: 'account', icon: 'account' },
 ];
 
 const BUYER: Tab[] = [
-  { to: '/', key: 'market', icon: '🌾' },
-  { to: '/insights', key: 'insights', icon: '📈' },
-  { to: '/orders', key: 'orders', icon: '📦' },
-  { to: '/account', key: 'account', icon: '👤' },
+  { to: '/', key: 'market', icon: 'market' },
+  { to: '/insights', key: 'insights', icon: 'insights' },
+  { to: '/orders', key: 'orders', icon: 'orders' },
+  { to: '/account', key: 'account', icon: 'account' },
 ];
 
 const ADMIN: Tab[] = [
-  { to: '/', key: 'market', icon: '🌾' },
-  { to: '/admin/review', key: 'review', icon: '🗂' },
-  { to: '/insights', key: 'insights', icon: '📈' },
-  { to: '/account', key: 'account', icon: '👤' },
+  { to: '/', key: 'market', icon: 'market' },
+  { to: '/admin/review', key: 'review', icon: 'review' },
+  { to: '/insights', key: 'insights', icon: 'insights' },
+  { to: '/account', key: 'account', icon: 'account' },
 ];
 
 export function tabsForRole(role: Role | undefined): Tab[] {

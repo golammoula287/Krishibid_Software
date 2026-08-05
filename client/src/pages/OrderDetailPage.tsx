@@ -1,4 +1,5 @@
 import type { InitiatePaymentResult, OrderDto, PaymentDto } from '@krishibid/shared';
+import { Icon } from '../components/icons.js';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -122,7 +123,10 @@ export default function OrderDetailPage() {
 
       {(o.status === 'confirmed' || o.status === 'in_transit') && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <p className="font-semibold text-blue-900">🔒 {t('orders.escrowHeld')}</p>
+          <p className="flex items-center gap-1.5 font-semibold text-blue-900">
+            <Icon name="shield" className="h-4 w-4" />
+            {t('orders.escrowHeld')}
+          </p>
           <p className="mt-1 text-sm text-blue-800">
             {isBuyer ? t('orders.escrowHelpBuyer') : t('orders.escrowHelpFarmer')}
           </p>

@@ -1,4 +1,5 @@
 import { BID_CEILING_POISHA, type BalanceDto, type BuyerTier } from '@krishibid/shared';
+import { Icon } from '../components/icons.js';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -147,13 +148,19 @@ function BalancePanel() {
            withdraw would be actively misleading. */
         <dl className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <dt className="text-slate-600">🔒 {t('payment.escrow')}</dt>
+            <dt className="flex items-center gap-1.5 text-slate-600">
+              <Icon name="shield" className="h-4 w-4" />
+              {t('payment.escrow')}
+            </dt>
             <dd className="font-semibold text-blue-800">
               {formatBdt(balance.data.escrowPoisha, locale)}
             </dd>
           </div>
           <div className="flex justify-between border-t border-brand-50 pt-2">
-            <dt className="text-slate-600">✅ {t('payment.available')}</dt>
+            <dt className="flex items-center gap-1.5 text-slate-600">
+              <Icon name="check" className="h-4 w-4" />
+              {t('payment.available')}
+            </dt>
             <dd className="text-lg font-bold text-brand-800">
               {formatBdt(balance.data.availablePoisha, locale)}
             </dd>

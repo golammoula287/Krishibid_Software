@@ -22,7 +22,7 @@ export default function OrdersPage() {
 
       {orders.isLoading && <CardSkeleton />}
       {orders.isError && <ErrorNote error={orders.error} onRetry={() => void orders.refetch()} />}
-      {orders.data?.length === 0 && <EmptyState icon="📦" title={t('orders.empty')} />}
+      {orders.data?.length === 0 && <EmptyState icon="orders" title={t('orders.empty')} />}
 
       <div className="space-y-3">
         {orders.data?.map((order) => (

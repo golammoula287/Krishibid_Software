@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Icon } from '../components/icons.js';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorNote } from '../components/ui.js';
@@ -89,7 +90,8 @@ export default function LoginPage() {
             disabled={busy}
             onClick={() => void run(() => demoLogin('farmer'))}
           >
-            🌾 {t('auth.demoFarmer')}
+            <Icon name="sprout" />
+            {t('auth.demoFarmer')}
           </button>
           <button
             type="button"
@@ -97,7 +99,8 @@ export default function LoginPage() {
             disabled={busy}
             onClick={() => void run(() => demoLogin('buyer'))}
           >
-            🛒 {t('auth.demoBuyer')}
+            <Icon name="basket" />
+            {t('auth.demoBuyer')}
           </button>
         </div>
       </div>

@@ -129,7 +129,7 @@ export default function MarketPage() {
       {listings.isError && <ErrorNote error={listings.error} onRetry={() => void listings.refetch()} />}
 
       {listings.data && listings.data.items.length === 0 && (
-        <EmptyState icon="🌾" title={t('market.empty')} />
+        <EmptyState icon="market" title={t('market.empty')} />
       )}
 
       <div className="space-y-3">
