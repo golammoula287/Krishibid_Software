@@ -4,18 +4,18 @@
     "tagline": "Farmer to buyer, directly"
   },
   "nav": {
-    "market": "Market",
-    "diagnose": "Diagnose",
-    "advisor": "Advice",
+    "market": "Marketplace",
+    "diagnose": "Crop Diagnosis",
+    "advisor": "Advisory",
     "orders": "Orders",
-    "account": "Account",
-    "learn": "Learn",
-    "insights": "Insights",
-    "review": "Review",
+    "account": "My Account",
+    "learn": "Learning",
+    "insights": "Market Insights",
+    "review": "Verification Queue",
     "home": "Home",
-    "blog": "Blog",
+    "blog": "News",
     "contact": "Contact",
-    "manageBlog": "Manage blog",
+    "manageBlog": "Publishing",
     "menu": "Menu"
   },
   "auth": {
@@ -36,7 +36,7 @@
     "noAccount": "No account yet?"
   },
   "market": {
-    "title": "Market",
+    "title": "Marketplace",
     "search": "Search crop or district",
     "allCrops": "All crops",
     "allDistricts": "All districts",

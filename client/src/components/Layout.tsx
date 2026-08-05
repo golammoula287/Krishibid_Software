@@ -4,7 +4,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { Icon } from './icons.js';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
-import { tabsForRole, secondaryLinks } from '../lib/nav.js';
+import { primaryTabs, tabsForRole } from '../lib/nav.js';
 
 function OfflineBanner() {
   const { t } = useTranslation();
@@ -94,10 +94,8 @@ export default function Layout() {
    * deliberately public so prices are visible before signing up.
    */
   const tabs = tabsForRole(user?.role);
-  const secondary = secondaryLinks(user?.role);
-
   /** Bottom bar is thumb-reachable and cannot hold everything; five is already a lot. */
-  const bottomTabs = tabs.slice(0, 5);
+  const bottomTabs = primaryTabs(user?.role);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -108,25 +106,6 @@ export default function Layout() {
           <Brand />
 
           <div className="flex items-center gap-1.5">
-            {/* Blog and Contact live up here rather than in the tab bar: they are read
-                occasionally, and spending one of five thumb-sized slots on them would push out
-                something used daily. */}
-            <nav className="hidden items-center gap-0.5 md:flex">
-              {secondary.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={({ isActive }) =>
-                    `rounded-lg px-3 py-1.5 text-sm font-medium transition ${
-                      isActive ? 'bg-white/15 text-white' : 'text-brand-100 hover:bg-white/10'
-                    }`
-                  }
-                >
-                  {t(`nav.${link.key}`)}
-                </NavLink>
-              ))}
-            </nav>
-
             <LocaleToggle />
 
             {user ? (
@@ -191,24 +170,39 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Desktop primary nav — a rail under the header, so the two levels stay distinct. */}
+        {/**
+         * One nav rail, holding every destination in order.
+         *
+         * News and Contact used to sit up in the header while everything else sat down here, so
+         * the two groups never lined up and the bar looked like two half-finished navigations.
+         * Rendering one list once removes the possibility.
+         */}
         <nav className="hidden border-t border-white/10 md:block">
-          <div className="mx-auto flex max-w-5xl gap-1 px-4">
+          <div className="mx-auto flex max-w-5xl items-center gap-0.5 px-4">
             {tabs.map((tab) => (
               <NavLink
                 key={tab.to}
                 to={tab.to}
                 end={tab.to === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition ${
-                    isActive
-                      ? 'border-brand-400 text-white'
-                      : 'border-transparent text-brand-200 hover:text-white'
+                  `relative flex items-center gap-2 px-3 py-3 text-sm font-medium tracking-tight transition ${
+                    isActive ? 'text-white' : 'text-brand-200 hover:text-white'
                   }`
                 }
               >
-                <Icon name={tab.icon} className="h-4 w-4" />
-                {t(`nav.${tab.key}`)}
+                {({ isActive }) => (
+                  <>
+                    <Icon name={tab.icon} className="h-4 w-4" strokeWidth={isActive ? 2.2 : 1.75} />
+                    {t(`nav.${tab.key}`)}
+                    {/* An inset underline rather than a border on the link, so the indicator
+                        sits flush with the header edge and does not shift the row height. */}
+                    <span
+                      className={`absolute inset-x-2 bottom-0 h-0.5 rounded-full transition ${
+                        isActive ? 'bg-brand-400' : 'bg-transparent'
+                      }`}
+                    />
+                  </>
+                )}
               </NavLink>
             ))}
           </div>
@@ -218,17 +212,18 @@ export default function Layout() {
         {menuOpen && (
           <div className="border-t border-white/10 bg-brand-800 px-4 py-3 md:hidden">
             <div className="flex flex-col gap-0.5">
-              {[...tabs, ...secondary].map((link) => (
+              {tabs.map((link) => (
                 <NavLink
                   key={link.to}
                   to={link.to}
                   end={link.to === '/'}
                   className={({ isActive }) =>
-                    `rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+                    `flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
                       isActive ? 'bg-white/15 text-white' : 'text-brand-100 hover:bg-white/10'
                     }`
                   }
                 >
+                  <Icon name={link.icon} className="h-4 w-4" />
                   {t(`nav.${link.key}`)}
                 </NavLink>
               ))}
