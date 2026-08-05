@@ -92,19 +92,28 @@ const farmerDetails = {
   cropsGrown: ['rice'],
 };
 
-/** Walks a registration from step 1 to the point where only completion is left. */
+/**
+ * Walks a registration from step 1 to the point where only completion is left.
+ *
+ * Works in both configurations: where a verified address is required it goes through the code,
+ * and where it is not the token arrives from `start` directly. A helper that only knew one of
+ * them would quietly stop testing whichever the app actually ships with.
+ */
 async function upToCompletion(over: Record<string, unknown> = {}) {
   const input = startRegistrationSchema.parse(startInput(over));
   const started = await startRegistration(input);
-  const verified = await verifyRegistration(input.email, code(started));
+
+  const token = started.verificationRequired
+    ? (await verifyRegistration(input.email, code(started))).signupToken
+    : started.signupToken!;
 
   if (input.role === 'farmer') {
     for (const kind of ['nid_front', 'nid_back', 'selfie'] as const) {
-      await uploadRegistrationDocument(verified.signupToken, kind, Buffer.from('image'));
+      await uploadRegistrationDocument(token, kind, Buffer.from('image'));
     }
   }
 
-  return { input, token: verified.signupToken };
+  return { input, token };
 }
 
 beforeEach(() => {
@@ -375,6 +384,15 @@ describe('approval status lookup', () => {
     expect(shape(unknown)).toEqual(shape(known));
   });
 
+  it('refuses to report anything without a code, when verification is on', async () => {
+    await makeUser('farmer', { email: 'guarded@example.test' });
+
+    // The code is what stops the page becoming a way to look up any address's application.
+    await expect(checkStatus('guarded@example.test')).rejects.toMatchObject({
+      code: 'code_required',
+    });
+  });
+
   it('reports the pending state and issues no session', async () => {
     const { input, token } = await upToCompletion({ email: 'waiting@example.test' });
     await completeRegistration(token, farmerDetails);
@@ -466,6 +484,28 @@ describe('when the deployment does not require a verified email', () => {
       // False, and honestly so: nobody proved this address. The account page says "not
       // verified", which is the truth rather than a badge on an unchecked value.
       expect(user?.emailVerified).toBe(false);
+    });
+  });
+
+  it('reports application status from the address alone, with no code', async () => {
+    await withVerificationOff(async () => {
+      const { input, token } = await upToCompletion({ email: 'lookup@example.test' });
+      await completeRegistration(token, farmerDetails);
+
+      // No code is issued or asked for — on a deployment that cannot send email, demanding one
+      // would leave a farmer who cannot log in with no way to learn anything at all.
+      const status = await checkStatus(input.email);
+      expect(status.status).toBe('pending_approval');
+      expect(await OtpChallenge.countDocuments({ purpose: 'status_lookup' })).toBe(0);
+    });
+  });
+
+  it('says plainly when no application exists for an address', async () => {
+    await withVerificationOff(async () => {
+      await expect(checkStatus('nobody@example.test')).rejects.toMatchObject({
+        code: 'not_found',
+        status: 404,
+      });
     });
   });
 

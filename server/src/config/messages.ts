@@ -79,6 +79,11 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'আপনার অ্যাকাউন্ট এখনো চালু হয়নি' },
     en: { title: 'Your account is not open yet' },
   },
+  code_required: {
+    tone: 'info',
+    bn: { title: 'ইমেইলে পাঠানো কোডটি দিন' },
+    en: { title: 'Enter the code we emailed you' },
+  },
   signup_expired: {
     tone: 'warning',
     bn: {

@@ -185,6 +185,6 @@ export async function requestStatusCode(req: Request, res: Response): Promise<vo
 }
 
 export async function checkStatus(req: Request, res: Response): Promise<void> {
-  const { email, code } = req.body as { email: string; code: string };
+  const { email, code } = req.body as { email: string; code?: string };
   res.json(await registrationService.checkStatus(email, code));
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { ErrorNote } from '../components/ui.js';
+import { ApiRequestError } from '../lib/api.js';
 import { formatDate } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 import { useCheckStatus, useRequestStatusCode } from '../lib/signup.js';
@@ -95,13 +96,30 @@ export default function SignupStatusPage() {
           className="card space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
-            request.mutate(email, {
-              onSuccess: (result) => {
-                setSent(true);
-                setCooldown(OTP_RESEND_COOLDOWN_SECONDS);
-                if (result.devCode) setCode(result.devCode);
+            /**
+             * Tries the address alone first.
+             *
+             * On a deployment that cannot send email, demanding a code would leave a farmer who
+             * cannot log in with no way to learn anything — the exact dead end this page exists
+             * to prevent. Where the server does require one it says so, and only then is the
+             * code step shown.
+             */
+            check.mutate(
+              { email },
+              {
+                onError: (error) => {
+                  if (error instanceof ApiRequestError && error.code === 'code_required') {
+                    request.mutate(email, {
+                      onSuccess: (result) => {
+                        setSent(true);
+                        setCooldown(OTP_RESEND_COOLDOWN_SECONDS);
+                        if (result.devCode) setCode(result.devCode);
+                      },
+                    });
+                  }
+                },
               },
-            });
+            );
           }}
         >
           <div>
@@ -122,8 +140,19 @@ export default function SignupStatusPage() {
             <p className="mt-1 text-xs text-slate-500">{t('status.emailHelp')}</p>
           </div>
 
-          <button type="submit" className="btn-primary w-full" disabled={request.isPending}>
-            {request.isPending ? t('signup.sendingCode') : t('account.sendCode')}
+          {/* `code_required` is not an error the user can act on — it is the app deciding to
+              show them one more field — so it is filtered out of what gets rendered. */}
+          {check.error != null &&
+            !(check.error instanceof ApiRequestError && check.error.code === 'code_required') && (
+              <ErrorNote error={check.error} />
+            )}
+
+          <button
+            type="submit"
+            className="btn-primary w-full"
+            disabled={check.isPending || request.isPending}
+          >
+            {check.isPending || request.isPending ? t('status.checking') : t('status.showStatus')}
           </button>
         </form>
       ) : (

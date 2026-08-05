@@ -191,12 +191,20 @@ export const requestStatusCodeSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(160),
 });
 
+/**
+ * The code is optional, and whether it is actually required is the server's call.
+ *
+ * Where email verification is enabled, a code proves the asker owns the address before their
+ * application status is handed over. Where it is disabled there is no way to send one, so the
+ * lookup falls back to the address alone. The client discovers which by asking.
+ */
 export const checkStatusSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(160),
   code: z
     .string()
     .trim()
-    .regex(/^\d{6}$/, 'the code is 6 digits'),
+    .regex(/^\d{6}$/, 'the code is 6 digits')
+    .optional(),
 });
 
 export interface ApprovalStatusDto {
