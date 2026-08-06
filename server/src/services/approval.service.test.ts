@@ -102,7 +102,7 @@ describe('admin approval opens the account', () => {
     // review queue is the only thing between a farmer and a working account.
     expect(updated?.accountStatus).toBe('active');
 
-    const session = await login({ phone: farmer.phone, password: FIXTURE_PASSWORD });
+    const session = await login({ identifier: farmer.phone, password: FIXTURE_PASSWORD });
     expect(session.auth.user.id).toBe(String(farmer._id));
 
     await settle();
@@ -135,7 +135,7 @@ describe('admin rejection leaves a way back', () => {
      * Refusing it would leave someone who cannot fix what the reviewer flagged and cannot
      * re-register — their phone and email are taken — permanently locked out by our own rules.
      */
-    const session = await login({ phone: farmer.phone, password: FIXTURE_PASSWORD });
+    const session = await login({ identifier: farmer.phone, password: FIXTURE_PASSWORD });
     expect(session.auth.user.id).toBe(String(farmer._id));
 
     // The session can do exactly one thing.

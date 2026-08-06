@@ -1,7 +1,15 @@
-import { roleSatisfies } from '@krishibid/shared';
+import { roleSatisfies, type CategoryInput } from '@krishibid/shared';
 import { describe, expect, it } from 'vitest';
 import { User, makeUser } from '../test/factories.js';
-import { setUserRole, setUserStatus } from './admin.service.js';
+import { Category } from '../models/Category.js';
+import {
+  createCategory,
+  deactivateCategory,
+  listAllCategories,
+  setUserRole,
+  setUserStatus,
+  updateCategory,
+} from './admin.service.js';
 
 /**
  * The line between an admin and a super admin.
@@ -105,5 +113,73 @@ describe('role hierarchy', () => {
     expect(roleSatisfies('farmer', 'buyer')).toBe(false);
     expect(roleSatisfies('buyer', 'farmer')).toBe(false);
     expect(roleSatisfies('admin', 'farmer')).toBe(false);
+  });
+});
+
+/**
+ * What the marketplace is allowed to sell.
+ *
+ * The one rule worth defending here is that a category's address is permanent. Listings reference
+ * it by slug and nothing else, so a rename is a silent orphaning: the lot survives, its category
+ * does not resolve, and the buyer sees a slug where a name should be.
+ */
+describe('the category catalogue', () => {
+  /** What the route hands the service: validation has already applied every default. */
+  const honey = (): CategoryInput => ({
+    slug: 'honey',
+    names: { bn: 'মধু', en: 'Honey' },
+    units: ['kg', 'litre'],
+    perishable: false,
+    order: 50,
+    active: true,
+  });
+
+  it('adds one that the marketplace immediately offers', async () => {
+    await createCategory(honey());
+
+    const listed = await listAllCategories();
+    expect(listed.map((c) => c.slug)).toContain('honey');
+    expect(listed.find((c) => c.slug === 'honey')?.active).toBe(true);
+  });
+
+  it('refuses a second category at the same address', async () => {
+    await createCategory(honey());
+
+    await expect(
+      createCategory({ ...honey(), names: { bn: 'অন্য', en: 'Other' } }),
+    ).rejects.toMatchObject({ code: 'category_exists' });
+  });
+
+  it('renames the label but never the address', async () => {
+    await createCategory(honey());
+
+    // A client sending a slug is trying to move it. The update takes the names and drops that.
+    await updateCategory('honey', {
+      slug: 'raw-honey',
+      names: { bn: 'কাঁচা মধু', en: 'Raw honey' },
+    } as never);
+
+    const listed = await listAllCategories();
+    expect(listed.map((c) => c.slug)).toContain('honey');
+    expect(listed.map((c) => c.slug)).not.toContain('raw-honey');
+    expect(listed.find((c) => c.slug === 'honey')?.names.en).toBe('Raw honey');
+  });
+
+  it('deactivates rather than deletes, so existing listings keep their category name', async () => {
+    await createCategory(honey());
+
+    await deactivateCategory('honey');
+
+    // Still on record for anything already filed under it...
+    const all = await listAllCategories();
+    expect(all.find((c) => c.slug === 'honey')?.active).toBe(false);
+    // ...and gone from what the public catalogue offers.
+    const offered = await Category.find({ active: true }).lean();
+    expect(offered.map((c) => c.slug)).not.toContain('honey');
+  });
+
+  it('says so when the category does not exist', async () => {
+    await expect(deactivateCategory('nothing-here')).rejects.toThrow();
+    await expect(updateCategory('nothing-here', { order: 1 })).rejects.toThrow();
   });
 });

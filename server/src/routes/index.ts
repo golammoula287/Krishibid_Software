@@ -35,7 +35,11 @@ apiRoutes.get('/messages', getMessages);
 /**
  * Category catalogue — what can be sold, and in which units.
  *
- * Data rather than an enum in the client, so adding a category is a seed run and not a redeploy.
+ * Data rather than an enum in the client, so adding a category is something an admin does from
+ * the dashboard rather than something that waits for a redeploy.
+ *
+ * Active only. Deactivated categories still resolve for the listings already filed under them —
+ * see `deactivateCategory` — but nothing new may be listed in one, so they do not belong here.
  */
 apiRoutes.get('/categories', async (_req: Request, res: Response) => {
   res.json(await Category.find({ active: true }).sort({ order: 1 }).lean());
