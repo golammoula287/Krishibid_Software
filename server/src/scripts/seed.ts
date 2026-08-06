@@ -121,6 +121,7 @@ async function seed(): Promise<void> {
        * the queue — this account is created by an operator with database access, not by signup.
        */
       accountStatus: 'active',
+      supplierType: 'farmer',
       kyc: {
         status: 'approved',
         fullNameOnNid: 'Demo Farmer',
@@ -151,7 +152,15 @@ async function seed(): Promise<void> {
       emailVerified: true,
       name: 'Demo Officer',
       passwordHash,
-      role: 'admin',
+      /**
+       * The first super admin, and the only way one comes into existence.
+       *
+       * No endpoint creates or promotes to `superadmin` — the application can appoint an admin
+       * (super admin only) but never another super admin. That is deliberate: the account that
+       * decides who holds power should require database or deploy access to create, not a
+       * session.
+       */
+      role: 'superadmin',
       district: 'Dhaka',
       locale: 'en',
       isDemo: true,
@@ -172,6 +181,8 @@ async function seed(): Promise<void> {
       isDemo: true,
       // Approved for the same reason as the demo farmer: their listings are the marketplace.
       accountStatus: 'active' as const,
+      // A spread of seller kinds, so the badge on a listing is visibly doing something.
+      supplierType: (['farmer', 'farm_owner', 'retailer', 'trader'] as const)[i % 4],
       kyc: { status: 'approved' as const, documents: [], decidedAt: new Date(), attempts: 1 },
     })),
   );
@@ -314,6 +325,7 @@ async function seed(): Promise<void> {
       farmer: demoFarmer!.phone,
       buyer: demoBuyer!.phone,
       admin: demoAdmin!.phone,
+      adminRole: demoAdmin!.role,
     },
     'seed complete — demo logins ready',
   );

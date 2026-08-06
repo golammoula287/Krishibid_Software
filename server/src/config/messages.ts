@@ -228,6 +228,27 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
       hint: 'Somebody bought it while you were deciding — try a smaller quantity.',
     },
   },
+  cannot_change_own_role: {
+    tone: 'error',
+    bn: { title: 'নিজের ভূমিকা নিজে বদলানো যায় না' },
+    en: { title: 'You cannot change your own role' },
+  },
+  cannot_change_own_status: {
+    tone: 'error',
+    bn: { title: 'নিজের অ্যাকাউন্ট নিজে স্থগিত করা যায় না' },
+    en: { title: 'You cannot suspend your own account' },
+  },
+  delivery_not_ours: {
+    tone: 'info',
+    bn: {
+      title: 'এই অর্ডারের ডেলিভারি আমাদের নয়',
+      hint: 'ক্রেতা নিজে নেবেন অথবা কুরিয়ারে যাবে।',
+    },
+    en: {
+      title: 'We are not delivering this order',
+      hint: 'The buyer is collecting it, or it goes by courier.',
+    },
+  },
   bad_amount: {
     tone: 'error',
     bn: { title: 'পরিমাণটি সঠিক নয়' },

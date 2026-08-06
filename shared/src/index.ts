@@ -5,6 +5,7 @@ export * from './registration.js';
 export * from './catalogue.js';
 export * from './listing.js';
 export * from './bid.js';
+export * from './delivery.js';
 export * from './order.js';
 export * from './payment.js';
 export * from './diagnosis.js';
