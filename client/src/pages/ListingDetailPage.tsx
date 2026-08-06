@@ -421,7 +421,7 @@ export default function ListingDetailPage() {
             setBuyConfirmOpen(true);
           }}
         >
-          <h2 className="font-bold text-brand-900">{t('shop.buyTitle')}</h2>
+          <h2 className="text-lg font-bold text-slate-900">{t('shop.buyTitle')}</h2>
 
           <div>
             <label htmlFor="qty" className="label">
@@ -439,31 +439,10 @@ export default function ListingDetailPage() {
               className="field"
               required
             />
-            {/* The total is echoed as it is typed. Seeing the figure before committing is what
-                catches "50" entered where 5 was meant. */}
-            {goodsPoisha > 0 && (
-              <div className="mt-2 space-y-1 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">
-                <p className="flex justify-between">
-                  <span>{t('delivery.goods')}</span>
-                  <span className="tabular-nums">{formatBdt(goodsPoisha, locale)}</span>
-                </p>
-                {deliveryPoisha > 0 && (
-                  <p className="flex justify-between">
-                    <span>{t('delivery.charge')}</span>
-                    <span className="tabular-nums">{formatBdt(deliveryPoisha, locale)}</span>
-                  </p>
-                )}
-                <p className="flex justify-between border-t border-brand-200 pt-1 font-semibold">
-                  <span>{t('delivery.total')}</span>
-                  <span className="tabular-nums">{formatBdt(buyTotalPoisha, locale)}</span>
-                </p>
-              </div>
-            )}
           </div>
 
-
           {/* ---- how it should reach them ---- */}
-          <div className="border-t border-brand-50 pt-3">
+          <div>
             <span className="label">{t('delivery.how')}</span>
             <div className="grid gap-2 sm:grid-cols-3">
               {(['pickup', 'platform', 'courier'] as const).map((method) => (
@@ -472,16 +451,20 @@ export default function ListingDetailPage() {
                   type="button"
                   onClick={() => setDelivery({ ...delivery, method })}
                   aria-pressed={delivery.method === method}
-                  className={`rounded-xl border p-2.5 text-left transition ${
+                  className={`rounded-xl px-3 py-2.5 text-left transition ${
                     delivery.method === method
-                      ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600'
-                      : 'border-slate-200 hover:border-brand-200'
+                      ? 'bg-brand-600 text-white'
+                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  <span className="block text-sm font-semibold text-brand-900">
+                  <span className="block text-sm font-semibold">
                     {t(`delivery.method.${method}`)}
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-600">
+                  <span
+                    className={`mt-0.5 block text-xs ${
+                      delivery.method === method ? 'text-brand-100' : 'text-slate-500'
+                    }`}
+                  >
                     {deliveryChargeFor(method) === 0
                       ? t('delivery.free')
                       : formatBdt(deliveryChargeFor(method), locale)}
@@ -522,6 +505,35 @@ export default function ListingDetailPage() {
               </div>
             )}
           </div>
+
+          {/**
+           * The bill, as lines of type rather than a tinted panel inside a card.
+           *
+           * It was a box within a box within a box, which is three borders competing to say the
+           * same thing. A rule and a bold total reads as a receipt, which is what it is — and the
+           * figure is echoed live, because seeing it before committing is what catches "50"
+           * entered where 5 was meant.
+           */}
+          {goodsPoisha > 0 && (
+            <dl className="space-y-1.5 border-t border-slate-100 pt-3 text-sm">
+              <div className="flex justify-between text-slate-600">
+                <dt>{t('delivery.goods')}</dt>
+                <dd className="tabular-nums">{formatBdt(goodsPoisha, locale)}</dd>
+              </div>
+              {deliveryPoisha > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <dt>{t('delivery.charge')}</dt>
+                  <dd className="tabular-nums">{formatBdt(deliveryPoisha, locale)}</dd>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between pt-1.5">
+                <dt className="font-semibold text-slate-900">{t('delivery.total')}</dt>
+                <dd className="text-2xl font-bold tabular-nums text-brand-700">
+                  {formatBdt(buyTotalPoisha, locale)}
+                </dd>
+              </div>
+            </dl>
+          )}
 
           <button type="submit" className="btn-primary w-full" disabled={buyNow.isPending}>
             {buyNow.isPending ? t('common.loading') : t('shop.buyNow')}

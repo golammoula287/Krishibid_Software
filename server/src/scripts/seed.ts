@@ -29,19 +29,25 @@ import { User } from '../models/User.js';
 import { CATEGORIES } from './categories.js';
 
 /**
- * The stock photography already in `client/public/crops/`, reused as demo listing images.
+ * Stock photography for the demo listings, from `client/public/img/`.
  *
- * These are the same files the landing page uses. Reusing them costs nothing — they are already
- * downloaded and cached by the time somebody reaches the market — and it means a seeded
- * marketplace looks like a marketplace rather than a list of grey rectangles.
+ * Site-relative rather than absolute: the browser resolves them against the client's own origin,
+ * which is where these are served from, so they work on localhost and on Vercel without the seed
+ * knowing either address. A real listing's photos are Cloudinary URLs; these are demo furniture.
+ *
+ * Only paths under `/img/` and `/crops/`, both of which are committed. The originals people drop
+ * into `client/public/` are gitignored, so seeding one of those would produce listings whose
+ * pictures 404 in production — `npm run check:assets` scans this file for exactly that reason.
  */
 const DEMO_PHOTOS = [
-  '/crops/harvest.webp',
-  '/crops/field.webp',
-  '/crops/vegetables.webp',
-  '/crops/pumpkin.webp',
-  '/crops/cauliflower.webp',
-  '/crops/seedling.webp',
+  '/img/produce-spread.webp',
+  '/img/cat-vegetables.webp',
+  '/img/cat-fruit.webp',
+  '/img/cat-cauliflower.webp',
+  '/img/cat-pumpkin.webp',
+  '/img/fruit-spread.webp',
+  '/img/cat-mango.webp',
+  '/img/cat-vegetables-2.webp',
 ];
 
 const CROPS = [

@@ -81,3 +81,7 @@ client/public/*.jpeg
 client/public/*.jfif
 client/public/*.avif
 client/public/*.png
+# Root-level WebP originals too. Only the leading `*` segment matches, so the re-encoded output
+# in client/public/img/ and client/public/crops/ is unaffected and still ships — which is the
+# whole arrangement: originals stay on disk, `npm run images` produces what the UI references.
+client/public/*.webp

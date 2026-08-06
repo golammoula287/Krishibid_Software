@@ -81,7 +81,25 @@
       "auction": "Bid against other buyers. The highest bid when the clock runs out wins the lot.",
       "fixed": "Buy at the listed price, in the quantity you need. No waiting."
     },
-    "photoNumber": "Photo {{n}}"
+    "photoNumber": "Photo {{n}}",
+    "bannerKicker": "Direct from the field",
+    "bannerTitle": "Fresh produce, straight from the people who grew it",
+    "bannerBody": "Bid on a lot or buy at a fixed price. Your payment is held until you confirm delivery.",
+    "browseCategories": "Browse by category",
+    "browseCategoriesHelp": "Everything the marketplace sells, from crops to equipment.",
+    "clearCategory": "Clear filter",
+    "closingSoon": "Closing soon",
+    "closingSoonHelp": "Auctions ending first — bid before the window shuts.",
+    "allAuctions": "All auctions",
+    "allProducts": "All products",
+    "promise": {
+      "escrow": "Payment held in escrow",
+      "escrowHelp": "Your money stays with us until you confirm the goods arrived.",
+      "approved": "Every supplier reviewed",
+      "approvedHelp": "An administrator checks identity documents before anyone can list.",
+      "delivery": "Delivery you can track",
+      "deliveryHelp": "Collect it yourself, or we assign an agent whose name and number you get."
+    }
   },
   "diagnose": {
     "title": "Crop disease detection",
@@ -128,7 +146,8 @@
     "amount": "Total",
     "escrowHeld": "Your payment is held securely",
     "escrowHelpBuyer": "The farmer is paid only once you confirm you received the goods.",
-    "escrowHelpFarmer": "Once the buyer confirms delivery, the money moves to your balance."
+    "escrowHelpFarmer": "Once the buyer confirms delivery, the money moves to your balance.",
+    "history": "History"
   },
   "payment": {
     "title": "Payment",
@@ -658,5 +677,14 @@
     "breakdown": "Rating breakdown",
     "reviews": "What buyers said",
     "noReviews": "No reviews yet — this supplier has not completed a sale through the platform."
+  },
+  "footer": {
+    "marketplace": "Marketplace",
+    "company": "Company",
+    "sellWithUs": "Sell with us",
+    "blurb": "A direct marketplace between Bangladeshi farmers and the people who buy from them — with the middlemen, and their margins, left out.",
+    "escrowNote": "Payments held in escrow until delivery",
+    "rights": "© {{year}} KrishiBid. All rights reserved.",
+    "madeIn": "Built in Bangladesh"
   }
 }

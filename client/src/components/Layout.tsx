@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import Footer from './Footer.js';
 import { Icon } from './icons.js';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
@@ -263,9 +264,13 @@ export default function Layout() {
         )}
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5 pb-24 md:pb-10">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
         <Outlet />
       </main>
+
+      {/* The footer carries the bottom padding the main used to: on mobile the fixed tab bar
+          overlaps whatever is last on the page, and that is now the footer rather than content. */}
+      <Footer />
 
       {/* Mobile bottom nav — thumb-reachable, which the top of the screen is not. */}
       <nav
