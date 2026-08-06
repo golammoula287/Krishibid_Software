@@ -24,6 +24,7 @@ import { Order } from '../models/Order.js';
 import { OtpChallenge } from '../models/OtpChallenge.js';
 import { Payment } from '../models/Payment.js';
 import { PendingRegistration } from '../models/PendingRegistration.js';
+import { Review } from '../models/Review.js';
 import { User } from '../models/User.js';
 import { CATEGORIES } from './categories.js';
 
@@ -152,6 +153,9 @@ async function seed(): Promise<void> {
     Payment.deleteMany({}),
     PendingRegistration.deleteMany({}),
     OtpChallenge.deleteMany({}),
+    // Reviews go with the orders they are anchored to. A review whose order no longer exists is
+    // a rating that cannot be traced to a transaction, which is the one thing it must always be.
+    Review.deleteMany({}),
   ]);
 
   /**
@@ -185,6 +189,8 @@ async function seed(): Promise<void> {
     Listing.syncIndexes(),
     Order.syncIndexes(),
     Category.syncIndexes(),
+    // Including the unique index on `orderId`, which is what enforces one review per transaction.
+    Review.syncIndexes(),
   ]);
   logger.info('indexes rebuilt');
 
@@ -538,6 +544,77 @@ async function seed(): Promise<void> {
 
     logger.info('seeded one paid order awaiting dispatch, for the admin delivery board');
   }
+
+  /**
+   * Trading history, and the reviews it earned.
+   *
+   * Without this every supplier is unrated and the whole standing feature renders as blank space
+   * — which is indistinguishable from it not being built. These are completed orders, because
+   * that is the only thing a review can attach to: the rule is that you cannot rate somebody you
+   * did not actually buy from, and the seed does not get an exemption from it.
+   *
+   * Mostly good, with a couple of poor ones. A demo where every supplier has five stars teaches a
+   * viewer nothing about what the rating is for.
+   */
+  const COMMENTS: { rating: number; bn: string }[] = [
+    { rating: 5, bn: 'ওজন ঠিক ছিল, প্যাকিং ভালো। আবার নেব।' },
+    { rating: 5, bn: 'বর্ণনার সঙ্গে পুরো মিল। সময়মতো পৌঁছেছে।' },
+    { rating: 4, bn: 'মান ভালো, তবে পৌঁছাতে একদিন দেরি হয়েছে।' },
+    { rating: 4, bn: 'দাম অনুযায়ী ঠিক আছে।' },
+    { rating: 5, bn: 'সরাসরি কৃষকের কাছ থেকে — তাজা।' },
+    { rating: 3, bn: 'কিছু অংশ আশা করা মানের ছিল না।' },
+    { rating: 2, bn: 'বস্তার নিচের দিকটা ভেজা ছিল।' },
+  ];
+
+  const traded = created.slice(0, 24);
+  let reviewCount = 0;
+
+  for (const [i, lot] of traded.entries()) {
+    const buyer = pick(allBuyers, i);
+    if (String(lot.farmerId) === String(buyer._id)) continue;
+
+    const settledAt = new Date(Date.now() - (i + 2) * 24 * 60 * 60 * 1000);
+
+    const order = await Order.create({
+      listingId: lot._id,
+      // No bid: these are buy-now purchases, which is what lets one lot carry several. An
+      // auction has exactly one winner, and a partial unique index enforces that.
+      bidId: null,
+      farmerId: lot.farmerId,
+      buyerId: buyer._id,
+      cropSlug: lot.categorySlug,
+      quantityKg: Math.max(1, Math.round(lot.quantity / 4)),
+      agreedAmountPoisha: lot.pricePerUnitPoisha * Math.max(1, Math.round(lot.quantity / 4)),
+      delivery: { method: 'pickup', status: 'not_required', chargePoisha: 0 },
+      status: 'completed',
+      paymentDeadline: settledAt,
+      statusHistory: [{ status: 'completed', at: settledAt, by: buyer._id, note: 'seeded' }],
+    });
+
+    // Not every completed order gets reviewed, because not every buyer writes one — a platform
+    // where the review count equals the sale count is not one anybody has used.
+    if (i % 4 === 3) continue;
+
+    const { rating, bn } = pick(COMMENTS, i);
+
+    await Review.create({
+      orderId: order._id,
+      supplierId: lot.farmerId,
+      buyerId: buyer._id,
+      rating,
+      comment: bn,
+      productTitle: lot.title,
+      createdAt: settledAt,
+    });
+
+    await User.updateOne(
+      { _id: lot.farmerId },
+      { $inc: { 'rating.sum': rating, 'rating.count': 1 } },
+    );
+    reviewCount++;
+  }
+
+  logger.info({ reviewCount }, 'completed sales and reviews seeded');
 
   logger.info(
     {

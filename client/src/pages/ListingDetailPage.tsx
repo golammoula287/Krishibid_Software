@@ -2,8 +2,9 @@ import { deliveryChargeFor, type BidDto, type DeliveryMethod, type ListingDto } 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog.js';
+import { Icon } from '../components/icons.js';
 import { CardSkeleton, ErrorNote, Spinner } from '../components/ui.js';
 import { api, ApiRequestError } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
@@ -235,7 +236,15 @@ export default function ListingDetailPage() {
               {formatNumber(data.quantity, locale)} {unitLabel} · {t('market.grade')}{' '}
               {data.qualityGrade} · {data.district}
             </p>
-            <p className="mt-1 text-sm text-slate-500">{data.farmerName}</p>
+            {/* The supplier's name, made a link. A buyer about to commit several thousand taka
+                to somebody they cannot meet should be one tap from finding out who they are. */}
+            <Link
+              to={`/supplier/${data.farmerId}`}
+              className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-brand-700 underline"
+            >
+              {data.farmerName}
+              <Icon name="arrowRight" className="h-3.5 w-3.5" />
+            </Link>
           </div>
           {!isAuction ? (
             /* Stock, not a clock — a fixed-price lot has no deadline, and showing one would

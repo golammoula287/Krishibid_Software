@@ -171,6 +171,15 @@ export interface ListingDto {
   farmerName: string;
   /** Grower, reseller, farm owner or trader. Material to what a listing is worth. */
   supplierType?: SupplierType;
+  /**
+   * The supplier's standing, if anybody has rated them.
+   *
+   * On the card because it is what a buyer scanning twenty lots actually filters on, and making
+   * them open each one to find out would be twenty page loads to answer one question. Absent
+   * rather than zero when there are no reviews — a new supplier is unrated, not bad, and "0.0"
+   * says the opposite.
+   */
+  supplierRating?: { average: number; count: number };
 
   categorySlug: string;
   title: string;

@@ -8,8 +8,10 @@ import { Icon } from '../components/icons.js';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { StarPicker } from '../components/Stars.js';
 import { CardSkeleton, ErrorNote, StatusBadge } from '../components/ui.js';
+import { useCreateReview, useReviewableOrders } from '../lib/reviews.js';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
 import { formatBdt, formatDate, formatNumber } from '../lib/format.js';
@@ -125,6 +127,87 @@ function DeliveryCard({ delivery }: { delivery: DeliveryDto }) {
         )}
       </dl>
     </div>
+  );
+}
+
+/**
+ * Rating the supplier, on the order that earned it.
+ *
+ * Here rather than on a separate reviews screen because this is where the buyer already is the
+ * moment they confirm delivery — the transaction is in front of them and the experience is fresh.
+ * A prompt that arrives a week later on a page they have to go looking for is a prompt nobody
+ * answers.
+ *
+ * Shown only once the order is complete, which is also what the API requires: a review is a
+ * verdict on the whole transaction, and until the goods arrived the thing being judged had not
+ * finished happening.
+ */
+function ReviewPanel({ orderId, supplierId }: { orderId: string; supplierId: string }) {
+  const { t } = useTranslation();
+  const pending = useReviewableOrders();
+  const create = useCreateReview();
+
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+
+  // Absent from the pending list means it has been reviewed already — or the list has not loaded,
+  // in which case showing nothing briefly beats showing a form that then vanishes.
+  const reviewable = pending.data?.some((o) => o.orderId === orderId);
+  if (!reviewable) {
+    return pending.data ? (
+      <div className="card">
+        <p className="flex items-center gap-2 text-sm text-slate-600">
+          <Icon name="check" className="h-4 w-4 text-brand-600" />
+          {t('review.alreadyLeft')}
+        </p>
+        <Link
+          to={`/supplier/${supplierId}`}
+          className="mt-2 inline-block text-sm font-semibold text-brand-700 underline"
+        >
+          {t('review.viewSupplier')}
+        </Link>
+      </div>
+    ) : null;
+  }
+
+  return (
+    <section className="card space-y-3">
+      <div>
+        <h2 className="font-bold text-brand-900">{t('review.title')}</h2>
+        <p className="mt-0.5 text-sm text-slate-600">{t('review.help')}</p>
+      </div>
+
+      <StarPicker value={rating} onChange={setRating} />
+
+      <div>
+        <label htmlFor="review-comment" className="label">
+          {t('review.comment')}
+        </label>
+        <textarea
+          id="review-comment"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          className="field min-h-20"
+          maxLength={600}
+          placeholder={t('review.commentPlaceholder')}
+        />
+      </div>
+
+      {create.isError && <ErrorNote error={create.error} />}
+
+      <button
+        type="button"
+        className="btn-primary w-full"
+        // A star is required; the sentence is not. Forcing a written justification for a rating
+        // is how you get either no reviews or thoughtless ones.
+        disabled={rating === 0 || create.isPending}
+        onClick={() =>
+          create.mutate({ orderId, rating, comment: comment.trim() || undefined })
+        }
+      >
+        {create.isPending ? t('common.loading') : t('review.submit')}
+      </button>
+    </section>
   );
 }
 
@@ -257,6 +340,10 @@ export default function OrderDetailPage() {
       )}
 
       <DeliveryCard delivery={o.delivery} />
+
+      {isBuyer && o.status === 'completed' && (
+        <ReviewPanel orderId={o.id} supplierId={o.farmerId} />
+      )}
 
       {/* ---- actions ---- */}
       <div className="space-y-2">

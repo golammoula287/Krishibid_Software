@@ -636,5 +636,27 @@
     "losing": "You have been outbid on these",
     "freshOnMarket": "New on the marketplace",
     "notApprovedYet": "Your account is not open for selling yet"
+  },
+  "review": {
+    "title": "How was this supplier?",
+    "help": "Your rating shows on their profile and helps the next buyer decide.",
+    "comment": "Anything to add? (optional)",
+    "commentPlaceholder": "Quality, packing, whether it arrived when they said…",
+    "submit": "Post review",
+    "nStars": "{{n}} stars",
+    "alreadyLeft": "You have reviewed this order.",
+    "viewSupplier": "See the supplier's profile"
+  },
+  "supplierProfile": {
+    "verified": "Verified",
+    "verifiedHelp": "An administrator has checked this supplier's identity documents.",
+    "memberSince": "Selling here since {{date}}",
+    "reviewCount_one": "{{count}} review",
+    "reviewCount_other": "{{count}} reviews",
+    "activeListings": "Lots on sale now",
+    "completedSales": "Completed sales",
+    "breakdown": "Rating breakdown",
+    "reviews": "What buyers said",
+    "noReviews": "No reviews yet — this supplier has not completed a sale through the platform."
   }
 }

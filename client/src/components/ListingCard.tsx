@@ -2,6 +2,7 @@ import { displayPricePoisha, type ListingDto } from '@krishibid/shared';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons.js';
+import { Stars } from './Stars.js';
 import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 
@@ -134,6 +135,14 @@ export default function ListingCard({
           <span className="flex items-center gap-1.5">
             <Icon name="account" className="h-3.5 w-3.5" />
             {t(`supplier.${listing.supplierType}`)}
+          </span>
+        )}
+        {/* Their standing, where a buyer scanning twenty lots can act on it. Absent rather than
+            zero when nobody has rated them yet — unrated is not the same as bad. */}
+        {listing.supplierRating && (
+          <span className="flex items-center gap-1 text-slate-500">
+            <Stars value={listing.supplierRating.average} className="h-3 w-3" />
+            {listing.supplierRating.average.toFixed(1)} ({listing.supplierRating.count})
           </span>
         )}
       </div>

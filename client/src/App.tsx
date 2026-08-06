@@ -49,6 +49,7 @@ const BlogPage = lazy(() => import('./pages/BlogPage.js'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage.js'));
 const AdminBlogPage = lazy(() => import('./pages/AdminBlogPage.js'));
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage.js'));
+const SupplierProfilePage = lazy(() => import('./pages/SupplierProfilePage.js'));
 const ContactPage = lazy(() => import('./pages/ContactPage.js'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage.js'));
 const SignupPage = lazy(() => import('./pages/SignupPage.js'));
@@ -150,6 +151,10 @@ export default function App() {
               shops share every filter — what differs is what is shown, not how it is fetched. */}
           <Route path="shop" element={<MarketPage />} />
           <Route path="listing/:id" element={<ListingDetailPage />} />
+          {/* Public, like the listings themselves. Somebody deciding whether this platform is
+              worth registering for is exactly who needs to see that its suppliers are real and
+              rated — and the profile carries nothing private. */}
+          <Route path="supplier/:id" element={<SupplierProfilePage />} />
 
           {/* Public: an advisory or a scheme deadline is useful to a farmer who has not signed
               up, and putting it behind an account would waste it. */}

@@ -4,7 +4,7 @@
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-183%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-199%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A supplier-to-buyer **agricultural marketplace** — auctions *and* fixed-price shops — with
@@ -13,7 +13,7 @@ advisory assistant**, built for smallholder farmers in Bangladesh.
 
 > **Live client:** <https://krishibid.vercel.app>
 >
-> **Status:** frontend deployed, 183 passing tests, verified end-to-end against live
+> **Status:** frontend deployed, 199 passing tests, verified end-to-end against live
 > MongoDB Atlas and Gemini. The API is not deployed on serverless — it cannot be
 > (interval jobs, WebSockets, native ONNX/sharp binaries), so it needs Render or similar; see
 > [Deployment](#deployment-free-tier). The disease model ships as a placeholder until the
@@ -31,7 +31,7 @@ Run `npm run seed` and these four accounts exist. **Password for every one of th
 | **Super admin** | `rakibmoula2001@gmail.com` | `01700000001` | Everything below, **plus** appointing and demoting administrators |
 | **Admin** | `gmrakib2001@gmail.com` | `01700000002` | Approve suppliers, dispatch deliveries, answer messages, suspend accounts, edit categories and the blog |
 | **Supplier** | `suplier@gmail.com` | `01700000003` | List produce as an auction or at a fixed price, accept bids, ship orders |
-| **Buyer** | `buyer@gmail.com` | `01700000004` | Bid, buy now, pay through escrow, choose delivery, confirm receipt |
+| **Buyer** | `buyer@gmail.com` | `01700000004` | Bid, buy now, pay through escrow, choose delivery, confirm receipt, review the supplier |
 
 There is a fifth seeded account you are not meant to log in as:
 `pending-supplier@krishibid.invalid` sits in the review queue on purpose, so that an admin
@@ -209,6 +209,54 @@ buyer who opens the listing. The re-encode strips it.
 Photo URLs are checked by scheme, not just shape — `https:` or an inline image, nothing else.
 `z.string().url()` alone accepts `javascript:alert(1)`, and these strings go straight into an
 `<img src>` on a page every buyer sees.
+
+---
+
+## Supplier profiles and reviews
+
+A buyer committing several thousand taka to somebody they cannot meet used to have a name and a
+district. `/supplier/:id` is the page that answers "who is this?" — how long they have been
+selling here, whether an admin checked their identity documents, how many lots they have open,
+how many sales they have actually **completed**, and what the buyers said afterwards. Their
+rating also rides on every listing card, because that is what somebody scanning twenty lots
+filters on.
+
+The page is public. Somebody deciding whether this platform is worth registering for is exactly
+who needs to see that its suppliers are real and rated. It carries no phone number and no email
+address — a farmer listing rice did not agree to publish their mobile number to the internet, and
+a buyer mid-trade reaches them through the order instead. There is a test asserting neither
+appears.
+
+### A review requires a completed order
+
+This is the whole design, and every check is server-side:
+
+- the reviewer must be **the buyer on that order** — not merely a buyer;
+- the order must be **`completed`**, not merely paid. A review is a verdict on the whole
+  transaction, and it removes the obvious lever: you cannot threaten one star over money you have
+  not released yet;
+- **one review per order**, enforced by a unique index rather than a read-then-write, so two taps
+  on a slow connection cannot rate the same transaction twice.
+
+A marketplace where anybody can rate anybody has a rating column that means nothing: a competitor
+with a free afternoon buries a farmer who has done nothing wrong, and a supplier with a friendly
+cousin manufactures five stars. Tying each review to a transaction the platform itself watched
+complete is what makes the number evidence rather than opinion.
+
+The form lives on the order, shown once it completes — that is where the buyer already is the
+moment they confirm delivery, and a prompt that arrives a week later on a page they have to go
+find is a prompt nobody answers. A star is required; the sentence is not.
+
+### Sum and count, never a stored average
+
+A supplier carries `rating.sum` and `rating.count`, moved by a single atomic `$inc`, and the
+average is derived on read. Same discipline as the ledger: a stored average is a number that can
+drift from the reviews it claims to summarise with no way to tell by looking at it. The profile
+also shows the **distribution**, because 4.0 from twenty fours and 4.0 from tens of ones and
+fives are very different suppliers and only one of them is safe to buy from.
+
+An unrated supplier is reported as unrated, not as zero — a new seller is not a bad one, and a
+card showing "0.0" says the opposite of what is true.
 
 ### Delivery
 
@@ -504,7 +552,7 @@ Full reasoning: [ADR-006](docs/adr/ADR-006-escrow-payments.md).
 ## Testing
 
 ```bash
-npm test          # 183 tests
+npm test          # 199 tests
 npm run typecheck
 npm run build
 npm run budget    # initial JS payload budget
@@ -560,6 +608,10 @@ see [ADR-004](docs/adr/ADR-004-hybrid-retrieval.md). Re-run at 300+ chunks to se
   moves the order to `in_transit`, that it starts the auto-release clock, that it refuses an
   unpaid order, that reassigning does not ship the order twice, and that confirming receipt marks
   the consignment delivered without forgetting who brought it.
+- **Reviews** — that only the buyer on a completed order can leave one, that an order which is
+  merely paid cannot be reviewed, that the unique index holds when the same order is reviewed
+  twice simultaneously and the supplier's running total moves exactly once, and that the public
+  profile carries neither phone number nor email.
 - **Listing photos** — that the supplier's chosen order survives, that a listing created before
   the field existed still shows its picture, and that the scheme check refuses `javascript:`,
   plain `http:`, bare paths and non-image data URLs while accepting what Cloudinary returns.

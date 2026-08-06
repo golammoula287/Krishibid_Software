@@ -9,6 +9,7 @@ export * from './bid.js';
 export * from './delivery.js';
 export * from './order.js';
 export * from './payment.js';
+export * from './review.js';
 export * from './diagnosis.js';
 export * from './advisory.js';
 export * from './content.js';

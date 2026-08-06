@@ -148,6 +148,28 @@ const userSchema = new Schema(
     farmSizeAcres: { type: Number, min: 0 },
     cropsGrown: { type: [String], default: [] },
 
+    /**
+     * Reviews received, as a running sum and count.
+     *
+     * The sum and the count, never the average. A stored average is a number that can drift from
+     * the reviews it claims to summarise with no way to tell by looking at it; deriving it on read
+     * cannot. Same discipline as the ledger, where balances are always computed and never stored.
+     *
+     * Denormalised here rather than aggregated from `reviews` on demand because a listing card
+     * shows the supplier's standing, and the market renders twenty of them at once — that would be
+     * an aggregation per card on the most-visited screen in the app.
+     *
+     * Both are moved with a single atomic `$inc`, so a review landing concurrently with another
+     * cannot lose one.
+     */
+    rating: {
+      type: {
+        sum: { type: Number, default: 0, min: 0 },
+        count: { type: Number, default: 0, min: 0 },
+      },
+      default: () => ({ sum: 0, count: 0 }),
+    },
+
     // ---- buyer profile ----
     /**
      * Cached tier, recomputed whenever verification state or clean order count changes.
