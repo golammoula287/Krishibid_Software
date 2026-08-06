@@ -11,6 +11,7 @@ import { diagnosisRoutes } from './diagnosis.routes.js';
 import { marketplaceRoutes } from './marketplace.routes.js';
 import { orderRoutes } from './order.routes.js';
 import { paymentRoutes } from './payment.routes.js';
+import { reviewRoutes } from './review.routes.js';
 
 export const apiRoutes = Router();
 
@@ -25,6 +26,12 @@ apiRoutes.use('/advisory', advisoryRoutes);
 apiRoutes.use('/content', contentRoutes);
 /** Operator tooling: the overview, the dispatch board, users and administrators. */
 apiRoutes.use('/admin', adminRoutes);
+/**
+ * Supplier profiles and the reviews on them. Mounted at the root rather than under a prefix
+ * because it owns two unrelated nouns — `/suppliers/:id` and `/reviews` — and nesting either
+ * under the other would misdescribe it.
+ */
+apiRoutes.use('/', reviewRoutes);
 
 /**
  * User-facing message catalogue. Server-authoritative so wording — Bangla especially, which

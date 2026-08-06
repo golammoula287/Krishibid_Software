@@ -118,7 +118,15 @@ export async function makeCategory(slug = 'crops') {
 
 export async function makeOrder(opts: {
   listingId: mongoose.Types.ObjectId | string;
-  bidId?: mongoose.Types.ObjectId | string;
+  /**
+   * `null` for a fixed-price purchase, which is what "no winning bid" means.
+   *
+   * It also decides whether the partial unique index applies: one auction has one winner, so
+   * `auction_order_per_listing` allows a single order per listing with a bid on it. A test that
+   * needs several orders against one lot is describing a buy-now shop and should pass `null`,
+   * not fight the constraint.
+   */
+  bidId?: mongoose.Types.ObjectId | string | null;
   farmerId: mongoose.Types.ObjectId | string;
   buyerId: mongoose.Types.ObjectId | string;
   agreedAmountPoisha?: number;
@@ -134,7 +142,8 @@ export async function makeOrder(opts: {
 }) {
   return Order.create({
     listingId: opts.listingId,
-    bidId: opts.bidId ?? new mongoose.Types.ObjectId(),
+    // `?? ` would turn an explicit null back into a bid; the point of passing null is to omit it.
+    bidId: opts.bidId === null ? null : (opts.bidId ?? new mongoose.Types.ObjectId()),
     farmerId: opts.farmerId,
     buyerId: opts.buyerId,
     cropSlug: 'rice',

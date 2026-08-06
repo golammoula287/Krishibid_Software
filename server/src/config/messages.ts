@@ -254,6 +254,28 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
       hint: 'The buyer is collecting it, or it goes by courier.',
     },
   },
+  order_not_completed: {
+    tone: 'info',
+    bn: {
+      title: 'অর্ডারটি এখনও সম্পন্ন হয়নি',
+      hint: 'পণ্য বুঝে পাওয়ার পর সরবরাহকারীর রিভিউ দিতে পারবেন।',
+    },
+    en: {
+      title: 'This order is not complete yet',
+      hint: 'You can review the supplier once you have confirmed delivery.',
+    },
+  },
+  already_reviewed: {
+    tone: 'info',
+    bn: {
+      title: 'আপনি এই অর্ডারের রিভিউ দিয়েছেন',
+      hint: 'প্রতিটি অর্ডারে একটি রিভিউ।',
+    },
+    en: {
+      title: 'You have already reviewed this order',
+      hint: 'One review per order.',
+    },
+  },
   delivery_not_dispatchable: {
     tone: 'warning',
     bn: {
@@ -816,6 +838,12 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     tone: 'info',
     bn: { title: 'সিদ্ধান্ত সংরক্ষণ হয়েছে' },
     en: { title: 'Decision recorded' },
+  },
+  /** Distinct from `review_recorded`, which is an admin's KYC decision. Same word, other job. */
+  review_posted: {
+    tone: 'info',
+    bn: { title: 'ধন্যবাদ, আপনার রিভিউ যোগ হয়েছে', hint: 'পরের ক্রেতাদের সিদ্ধান্ত নিতে সাহায্য করবে।' },
+    en: { title: 'Thank you — your review is posted', hint: 'It helps the next buyer decide.' },
   },
   refund_issued: {
     tone: 'info',

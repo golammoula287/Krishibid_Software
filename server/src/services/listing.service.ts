@@ -24,14 +24,31 @@ function toDto(doc: ListingDoc | Populated): ListingDto {
     _id?: unknown;
     name?: string;
     supplierType?: ListingDto['supplierType'];
+    rating?: { sum?: number; count?: number };
   };
   const isPopulated = typeof farmer === 'object' && farmer !== null && 'name' in farmer;
+
+  /**
+   * Derived here, from the sum and count the supplier carries — never a stored average.
+   *
+   * Omitted entirely when nobody has reviewed them. A new supplier is unrated, not bad, and a
+   * card showing "0.0" next to their lot says the opposite of what is true.
+   */
+  const ratingCount = farmer?.rating?.count ?? 0;
+  const supplierRating =
+    isPopulated && ratingCount > 0
+      ? {
+          average: Math.round(((farmer.rating?.sum ?? 0) / ratingCount) * 10) / 10,
+          count: ratingCount,
+        }
+      : undefined;
 
   return {
     id: String(doc._id),
     farmerId: String(isPopulated ? farmer._id : doc.farmerId),
     farmerName: isPopulated ? (farmer.name ?? '') : '',
     supplierType: isPopulated ? (farmer.supplierType ?? undefined) : undefined,
+    supplierRating,
     categorySlug: doc.categorySlug,
     title: doc.title,
     quantity: doc.quantity,
@@ -161,7 +178,7 @@ export async function listListings(query: ListingQuery): Promise<Page<ListingDto
   const docs = await Listing.find(filter)
     .sort({ _id: -1 })
     .limit(query.limit + 1)
-    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType')
+    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType rating')
     .lean();
 
   const hasMore = docs.length > query.limit;
@@ -231,7 +248,7 @@ async function searchListings(
       ],
     })
       .limit(limit)
-      .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType')
+      .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType rating')
       .lean();
 
     return docs.map((d) => toDto(d as unknown as Populated));
@@ -240,7 +257,7 @@ async function searchListings(
 
 export async function getListing(listingId: string): Promise<ListingDto> {
   const doc = await Listing.findById(listingId)
-    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType')
+    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType rating')
     .lean();
   if (!doc) throw notFound('listing');
   return toDto(doc as unknown as Populated);
