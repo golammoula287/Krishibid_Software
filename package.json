@@ -29,6 +29,8 @@
     "migrate:marketplace": "npm run migrate:marketplace --workspace=server",
     "mail:test": "npm run mail:test --workspace=server",
     "budget": "npm run budget --workspace=client",
+    "images": "npm run images --workspace=client",
+    "check:assets": "npm run check:assets --workspace=client",
     "verify:logins": "npm run verify:logins --workspace=server"
   },
   "devDependencies": {

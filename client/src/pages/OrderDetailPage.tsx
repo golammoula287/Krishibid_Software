@@ -277,76 +277,99 @@ export default function OrderDetailPage() {
   const isBuyer = user?.id === o.buyerId;
   const isFarmer = user?.id === o.farmerId;
 
+  /**
+   * One line about where the money stands, rather than a coloured panel per state.
+   *
+   * This page had a card, then an amber box, then a blue box, then a delivery card, then the
+   * actions, then the trail — six stacked containers to describe one order, each with its own
+   * border fighting the others for attention. The status is one fact and now reads as one line.
+   */
+  const escrowNote =
+    o.status === 'awaiting_payment' && o.paymentDeadline
+      ? { tone: 'warn' as const, text: t('orders.payBy', { date: formatDate(o.paymentDeadline, locale) }) }
+      : o.status === 'confirmed' || o.status === 'in_transit'
+        ? {
+            tone: 'hold' as const,
+            text: isBuyer ? t('orders.escrowHelpBuyer') : t('orders.escrowHelpFarmer'),
+          }
+        : null;
+
   return (
-    <div className="space-y-4">
-      <div className="card">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-brand-900">{o.cropSlug}</h1>
-            <p className="text-sm text-slate-600">
-              {formatNumber(o.quantityKg, locale)} {t('common.kg')}
-            </p>
-          </div>
-          <StatusBadge status={o.status} label={t(`orders.status.${o.status}`)} />
-        </div>
-
-        <div className="mt-4 border-t border-brand-50 pt-4">
-          <p className="text-xs text-slate-500">{t('orders.amount')}</p>
-          <p className="text-2xl font-bold text-brand-800">
-            {formatBdt(o.agreedAmountPoisha, locale)}
-          </p>
-
-          {/* Farmers see the commission split explicitly. Hiding the platform's cut
-              until payout is how a marketplace loses a farmer's trust once. */}
-          {isFarmer && p && (
-            <div className="mt-2 space-y-1 text-sm">
-              <div className="flex justify-between text-slate-600">
-                <span>{t('payment.commission')}</span>
-                <span>− {formatBdt(p.commissionPoisha, locale)}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-brand-800">
-                <span>{t('payment.youReceive')}</span>
-                <span>{formatBdt(p.farmerNetPoisha, locale)}</span>
-              </div>
+    /**
+     * Two columns on a desk, stacked on a phone.
+     *
+     * The left is the order as it stands and what to do about it; the right is the reference
+     * material — where the goods are, and what has happened so far. Putting the action six
+     * scrolls below the summary was what made this page feel like a form to fill in rather than
+     * a thing to act on.
+     */
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
+      <div className="space-y-4">
+        <section className="card">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold text-slate-900">{o.cropSlug}</h1>
+              <p className="text-sm text-slate-500">
+                {formatNumber(o.quantityKg, locale)} {t('common.kg')}
+              </p>
             </div>
-          )}
-        </div>
-      </div>
+            <StatusBadge status={o.status} label={t(`orders.status.${o.status}`)} />
+          </div>
 
-      {/* ---- escrow status ---- */}
-      {o.status === 'awaiting_payment' && o.paymentDeadline && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-900">
-            {t('orders.payBy', { date: formatDate(o.paymentDeadline, locale) })}
-          </p>
-        </div>
-      )}
+          <dl className="mt-5 space-y-1.5 border-t border-slate-100 pt-4 text-sm">
+            <div className="flex items-baseline justify-between">
+              <dt className="text-slate-500">{t('orders.amount')}</dt>
+              <dd className="text-2xl font-bold tabular-nums text-brand-700">
+                {formatBdt(o.agreedAmountPoisha, locale)}
+              </dd>
+            </div>
 
-      {(o.status === 'confirmed' || o.status === 'in_transit') && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
-          <p className="flex items-center gap-1.5 font-semibold text-blue-900">
-            <Icon name="shield" className="h-4 w-4" />
-            {t('orders.escrowHeld')}
-          </p>
-          <p className="mt-1 text-sm text-blue-800">
-            {isBuyer ? t('orders.escrowHelpBuyer') : t('orders.escrowHelpFarmer')}
-          </p>
-          {o.status === 'in_transit' && p?.autoReleaseAt && (
-            <p className="mt-2 text-xs text-blue-700">
-              {t('orders.autoRelease', { date: formatDate(p.autoReleaseAt, locale) })}
+            {/* Suppliers see the commission split explicitly. Hiding the platform's cut until
+                payout is how a marketplace loses a supplier's trust once. */}
+            {isFarmer && p && (
+              <>
+                <div className="flex justify-between text-slate-500">
+                  <dt>{t('payment.commission')}</dt>
+                  <dd className="tabular-nums">− {formatBdt(p.commissionPoisha, locale)}</dd>
+                </div>
+                <div className="flex justify-between font-semibold text-slate-900">
+                  <dt>{t('payment.youReceive')}</dt>
+                  <dd className="tabular-nums">{formatBdt(p.farmerNetPoisha, locale)}</dd>
+                </div>
+              </>
+            )}
+          </dl>
+
+          {escrowNote && (
+            <p
+              className={`mt-4 flex items-start gap-2 border-t border-slate-100 pt-3 text-sm ${
+                escrowNote.tone === 'warn' ? 'text-amber-700' : 'text-slate-600'
+              }`}
+            >
+              <Icon
+                name="shield"
+                className={`mt-0.5 h-4 w-4 shrink-0 ${
+                  escrowNote.tone === 'warn' ? 'text-amber-600' : 'text-brand-600'
+                }`}
+              />
+              <span>
+                {escrowNote.text}
+                {o.status === 'in_transit' && p?.autoReleaseAt && (
+                  <span className="mt-0.5 block text-xs text-slate-400">
+                    {t('orders.autoRelease', { date: formatDate(p.autoReleaseAt, locale) })}
+                  </span>
+                )}
+              </span>
             </p>
           )}
-        </div>
-      )}
-
-      <DeliveryCard delivery={o.delivery} />
+        </section>
 
       {isBuyer && o.status === 'completed' && (
-        <ReviewPanel orderId={o.id} supplierId={o.farmerId} />
-      )}
+          <ReviewPanel orderId={o.id} supplierId={o.farmerId} />
+        )}
 
-      {/* ---- actions ---- */}
-      <div className="space-y-2">
+        {/* ---- actions ---- */}
+        <div className="space-y-2">
         {isBuyer && o.status === 'awaiting_payment' && (
           <>
             {pay.isError && <ErrorNote error={pay.error} />}
@@ -408,13 +431,13 @@ export default function OrderDetailPage() {
       </div>
 
       {showDispute && (
-        <form
-          className="card space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            dispute.mutate();
-          }}
-        >
+          <form
+            className="card space-y-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              dispute.mutate();
+            }}
+          >
           <label htmlFor="reason" className="label">
             {t('orders.raiseDispute')}
           </label>
@@ -442,24 +465,37 @@ export default function OrderDetailPage() {
         </form>
       )}
 
-      {/* ---- audit trail ---- */}
-      <div className="card">
-        <h2 className="mb-3 font-bold text-brand-900">{t('orders.title')}</h2>
-        <ol className="space-y-3">
-          {o.statusHistory.map((event, i) => (
-            <li key={i} className="flex gap-3">
-              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
-              <div>
+    </div>
+
+      {/**
+       * The reference column: where the goods are, and what has happened.
+       *
+       * Sticky on a desk so it stays beside the action rather than scrolling away — the whole
+       * point of splitting this page is that the two halves are read together.
+       */}
+      <aside className="space-y-4 lg:sticky lg:top-4">
+        <DeliveryCard delivery={o.delivery} />
+
+        <section className="card">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            {t('orders.history')}
+          </h2>
+          {/* A line down the left rather than a card per event: this is a sequence, and boxing
+              each step made six things that happened look like six things to decide about. */}
+          <ol className="relative space-y-4 border-l border-slate-200 pl-4">
+            {o.statusHistory.map((event, i) => (
+              <li key={i} className="relative">
+                <span className="absolute -left-[1.3rem] top-1 h-2.5 w-2.5 rounded-full bg-brand-500 ring-4 ring-white" />
                 <p className="text-sm font-medium text-slate-800">
                   {t(`orders.status.${event.status}`)}
                 </p>
-                <p className="text-xs text-slate-500">{formatDate(event.at, locale)}</p>
-                {event.note && <p className="mt-0.5 text-xs text-slate-600">{event.note}</p>}
-              </div>
-            </li>
-          ))}
-        </ol>
-      </div>
+                <p className="text-xs text-slate-400">{formatDate(event.at, locale)}</p>
+                {event.note && <p className="mt-0.5 text-xs text-slate-500">{event.note}</p>}
+              </li>
+            ))}
+          </ol>
+        </section>
+      </aside>
     </div>
   );
 }

@@ -49,6 +49,23 @@ export default defineConfig({
             },
           },
           {
+            /**
+             * Our own photography — banners, category tiles, the fallbacks on product cards.
+             *
+             * Cache-first, and deliberately NOT precached: `globPatterns` leaves `.webp` out, so
+             * a first visit does not pay for a megabyte of banners it may never scroll to. They
+             * are content-hashed by nothing and change only on deploy, so first-use-then-keep is
+             * the right trade on metered mobile data.
+             */
+            urlPattern: /\/img\/.*\.webp$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'kb-site-images',
+              expiration: { maxEntries: 60, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // Listings: network-first with a short timeout, so a slow 2G connection
             // falls back to the last known feed rather than showing nothing.
             urlPattern: /\/api\/marketplace\/listings/,

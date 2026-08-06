@@ -186,6 +186,21 @@ them: "3 dozen rice" should not be expressible.
 A category is never deleted, only deactivated. Every listing references it by slug, so deleting
 would leave already-sold lots displaying a raw slug where their category name should be.
 
+### Layout
+
+The market is bands rather than one filtered feed, because a buyer arrives with three questions
+in this order: *what kinds of thing are here* → *what is closing soon that I could bid on* →
+*show me everything*. A single grid with a filter bar answers only the third and buries the other
+two. So: a banner, a category tile grid, a closing-soon strip, then the full catalogue with the
+shop toggle and filters, then the platform's promises last — somebody who has scrolled the whole
+market is deciding whether to trust it; somebody who just arrived wants to see produce.
+
+Product cards use a fixed **4:3** image frame with `object-cover`, so a portrait phone photo and
+a wide stock shot occupy the same space. Letting each card size to its picture gives ragged rows,
+which is the single thing that makes a marketplace look amateur. Listings without a photo fall
+back to a category-appropriate image rather than a grey rectangle — a grid with holes in it reads
+as broken rather than sparse.
+
 ### Photos
 
 A supplier attaches up to **five photographs** to a lot — the whole pile, a close-up of the
@@ -438,6 +453,24 @@ before the marketplace rework. On a deployed box: `npm run migrate:marketplace:p
 
 ## Full setup
 
+### 0. Site imagery
+
+`client/public/*.{jpg,jpeg,jfif,avif,png}` is **gitignored** — the originals total several
+megabytes and a repo should not carry a 860 KB JPEG forever. That rule has a sharp edge: a page
+referencing `/Market_place_banner_1.jpg` renders perfectly on the machine that added the file and
+404s in production, because the file was never committed.
+
+So drop originals into `client/public/`, then:
+
+```bash
+npm run images         # re-encodes them to WebP under client/public/img/ (tracked)
+npm run check:assets   # after a build: fails if anything references a file that will not ship
+```
+
+Reference only `/img/<name>.webp`. The check runs in CI, scans both the client source and the
+seed, and is the first thing that sees the repo without those untracked originals. The last run
+took 4.2 MB of source photography to 1.1 MB.
+
 ### 1. Atlas search indexes
 
 ```bash
@@ -651,6 +684,8 @@ Krishibid/
 | `npm run migrate:marketplace` | Backfills categories and sale modes onto older listings |
 | `npm run mail:test` | Sends one email and reports exactly what the transport did |
 | `npm run budget` | Fails if the initial JS payload exceeds its budget |
+| `npm run images` | Re-encodes the photography in `client/public/` to WebP under `public/img/` |
+| `npm run check:assets` | Fails if the UI references an image that will not ship |
 
 Every one of those except `budget` — which is a client-side check — has a `:prod` twin
 (`npm run seed:prod`, `verify:logins:prod`, …) that runs the bundled build, for deployed boxes

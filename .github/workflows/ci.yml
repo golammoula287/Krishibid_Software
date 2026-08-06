@@ -58,6 +58,13 @@ jobs:
       - name: Enforce bundle budget
         run: npm run budget
 
+      # The photography originals dropped into client/public/ are gitignored, so a page
+      # referencing one renders on the machine that added it and 404s here. Nothing else catches
+      # that: it type-checks, it builds, the tests pass, and the only symptom is a hole on a
+      # deployed page. CI is the first place that sees the repo without those files.
+      - name: Check referenced images ship
+        run: npm run check:assets
+
       - name: Report client bundle size
         if: always()
         run: |
