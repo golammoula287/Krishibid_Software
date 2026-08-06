@@ -765,6 +765,21 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'আপনার বার্তা পৌঁছেছে', hint: 'আমরা শীঘ্রই উত্তর দেব।' },
     en: { title: 'Your message has been received', hint: 'We will reply shortly.' },
   },
+  delivery_assigned: {
+    tone: 'info',
+    bn: { title: 'ডেলিভারি এজেন্ট নিয়োগ হয়েছে' },
+    en: { title: 'Delivery agent assigned' },
+  },
+  account_updated: {
+    tone: 'info',
+    bn: { title: 'অ্যাকাউন্ট হালনাগাদ হয়েছে' },
+    en: { title: 'Account updated' },
+  },
+  role_updated: {
+    tone: 'info',
+    bn: { title: 'ভূমিকা পরিবর্তন হয়েছে', hint: 'তাদের চালু সেশনগুলো বাতিল হয়েছে।' },
+    en: { title: 'Role updated', hint: 'Their existing sessions have been ended.' },
+  },
   review_recorded: {
     tone: 'info',
     bn: { title: 'সিদ্ধান্ত সংরক্ষণ হয়েছে' },
