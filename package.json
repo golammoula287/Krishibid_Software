@@ -2,7 +2,7 @@
   "name": "krishibid",
   "private": true,
   "version": "0.1.0",
-  "description": "KrishiBid — AI-powered agricultural bidding marketplace, crop disease detection and Bangla RAG advisory for smallholder farmers in Bangladesh",
+  "description": "KrishiBid \u2014 AI-powered agricultural bidding marketplace, crop disease detection and Bangla RAG advisory for smallholder farmers in Bangladesh",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -27,7 +27,8 @@
     "create:indexes": "npm run create:indexes --workspace=server",
     "migrate:emails": "npm run migrate:emails --workspace=server",
     "migrate:marketplace": "npm run migrate:marketplace --workspace=server",
-    "mail:test": "npm run mail:test --workspace=server"
+    "mail:test": "npm run mail:test --workspace=server",
+    "budget": "npm run budget --workspace=client"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

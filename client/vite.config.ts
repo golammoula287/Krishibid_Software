@@ -91,6 +91,13 @@ export default defineConfig({
     },
   },
   build: {
+    /**
+     * Emitted so `scripts/bundle-budget.mjs` can tell the initial payload from the lazy chunks.
+     *
+     * Without it the only way to measure is filename globbing, which cannot see which chunks the
+     * entry actually pulls in — and that distinction is the whole point of the budget.
+     */
+    manifest: true,
     // Keeps the initial payload honest against the <200 KB gzip budget.
     chunkSizeWarningLimit: 250,
     rollupOptions: {
