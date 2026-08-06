@@ -40,6 +40,7 @@ export interface Tab {
 
 /** Read by everyone, signed in or not, and always last. */
 const PUBLIC_TAIL: Tab[] = [
+  { to: '/shop', key: 'shop', icon: 'basket' },
   { to: '/blog', key: 'blog', icon: 'learn' },
   { to: '/contact', key: 'contact', icon: 'advisor' },
 ];

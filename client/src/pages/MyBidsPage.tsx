@@ -77,9 +77,9 @@ function BidRow({ bid, cropName }: { bid: MyBidDto; cropName: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate font-bold text-brand-900">{cropName}</p>
+          <p className="truncate font-bold text-brand-900">{bid.title || cropName}</p>
           <p className="text-sm text-slate-600">
-            {formatNumber(bid.quantityKg, locale)} {t('common.kg')} · {bid.district}
+            {formatNumber(bid.quantity, locale)} {t(`units.${bid.unit}`)} · {bid.district}
           </p>
         </div>
         <span className={`badge shrink-0 ${state.className}`}>{state.label}</span>

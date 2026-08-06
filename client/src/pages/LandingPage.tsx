@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../components/icons.js';
+import ListingCard from '../components/ListingCard.js';
+import { useCategoryName } from '../lib/catalogue.js';
 import { CardSkeleton } from '../components/ui.js';
 import { api } from '../lib/api.js';
-import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 
 /**
@@ -23,51 +24,6 @@ import { currentLocale } from '../lib/i18n.js';
  * below the hero is lazy. This audience pays for its data by the megabyte, so a decorative
  * background that costs someone real money would not be elegant, whatever it looked like.
  */
-
-interface Crop {
-  slug: string;
-  names: { bn: string; en: string };
-}
-
-/** Compact card for the preview strip — the full card lives on the market page. */
-function PreviewCard({ listing, cropName }: { listing: ListingDto; cropName: string }) {
-  const { t } = useTranslation();
-  const locale = currentLocale();
-  const remaining = timeRemaining(listing.bidClosesAt, locale);
-
-  return (
-    <Link
-      to={`/listing/${listing.id}`}
-      className="group flex flex-col rounded-2xl border border-brand-100 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-md"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <p className="truncate font-bold text-brand-900">{cropName}</p>
-        {remaining && (
-          <span
-            className={`badge shrink-0 ${
-              remaining.urgent ? 'bg-red-100 text-red-800' : 'bg-brand-100 text-brand-800'
-            }`}
-          >
-            {remaining.text}
-          </span>
-        )}
-      </div>
-
-      <p className="mt-1 text-sm text-slate-600">
-        {formatNumber(listing.quantityKg, locale)} {t('common.kg')} · {listing.district}
-      </p>
-
-      <div className="mt-3 border-t border-brand-50 pt-3">
-        <p className="text-xs text-slate-500">
-          {listing.highestBid ? t('market.highestBid') : t('market.reserve')}
-        </p>
-        <p className="text-xl font-bold text-brand-800">
-          {formatBdt(listing.highestBid?.amountPoisha ?? listing.reservePricePoisha, locale)}
-        </p>
-      </div>
-    </Link>
-  );
-}
 
 function Step({ n, title, body }: { n: number; title: string; body: string }) {
   return (
@@ -116,21 +72,12 @@ function ValueCard({ icon, image, title, body }: {
 
 export default function LandingPage() {
   const { t } = useTranslation();
-  const locale = currentLocale();
-
-  const crops = useQuery({
-    queryKey: ['crops'],
-    queryFn: () => api.get<Crop[]>('/crops'),
-    staleTime: 60 * 60_000,
-  });
+  const categoryName = useCategoryName();
 
   const listings = useQuery({
     queryKey: ['listings', 'landing'],
     queryFn: () => api.get<Page<ListingDto>>('/marketplace/listings?limit=6'),
   });
-
-  const cropName = (slug: string): string =>
-    crops.data?.find((c) => c.slug === slug)?.names[locale] ?? slug;
 
   return (
     <div className="space-y-14 pb-10">
@@ -235,10 +182,10 @@ export default function LandingPage() {
           {listings.data && listings.data.items.length > 0 && (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {listings.data.items.slice(0, 6).map((listing) => (
-                <PreviewCard
+                <ListingCard
                   key={listing.id}
                   listing={listing}
-                  cropName={cropName(listing.cropSlug)}
+                  categoryName={categoryName(listing.categorySlug)}
                 />
               ))}
             </div>

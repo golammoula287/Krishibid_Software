@@ -17,7 +17,8 @@
     "contact": "Contact",
     "manageBlog": "Publishing",
     "menu": "Menu",
-    "bids": "My Bids"
+    "bids": "My Bids",
+    "shop": "Buy Now"
   },
   "auth": {
     "login": "Log in",
@@ -56,7 +57,10 @@
     "acceptBid": "Accept this bid",
     "createListing": "List a crop for sale",
     "myListings": "My listings",
-    "empty": "No listings right now",
+    "empty": {
+      "auction": "No auctions running right now",
+      "fixed": "Nothing on sale at a fixed price right now"
+    },
     "youWillBid": "You are bidding {{amount}}",
     "confirmBidTitle": "Confirm your bid",
     "confirmBidBody": "A bid cannot be changed once placed. Please check the amount carefully.",
@@ -64,7 +68,16 @@
     "signupToBid": "You need an account to bid — it is free to create one",
     "onlyBuyersBid": "Only buyers can place bids",
     "loginToAct": "Log in to bid",
-    "guestPrompt": "Create a free account to bid on this lot"
+    "guestPrompt": "Create a free account to bid on this lot",
+    "allCategories": "All categories",
+    "shop": {
+      "auction": "Auctions",
+      "fixed": "Buy now"
+    },
+    "shopHelp": {
+      "auction": "Bid against other buyers. The highest bid when the clock runs out wins the lot.",
+      "fixed": "Buy at the listed price, in the quantity you need. No waiting."
+    }
   },
   "diagnose": {
     "title": "Crop disease detection",
@@ -432,5 +445,47 @@
       "outbid": "Outbid",
       "won": "Won"
     }
+  },
+  "units": {
+    "kg": "kg",
+    "litre": "litre",
+    "piece": "piece",
+    "dozen": "dozen",
+    "sack": "sack",
+    "maund": "maund"
+  },
+  "shop": {
+    "inStock": "{{qty}} {{unit}} left",
+    "soldOut": "Sold out",
+    "perUnit": "Per {{unit}}",
+    "available": "Available",
+    "buyNow": "Buy now",
+    "buyTitle": "Buy at this price",
+    "howMany": "How many {{unit}}?",
+    "youWillPay": "You will pay {{amount}}",
+    "escrowNote": "Your money is held safely until you confirm the goods arrived.",
+    "signupToBuy": "Create a free account to buy",
+    "onlyBuyersBuy": "Only buyers can purchase",
+    "quantityInvalid": "Enter a quantity within what is in stock",
+    "confirmTitle": "Confirm your purchase",
+    "confirmBody": "You are buying {{qty}} {{unit}}. Payment is held in escrow until you confirm delivery.",
+    "confirmYes": "Yes, buy this"
+  },
+  "sell": {
+    "howToSell": "How do you want to sell it?",
+    "auctionHelp": "Buyers bid against each other. Best for a large lot where the price is uncertain.",
+    "fixedHelp": "You set the price and buyers take what they need. Best for regular stock.",
+    "category": "Category",
+    "productName": "What are you selling?",
+    "productPlaceholder": "e.g. Deshi mustard oil, BR-28 rice",
+    "unit": "Sold by",
+    "reserveLabel": "Lowest price you will accept for the whole lot (৳)",
+    "reserveHelp": "Bidding starts here. You are not obliged to sell below it.",
+    "bidWindow": "How long should bidding stay open? (hours)",
+    "perishableWarning": "This is perishable — a shorter auction usually gets a better price.",
+    "pricePerUnit": "Price per {{unit}} (৳)",
+    "fixedTotal": "The full lot comes to {{amount}}",
+    "stockHelp": "Buyers can take part of the lot. It leaves the shop when the stock runs out.",
+    "description": "Anything else buyers should know"
   }
 }

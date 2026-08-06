@@ -25,6 +25,8 @@ export default function ListingDetailPage() {
 
   const [bidBdt, setBidBdt] = useState('');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [quantity, setQuantity] = useState('1');
+  const [buyConfirmOpen, setBuyConfirmOpen] = useState(false);
   const [tick, setTick] = useState(0);
   const toast = useToast();
 
@@ -108,30 +110,71 @@ export default function ListingDetailPage() {
     },
   });
 
+  /**
+   * Buying at the listed price.
+   *
+   * Lands on the order rather than staying here: the purchase is not finished until it is paid
+   * for, and leaving the buyer on the listing they just bought from would hide that.
+   */
+  const buyNow = useMutation({
+    mutationFn: () =>
+      api.post<{ orderId: string; totalPoisha: number }>('/marketplace/buy', {
+        listingId: id,
+        quantity: Number(quantity),
+      }),
+    onSuccess: (result) => {
+      setBuyConfirmOpen(false);
+      void queryClient.invalidateQueries({ queryKey: ['orders'] });
+      void queryClient.invalidateQueries({ queryKey: ['listing', id] });
+      navigate(`/orders/${result.orderId}`);
+    },
+  });
+
   if (listing.isLoading) return <CardSkeleton count={2} />;
   if (listing.isError) return <ErrorNote error={listing.error} onRetry={() => void listing.refetch()} />;
   if (!data) return null;
 
-  const remaining = timeRemaining(data.bidClosesAt, locale);
+  const isAuction = data.saleMode === 'auction';
+  const remaining =
+    isAuction && data.bidClosesAt ? timeRemaining(data.bidClosesAt, locale) : null;
   const isOwner = user?.id === data.farmerId;
   /** Open for bidding regardless of who is looking — guests included. */
-  const biddingOpen = data.status === 'open' && remaining !== null;
+  const biddingOpen = isAuction && data.status === 'open' && remaining !== null;
   const amountPoisha = Math.round(Number(bidBdt) * 100);
-  const minimumLabel = formatBdt(minimumPoisha, locale);
+  const minimumLabel = formatBdt(minimumPoisha ?? 0, locale);
+
+  const unitLabel = t(`units.${data.unit}`);
+  const stock = data.stock ?? 0;
+  const canBuy = !isAuction && data.status === 'open' && stock > 0 && !isOwner;
+  const buyQty = Number(quantity);
+  const buyTotalPoisha =
+    Number.isFinite(buyQty) && buyQty > 0
+      ? Math.round((data.pricePerUnitPoisha ?? 0) * buyQty)
+      : 0;
 
   return (
     <div className="space-y-4">
       <div className="card">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-brand-900">{data.cropSlug}</h1>
+            <h1 className="text-2xl font-bold text-brand-900">{data.title}</h1>
             <p className="text-sm text-slate-600">
-              {formatNumber(data.quantityKg, locale)} {t('common.kg')} · {t('market.grade')}{' '}
+              {formatNumber(data.quantity, locale)} {unitLabel} · {t('market.grade')}{' '}
               {data.qualityGrade} · {data.district}
             </p>
             <p className="mt-1 text-sm text-slate-500">{data.farmerName}</p>
           </div>
-          {remaining ? (
+          {!isAuction ? (
+            /* Stock, not a clock — a fixed-price lot has no deadline, and showing one would
+               manufacture urgency that does not exist. */
+            <span
+              className={`badge ${stock > 0 ? 'bg-brand-100 text-brand-800' : 'bg-slate-200 text-slate-600'}`}
+            >
+              {stock > 0
+                ? t('shop.inStock', { qty: formatNumber(stock, locale), unit: unitLabel })
+                : t('shop.soldOut')}
+            </span>
+          ) : remaining ? (
             <div className="text-right">
               <p className="text-xs text-slate-500">{t('market.closesIn')}</p>
               <p
@@ -150,18 +193,37 @@ export default function ListingDetailPage() {
         {data.description && <p className="mt-3 text-sm text-slate-700">{data.description}</p>}
 
         <div className="mt-4 grid grid-cols-2 gap-3 border-t border-brand-50 pt-4">
-          <div>
-            <p className="text-xs text-slate-500">{t('market.reserve')}</p>
-            <p className="font-semibold text-slate-800">
-              {formatBdt(data.reservePricePoisha, locale)}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-slate-500">{t('market.highestBid')}</p>
-            <p className="text-lg font-bold text-brand-800">
-              {data.highestBid ? formatBdt(data.highestBid.amountPoisha, locale) : '—'}
-            </p>
-          </div>
+          {isAuction ? (
+            <>
+              <div>
+                <p className="text-xs text-slate-500">{t('market.reserve')}</p>
+                <p className="font-semibold text-slate-800">
+                  {formatBdt(data.reservePricePoisha ?? 0, locale)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">{t('market.highestBid')}</p>
+                <p className="text-lg font-bold text-brand-800">
+                  {data.highestBid ? formatBdt(data.highestBid.amountPoisha, locale) : '—'}
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs text-slate-500">{t('shop.perUnit', { unit: unitLabel })}</p>
+                <p className="text-lg font-bold text-brand-800">
+                  {formatBdt(data.pricePerUnitPoisha ?? 0, locale)}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">{t('shop.available')}</p>
+                <p className="font-semibold text-slate-800">
+                  {formatNumber(stock, locale)} {unitLabel}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -192,7 +254,7 @@ export default function ListingDetailPage() {
               return;
             }
 
-            if (!Number.isFinite(amountPoisha) || amountPoisha < minimumPoisha) {
+            if (!Number.isFinite(amountPoisha) || amountPoisha < (minimumPoisha ?? 0)) {
               toast.showError(
                 new ApiRequestError(422, 'bid_too_low', t('market.minimum', { amount: minimumLabel })),
               );
@@ -213,7 +275,7 @@ export default function ListingDetailPage() {
               type="number"
               inputMode="decimal"
               step="1"
-              min={minimumPoisha / 100}
+              min={(minimumPoisha ?? 0) / 100}
               value={bidBdt}
               onChange={(e) => setBidBdt(e.target.value)}
               className="field"
@@ -242,6 +304,87 @@ export default function ListingDetailPage() {
         </form>
       )}
 
+
+      {/**
+       * Buying at the listed price.
+       *
+       * Shown to everyone the lot is available to, guests included, for the same reason the bid
+       * form is: someone deciding whether to sign up needs to see what the transaction involves.
+       * The account requirement is enforced at the moment of action, not by hiding the form.
+       */}
+      {canBuy && (
+        <form
+          className="card space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+
+            if (!user) {
+              toast.showError(
+                new ApiRequestError(401, 'signup_required', t('shop.signupToBuy')),
+              );
+              navigate('/login', { state: { from: `/listing/${id}`, intent: 'buy' } });
+              return;
+            }
+            if (user.role !== 'buyer') {
+              toast.showError(new ApiRequestError(403, 'forbidden', t('shop.onlyBuyersBuy')));
+              return;
+            }
+            if (!Number.isFinite(buyQty) || buyQty <= 0 || buyQty > stock) {
+              toast.showError(
+                new ApiRequestError(422, 'out_of_stock', t('shop.quantityInvalid')),
+              );
+              return;
+            }
+
+            setBuyConfirmOpen(true);
+          }}
+        >
+          <h2 className="font-bold text-brand-900">{t('shop.buyTitle')}</h2>
+
+          <div>
+            <label htmlFor="qty" className="label">
+              {t('shop.howMany', { unit: unitLabel })}
+            </label>
+            <input
+              id="qty"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min={0}
+              max={stock}
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="field"
+              required
+            />
+            {/* The total is echoed as it is typed. Seeing the figure before committing is what
+                catches "50" entered where 5 was meant. */}
+            {buyTotalPoisha > 0 && (
+              <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-900">
+                {t('shop.youWillPay', { amount: formatBdt(buyTotalPoisha, locale) })}
+              </p>
+            )}
+          </div>
+
+          <button type="submit" className="btn-primary w-full" disabled={buyNow.isPending}>
+            {buyNow.isPending ? t('common.loading') : t('shop.buyNow')}
+          </button>
+
+          <p className="text-center text-xs text-slate-500">{t('shop.escrowNote')}</p>
+        </form>
+      )}
+
+      <ConfirmDialog
+        open={buyConfirmOpen}
+        title={t('shop.confirmTitle')}
+        amount={formatBdt(buyTotalPoisha, locale)}
+        body={t('shop.confirmBody', { qty: quantity, unit: unitLabel })}
+        confirmLabel={t('shop.confirmYes')}
+        busy={buyNow.isPending}
+        onConfirm={() => buyNow.mutate()}
+        onCancel={() => setBuyConfirmOpen(false)}
+      />
+
       {/* Step two of two. Errors and successes arrive as toasts, so no inline error note. */}
       <ConfirmDialog
         open={confirmOpen}
@@ -254,9 +397,12 @@ export default function ListingDetailPage() {
         onCancel={() => setConfirmOpen(false)}
       />
 
+      {isAuction && (
       <div className="card">
         <h2 className="mb-3 font-bold text-brand-900">
-          {data.bidCount > 0 ? t('market.bidCount', { count: data.bidCount }) : t('market.noBids')}
+          {(data.bidCount ?? 0) > 0
+            ? t('market.bidCount', { count: data.bidCount })
+            : t('market.noBids')}
         </h2>
 
         {bids.isLoading && <Spinner />}
@@ -288,6 +434,7 @@ export default function ListingDetailPage() {
           ))}
         </ul>
       </div>
+      )}
     </div>
   );
 }
