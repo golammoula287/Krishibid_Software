@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout.js';
 import Toaster from './components/Toaster.js';
 import { Spinner } from './components/ui.js';
-import type { Role } from '@krishibid/shared';
+import { roleSatisfies, type Role } from '@krishibid/shared';
 import { useAuth } from './lib/auth.js';
 import { disconnectSocket } from './lib/socket.js';
 
@@ -40,6 +40,7 @@ const LoginPage = lazy(() => import('./pages/LoginPage.js'));
 const BlogPage = lazy(() => import('./pages/BlogPage.js'));
 const BlogPostPage = lazy(() => import('./pages/BlogPostPage.js'));
 const AdminBlogPage = lazy(() => import('./pages/AdminBlogPage.js'));
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage.js'));
 const ContactPage = lazy(() => import('./pages/ContactPage.js'));
 const MyBidsPage = lazy(() => import('./pages/MyBidsPage.js'));
 const SignupPage = lazy(() => import('./pages/SignupPage.js'));
@@ -92,7 +93,10 @@ function RequireRole({ roles, children }: { roles: Role[]; children: React.React
 
   if (initialising) return <Spinner />;
   if (!user) return <Navigate to="/login" replace />;
-  if (!roles.includes(user.role)) return <Navigate to="/" replace />;
+  // Mirrors the server's role hierarchy, so a super admin is not locked out of an admin
+  // route. Presentation only — the API refuses regardless; this avoids sending somebody to
+  // an empty screen.
+  if (!roles.some((r) => roleSatisfies(r, user.role))) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -140,6 +144,16 @@ export default function App() {
           <Route path="blog/:slug" element={<BlogPostPage />} />
           <Route path="contact" element={<ContactPage />} />
 
+          {/* `admin` covers a super admin too — RequireRole mirrors the server's hierarchy,
+              and the server is what actually enforces it. */}
+          <Route
+            path="admin"
+            element={
+              <RequireRole roles={['admin']}>
+                <AdminDashboardPage />
+              </RequireRole>
+            }
+          />
           <Route
             path="admin/blog"
             element={

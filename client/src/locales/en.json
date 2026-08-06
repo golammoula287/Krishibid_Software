@@ -18,7 +18,8 @@
     "manageBlog": "Publishing",
     "menu": "Menu",
     "bids": "My Bids",
-    "shop": "Buy Now"
+    "shop": "Buy Now",
+    "dashboard": "Dashboard"
   },
   "auth": {
     "login": "Log in",
@@ -256,7 +257,77 @@
     "faceAdvisory": "Advisory only — look at the photos yourself before deciding.",
     "faceNotComputed": "Photo similarity was not computed",
     "faceUnavailable": "Photo similarity unavailable",
-    "linkUnavailable": "link unavailable"
+    "linkUnavailable": "link unavailable",
+    "title": "Operations",
+    "administrator": "Administrator",
+    "superAdmin": "Super administrator",
+    "needsYou": "Waiting on you",
+    "money": "Money",
+    "activity": "Activity",
+    "pendingApprovals": "Suppliers awaiting approval",
+    "unreadMessages": "Unread messages",
+    "awaitingDispatch": "Awaiting dispatch",
+    "escrowHeld": "Held in escrow",
+    "settledSales": "Settled sales ({{count}} orders)",
+    "liveAuctions": "Live auctions",
+    "liveFixed": "Live fixed-price lots",
+    "newFarmers": "New suppliers this week",
+    "newBuyers": "New buyers this week",
+    "ordersByStatus": "Orders",
+    "tab": {
+      "overview": "Overview",
+      "delivery": "Delivery",
+      "messages": "Messages",
+      "users": "Users"
+    },
+    "order": {
+      "awaitingPayment": "Awaiting payment",
+      "confirmed": "Paid",
+      "inTransit": "In transit",
+      "completed": "Completed",
+      "disputed": "Disputed"
+    },
+    "delivery": {
+      "awaiting_dispatch": "To dispatch",
+      "dispatched": "On the way",
+      "empty": "Nothing waiting",
+      "from": "From",
+      "to": "To",
+      "agent": "Delivery agent",
+      "agentName": "Agent name",
+      "agentPhone": "Agent phone",
+      "trackingNote": "Tracking note (optional)",
+      "assign": "Assign a delivery agent",
+      "markDispatched": "Mark as dispatched"
+    },
+    "inbox": {
+      "empty": "No messages",
+      "reply": "Reply by email",
+      "markRead": "Mark as read",
+      "archive": "Archive"
+    },
+    "users": {
+      "search": "Search by name, phone or email",
+      "allRoles": "All roles",
+      "admin": "Administrator",
+      "suspend": "Suspend",
+      "reinstate": "Reinstate",
+      "makeAdmin": "Make administrator",
+      "removeAdmin": "Remove administrator",
+      "suspendedByAdmin": "Suspended by an administrator",
+      "role": {
+        "farmer": "Supplier",
+        "buyer": "Buyer",
+        "admin": "Administrator",
+        "superadmin": "Super administrator"
+      },
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "pending_approval": "Awaiting approval",
+        "rejected": "Rejected"
+      }
+    }
   },
   "login": {
     "forgotPassword": "Forgot your password?",
@@ -487,5 +558,11 @@
     "fixedTotal": "The full lot comes to {{amount}}",
     "stockHelp": "Buyers can take part of the lot. It leaves the shop when the stock runs out.",
     "description": "Anything else buyers should know"
+  },
+  "supplier": {
+    "farmer": "Farmer",
+    "retailer": "Retailer",
+    "farm_owner": "Farm owner",
+    "trader": "Trader"
   }
 }

@@ -18,7 +18,8 @@
     "manageBlog": "প্রকাশনা",
     "menu": "মেনু",
     "bids": "আমার দর",
-    "shop": "এখনই কিনুন"
+    "shop": "এখনই কিনুন",
+    "dashboard": "ড্যাশবোর্ড"
   },
   "auth": {
     "login": "লগইন",
@@ -256,7 +257,77 @@
     "faceAdvisory": "এটি শুধু সহায়ক তথ্য — নিজে ছবি দেখে সিদ্ধান্ত নিন।",
     "faceNotComputed": "ছবির মিল হিসাব করা হয়নি",
     "faceUnavailable": "ছবির মিল পাওয়া যায়নি",
-    "linkUnavailable": "লিংক পাওয়া যায়নি"
+    "linkUnavailable": "লিংক পাওয়া যায়নি",
+    "title": "পরিচালনা",
+    "administrator": "প্রশাসক",
+    "superAdmin": "প্রধান প্রশাসক",
+    "needsYou": "আপনার জন্য অপেক্ষায়",
+    "money": "টাকা",
+    "activity": "কার্যক্রম",
+    "pendingApprovals": "অনুমোদনের অপেক্ষায় সরবরাহকারী",
+    "unreadMessages": "না-পড়া বার্তা",
+    "awaitingDispatch": "পাঠানোর অপেক্ষায়",
+    "escrowHeld": "জমা আছে",
+    "settledSales": "সম্পন্ন বিক্রি ({{count}}টি অর্ডার)",
+    "liveAuctions": "চলমান নিলাম",
+    "liveFixed": "নির্দিষ্ট দামে চলমান",
+    "newFarmers": "এই সপ্তাহে নতুন সরবরাহকারী",
+    "newBuyers": "এই সপ্তাহে নতুন ক্রেতা",
+    "ordersByStatus": "অর্ডার",
+    "tab": {
+      "overview": "সারসংক্ষেপ",
+      "delivery": "ডেলিভারি",
+      "messages": "বার্তা",
+      "users": "ব্যবহারকারী"
+    },
+    "order": {
+      "awaitingPayment": "পেমেন্টের অপেক্ষায়",
+      "confirmed": "পরিশোধিত",
+      "inTransit": "পথে আছে",
+      "completed": "সম্পন্ন",
+      "disputed": "অভিযোগ"
+    },
+    "delivery": {
+      "awaiting_dispatch": "পাঠাতে হবে",
+      "dispatched": "পথে আছে",
+      "empty": "কিছু অপেক্ষায় নেই",
+      "from": "থেকে",
+      "to": "প্রাপক",
+      "agent": "ডেলিভারি এজেন্ট",
+      "agentName": "এজেন্টের নাম",
+      "agentPhone": "এজেন্টের ফোন",
+      "trackingNote": "ট্র্যাকিং নোট (ইচ্ছা হলে)",
+      "assign": "ডেলিভারি এজেন্ট নিয়োগ করুন",
+      "markDispatched": "পাঠানো হয়েছে চিহ্নিত করুন"
+    },
+    "inbox": {
+      "empty": "কোনো বার্তা নেই",
+      "reply": "ইমেইলে উত্তর দিন",
+      "markRead": "পড়া হয়েছে",
+      "archive": "সংরক্ষণাগারে"
+    },
+    "users": {
+      "search": "নাম, ফোন বা ইমেইল দিয়ে খুঁজুন",
+      "allRoles": "সব ভূমিকা",
+      "admin": "প্রশাসক",
+      "suspend": "স্থগিত করুন",
+      "reinstate": "পুনর্বহাল করুন",
+      "makeAdmin": "প্রশাসক করুন",
+      "removeAdmin": "প্রশাসক পদ সরান",
+      "suspendedByAdmin": "প্রশাসক কর্তৃক স্থগিত",
+      "role": {
+        "farmer": "সরবরাহকারী",
+        "buyer": "ক্রেতা",
+        "admin": "প্রশাসক",
+        "superadmin": "প্রধান প্রশাসক"
+      },
+      "status": {
+        "active": "সক্রিয়",
+        "suspended": "স্থগিত",
+        "pending_approval": "অনুমোদনের অপেক্ষায়",
+        "rejected": "প্রত্যাখ্যাত"
+      }
+    }
   },
   "login": {
     "forgotPassword": "পাসওয়ার্ড ভুলে গেছেন?",
@@ -487,5 +558,11 @@
     "fixedTotal": "পুরো লটের দাম দাঁড়ায় {{amount}}",
     "stockHelp": "ক্রেতারা লটের অংশও নিতে পারবেন। মজুদ শেষ হলে তালিকা থেকে সরে যাবে।",
     "description": "ক্রেতাদের আর কী জানা দরকার"
+  },
+  "supplier": {
+    "farmer": "কৃষক",
+    "retailer": "খুচরা বিক্রেতা",
+    "farm_owner": "খামার মালিক",
+    "trader": "ব্যবসায়ী"
   }
 }

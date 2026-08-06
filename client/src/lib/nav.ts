@@ -83,10 +83,10 @@ const BUYER: Tab[] = [
 ];
 
 const ADMIN: Tab[] = [
+  { to: '/admin', key: 'dashboard', icon: 'insights', primary: true },
   { to: '/market', key: 'market', icon: 'market', primary: true },
   { to: '/admin/review', key: 'review', icon: 'review', primary: true },
   { to: '/admin/blog', key: 'manageBlog', icon: 'learn', primary: true },
-  { to: '/insights', key: 'insights', icon: 'insights', primary: true },
   { to: '/account', key: 'account', icon: 'account', primary: true },
   ...PUBLIC_TAIL,
 ];
@@ -98,6 +98,9 @@ export function tabsForRole(role: Role | undefined): Tab[] {
     case 'buyer':
       return BUYER;
     case 'admin':
+    // A super admin runs the same screens as an admin, plus the two buttons an admin does not
+    // see. Giving them their own tab table would be two lists to keep in step for no gain.
+    case 'superadmin':
       return ADMIN;
     default:
       return GUEST;
