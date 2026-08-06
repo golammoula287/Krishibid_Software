@@ -22,7 +22,10 @@ import { disconnectSocket } from './lib/socket.js';
  * Splitting here is what keeps the initial payload small rather than shipping the
  * whole app up front.
  */
-const MarketPage = lazy(() => import('./pages/MarketPage.js'));
+const MarketHomePage = lazy(() => import('./pages/MarketHomePage.js'));
+const BrowsePage = lazy(() => import('./pages/BrowsePage.js'));
+const CategoriesPage = lazy(() => import('./pages/CategoriesPage.js'));
+const CategoryPage = lazy(() => import('./pages/CategoryPage.js'));
 const LandingPage = lazy(() => import('./pages/LandingPage.js'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage.js'));
 const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage.js'));
@@ -77,9 +80,21 @@ function Home() {
   // Waiting matters here: rendering the landing page for a frame before the silent refresh
   // resolves would flash a "Sign up" pitch at somebody who is already a member.
   if (initialising) return <Spinner />;
-  if (!user) return <LandingPage />;
-  if (user.role === 'farmer' || user.role === 'buyer') return <DashboardPage />;
-  return <Navigate to="/market" replace />;
+
+  /**
+   * Guests and buyers get the marketplace; farmers get their dashboard.
+   *
+   * A guest used to get a marketing page. For a shop, showing real produce is a better pitch
+   * than a pitch is — somebody deciding whether to sign up wants to see what is for sale, and
+   * making them click through to find out cost a step for nothing. The old landing page lives at
+   * `/about` so the copy is not lost.
+   *
+   * A farmer's `/` stays their dashboard: they arrive to manage lots and orders, not to shop.
+   */
+  if (!user) return <MarketHomePage />;
+  if (user.role === 'farmer') return <DashboardPage />;
+  if (user.role === 'buyer') return <MarketHomePage />;
+  return <Navigate to="/admin" replace />;
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -144,12 +159,43 @@ export default function App() {
           {/* Browsing the market is public — a farmer should be able to see prices
               before deciding whether to sign up. */}
           <Route index element={<Home />} />
-          {/* The market at its own address too, so the landing page can link to it and a
-              signed-in user's bookmark keeps working. */}
-          <Route path="market" element={<MarketPage />} />
-          {/* The same screen, opened on the fixed-price side. One component because the two
-              shops share every filter — what differs is what is shown, not how it is fetched. */}
-          <Route path="shop" element={<MarketPage />} />
+
+          {/**
+           * The two shops, at their own addresses.
+           *
+           * A route each rather than a toggle on one page: with a switcher there was one URL for
+           * two shops, so you could not link somebody to the auctions and the back button did not
+           * return you to the shop you were in. One component serves both — they are the same
+           * query with a different `saleMode`, and what differs is the framing.
+           */}
+          <Route path="auctions" element={<BrowsePage saleMode="auction" />} />
+          <Route path="shop" element={<BrowsePage saleMode="fixed" />} />
+
+          {/**
+           * The dashboard at its own address.
+           *
+           * A farmer also gets it at `/`, but a buyer no longer does — theirs is the marketplace
+           * — so it needs somewhere to live that does not depend on which role is asking.
+           */}
+          <Route
+            path="dashboard"
+            element={
+              <RequireAuth>
+                <DashboardPage />
+              </RequireAuth>
+            }
+          />
+
+          {/* The old marketing page. Kept rather than deleted: it explains what this is, which
+              is worth a page even when it is no longer the front door. */}
+          <Route path="about" element={<LandingPage />} />
+
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="category/:slug" element={<CategoryPage />} />
+
+          {/* `/market` was the marketplace for most of this project's life. Kept as a redirect
+              so old links, bookmarks and anything already shared still land somewhere real. */}
+          <Route path="market" element={<Navigate to="/" replace />} />
           <Route path="listing/:id" element={<ListingDetailPage />} />
           {/* Public, like the listings themselves. Somebody deciding whether this platform is
               worth registering for is exactly who needs to see that its suppliers are real and

@@ -5,7 +5,7 @@ import Footer from './Footer.js';
 import { Icon } from './icons.js';
 import { currentLocale, setLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
-import { primaryTabs, tabsForRole } from '../lib/nav.js';
+import { primaryTabs, tabsForRole, type Tab } from '../lib/nav.js';
 
 function OfflineBanner() {
   const { t } = useTranslation();
@@ -87,6 +87,83 @@ function Brand({ dark = true }: { dark?: boolean }) {
   );
 }
 
+/**
+ * A nav entry with a menu under it.
+ *
+ * Opens on hover for a mouse and on click for everything else, and the label itself is still a
+ * link — a phone user's first instinct is to tap it, and a parent that only opens a menu leaves
+ * them with no way to reach the section they asked for.
+ *
+ * Closes on blur rather than on a document listener: the whole thing lives inside one element, so
+ * focus leaving it is exactly the signal, and there is no listener to leak.
+ */
+function NavDropdown({ tab }: { tab: Tab }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
+      }}
+    >
+      <NavLink
+        to={tab.to}
+        end={tab.to === '/'}
+        onClick={() => setOpen(false)}
+        className={({ isActive }) =>
+          `flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition ${
+            isActive
+              ? 'bg-white/15 font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
+              : 'font-medium text-brand-100/90 hover:bg-white/10 hover:text-white'
+          }`
+        }
+      >
+        <Icon name={tab.icon} className="h-4 w-4 opacity-90" />
+        {t(`nav.${tab.key}`)}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          className={`h-3 w-3 transition ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </NavLink>
+
+      {open && (
+        <div className="absolute left-0 top-full w-52 pt-1.5">
+          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white py-1.5 shadow-xl">
+            {tab.children?.map((child) => (
+              <NavLink
+                key={child.to}
+                to={child.to}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-2.5 px-4 py-2.5 text-sm transition ${
+                    isActive
+                      ? 'bg-brand-50 font-semibold text-brand-800'
+                      : 'text-slate-600 hover:bg-slate-50 hover:text-brand-700'
+                  }`
+                }
+              >
+                <Icon name={child.icon} className="h-4 w-4" />
+                {t(`nav.${child.key}`)}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
@@ -124,7 +201,10 @@ export default function Layout() {
 
           {/* Inline, centred, and the reason the second rail is gone. */}
           <nav className="mx-auto hidden items-center gap-0.5 md:flex">
-            {tabs.map((tab) => (
+            {tabs.map((tab) =>
+              tab.children ? (
+                <NavDropdown key={tab.to} tab={tab} />
+              ) : (
               <NavLink
                 key={tab.to}
                 to={tab.to}
@@ -148,7 +228,9 @@ export default function Layout() {
                   </>
                 )}
               </NavLink>
-            ))}
+              ),
+            )}
+            
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5 md:ml-0">
@@ -220,7 +302,10 @@ export default function Layout() {
         {menuOpen && (
           <div className="border-t border-white/10 bg-brand-800 px-4 py-3 md:hidden">
             <div className="flex flex-col gap-0.5">
-              {tabs.map((link) => (
+              {/* Children are flattened in, indented. There is no room for a hover menu on a
+                  phone, and burying the two shops behind a tap would make them harder to reach
+                  here than they were before the dropdown existed. */}
+              {tabs.flatMap((link) => [
                 <NavLink
                   key={link.to}
                   to={link.to}
@@ -233,8 +318,22 @@ export default function Layout() {
                 >
                   <Icon name={link.icon} className="h-4 w-4" />
                   {t(`nav.${link.key}`)}
-                </NavLink>
-              ))}
+                </NavLink>,
+                ...(link.children ?? []).map((child) => (
+                  <NavLink
+                    key={child.to}
+                    to={child.to}
+                    className={({ isActive }) =>
+                      `ml-6 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                        isActive ? 'bg-white/15 text-white' : 'text-brand-100/80 hover:bg-white/10'
+                      }`
+                    }
+                  >
+                    <Icon name={child.icon} className="h-3.5 w-3.5" />
+                    {t(`nav.${child.key}`)}
+                  </NavLink>
+                )),
+              ])}
             </div>
 
             <div className="mt-3 border-t border-white/10 pt-3">
