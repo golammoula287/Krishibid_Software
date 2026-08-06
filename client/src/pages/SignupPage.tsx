@@ -1,5 +1,6 @@
 import {
   BID_CEILING_POISHA,
+  type SupplierType,
   OTP_LENGTH,
   OTP_RESEND_COOLDOWN_SECONDS,
   REQUIRED_KYC_DOCUMENTS,
@@ -256,6 +257,7 @@ export default function SignupPage() {
   const [verificationRequired, setVerificationRequired] = useState(true);
 
   // Farmer step 3.
+  const [supplierType, setSupplierType] = useState<SupplierType>('farmer');
   const [nidNumber, setNidNumber] = useState('');
   const [fullNameOnNid, setFullNameOnNid] = useState('');
   const [farmSize, setFarmSize] = useState('');
@@ -724,6 +726,30 @@ export default function SignupPage() {
           <h2 className="font-bold text-brand-900">{t('account.yourDetails')}</h2>
 
           <div>
+            <span className="label">{t('signup.supplierType')}</span>
+            {/* Asked once, here, because a buyer looking at a listing wants to know whether they
+                are dealing with the person who grew it or with somebody reselling. */}
+            <div className="grid grid-cols-2 gap-2">
+              {(['farmer', 'farm_owner', 'retailer', 'trader'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setSupplierType(type)}
+                  aria-pressed={supplierType === type}
+                  className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition ${
+                    supplierType === type
+                      ? 'border-brand-600 bg-brand-50 text-brand-900 ring-1 ring-brand-600'
+                      : 'border-slate-200 text-slate-700 hover:border-brand-200'
+                  }`}
+                >
+                  {t(`supplier.${type}`)}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{t('signup.supplierTypeHelp')}</p>
+          </div>
+
+          <div>
             <label htmlFor="nid" className="label">
               {t('account.nidNumber')}
             </label>
@@ -845,6 +871,7 @@ export default function SignupPage() {
                   {
                     signupToken,
                     details: {
+                      supplierType,
                       nidNumber,
                       fullNameOnNid,
                       farmSizeAcres: Number(farmSize),

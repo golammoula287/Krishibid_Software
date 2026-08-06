@@ -79,6 +79,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(here, 'src'),
       // path.resolve, not new URL().pathname — the latter yields "/D:/..." on Windows.
+      '@krishibid/shared/roles': path.resolve(here, '../shared/src/roles.ts'),
       '@krishibid/shared': path.resolve(here, '../shared/src/index.ts'),
     },
   },

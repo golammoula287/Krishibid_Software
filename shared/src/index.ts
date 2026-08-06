@@ -1,3 +1,4 @@
+export * from './roles.js';
 export * from './common.js';
 export * from './auth.js';
 export * from './identity.js';

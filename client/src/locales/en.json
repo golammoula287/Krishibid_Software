@@ -372,7 +372,9 @@
     "submittedBody": "One of our team will check your documents. You can log in and sell produce once your account is approved.",
     "submittedEmail": "We sent a receipt to {{email}}. Keep it — it has your status link.",
     "checkStatus": "Check your application status",
-    "browseMarket": "Browse the market"
+    "browseMarket": "Browse the market",
+    "supplierType": "What kind of seller are you?",
+    "supplierTypeHelp": "Buyers see this on your listings. It helps them know who they are dealing with."
   },
   "forgot": {
     "title": "Reset your password",
@@ -564,5 +566,19 @@
     "retailer": "Retailer",
     "farm_owner": "Farm owner",
     "trader": "Trader"
+  },
+  "delivery": {
+    "how": "How should it reach you?",
+    "free": "Free",
+    "goods": "Goods",
+    "charge": "Delivery",
+    "total": "Total",
+    "address": "Delivery address",
+    "contactPhone": "Phone for the delivery",
+    "method": {
+      "pickup": "I will collect it",
+      "platform": "KrishiBid delivers",
+      "courier": "By courier"
+    }
   }
 }

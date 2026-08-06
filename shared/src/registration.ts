@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { districtSchema, localeSchema, phoneSchema } from './common.js';
+import { districtSchema, localeSchema, phoneSchema, supplierTypeSchema } from './common.js';
 import { buyerTypeSchema } from './identity.js';
 
 /**
@@ -64,6 +64,13 @@ export type CompleteBuyerRegistrationInput = z.infer<typeof completeBuyerRegistr
 
 /** Step 3 — farmer. All required; documents are uploaded separately and checked server-side. */
 export const completeFarmerRegistrationSchema = z.object({
+  /**
+   * What kind of seller this is.
+   *
+   * Asked once, at signup, because a buyer looking at a listing wants to know whether they are
+   * dealing with the person who grew it or with somebody reselling — and that was invisible.
+   */
+  supplierType: supplierTypeSchema.default('farmer'),
   nidNumber: z
     .string()
     .trim()

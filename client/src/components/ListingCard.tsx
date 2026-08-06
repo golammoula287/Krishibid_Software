@@ -105,9 +105,19 @@ export default function ListingCard({
         </div>
       </div>
 
-      <div className="mt-2 flex items-center gap-1.5 text-xs text-slate-400">
-        <Icon name="market" className="h-3.5 w-3.5" />
-        {categoryName}
+      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <Icon name="market" className="h-3.5 w-3.5" />
+          {categoryName}
+        </span>
+        {/* Who is selling, in the buyer's terms. A grower and a reseller are different
+            propositions and the card said nothing about which this was. */}
+        {listing.supplierType && (
+          <span className="flex items-center gap-1.5">
+            <Icon name="account" className="h-3.5 w-3.5" />
+            {t(`supplier.${listing.supplierType}`)}
+          </span>
+        )}
       </div>
     </Link>
   );

@@ -3,7 +3,14 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import Layout from './components/Layout.js';
 import Toaster from './components/Toaster.js';
 import { Spinner } from './components/ui.js';
-import { roleSatisfies, type Role } from '@krishibid/shared';
+/**
+ * From the zod-free module, NOT the barrel.
+ *
+ * Importing this one function from '@krishibid/shared' pulled the entire zod runtime and every
+ * validation schema in the project into the initial chunk — NID rules and auction refinements
+ * downloaded by a visitor looking at the landing page. See shared/src/roles.ts.
+ */
+import { roleSatisfies, type Role } from '@krishibid/shared/roles';
 import { useAuth } from './lib/auth.js';
 import { disconnectSocket } from './lib/socket.js';
 
