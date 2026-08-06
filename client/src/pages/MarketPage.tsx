@@ -1,104 +1,109 @@
-import type { ListingDto, Page } from '@krishibid/shared';
-import { useQuery } from '@tanstack/react-query';
+import type { SaleMode } from '@krishibid/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { Icon } from '../components/icons.js';
+import ListingCard from '../components/ListingCard.js';
 import { CardSkeleton, EmptyState, ErrorNote } from '../components/ui.js';
-import { api } from '../lib/api.js';
-import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
-import { currentLocale } from '../lib/i18n.js';
 import { useAuth } from '../lib/auth.js';
+import { useCategories, useCategoryName, useShopListings } from '../lib/catalogue.js';
+import { currentLocale } from '../lib/i18n.js';
 
-interface Crop {
-  slug: string;
-  names: { bn: string; en: string };
-}
+const DISTRICTS = [
+  'Dhaka', 'Rangpur', 'Bogura', 'Rajshahi', 'Khulna', 'Jashore', 'Cumilla',
+  'Mymensingh', 'Sylhet', 'Dinajpur', 'Faridpur', 'Barishal', 'Chattogram', 'Rangamati',
+];
 
-function ListingCard({ listing, cropName }: { listing: ListingDto; cropName: string }) {
-  const { t } = useTranslation();
-  const locale = currentLocale();
-  const remaining = timeRemaining(listing.bidClosesAt, locale);
-
-  return (
-    <Link to={`/listing/${listing.id}`} className="card block transition hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-lg font-bold text-brand-900">{cropName}</p>
-          <p className="text-sm text-slate-600">
-            {formatNumber(listing.quantityKg, locale)} {t('common.kg')} · {t('market.grade')}{' '}
-            {listing.qualityGrade} · {listing.district}
-          </p>
-        </div>
-        {remaining ? (
-          <span
-            className={`badge shrink-0 ${
-              remaining.urgent ? 'bg-red-100 text-red-800' : 'bg-brand-100 text-brand-800'
-            }`}
-          >
-            {remaining.text}
-          </span>
-        ) : (
-          <span className="badge shrink-0 bg-slate-200 text-slate-600">{t('market.closed')}</span>
-        )}
-      </div>
-
-      <div className="mt-3 flex items-end justify-between border-t border-brand-50 pt-3">
-        <div>
-          <p className="text-xs text-slate-500">
-            {listing.highestBid ? t('market.highestBid') : t('market.reserve')}
-          </p>
-          <p className="text-xl font-bold text-brand-800">
-            {formatBdt(listing.highestBid?.amountPoisha ?? listing.reservePricePoisha, locale)}
-          </p>
-        </div>
-        <p className="text-xs text-slate-500">
-          {listing.bidCount > 0
-            ? t('market.bidCount', { count: listing.bidCount })
-            : t('market.noBids')}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
+/**
+ * The marketplace: two shops behind one screen.
+ *
+ * **Auctions** — a lot, a reserve, a deadline, and bidding. **Buy now** — a price per unit and
+ * stock. They are kept apart rather than mixed because they are different transactions: bidding
+ * is slow and competitive, buying is immediate. A single feed would put a ticking countdown
+ * beside a Buy button, which reads as pressure selling and makes both look worse.
+ *
+ * Filters are shared, because "mustard oil in Rangpur" is the same question in either shop.
+ */
 export default function MarketPage() {
   const { t } = useTranslation();
   const locale = currentLocale();
   const user = useAuth((s) => s.user);
+  const location = useLocation();
+
+  /** `/shop` opens the fixed-price side; `/market` opens auctions. */
+  const [saleMode, setSaleMode] = useState<SaleMode>(
+    location.pathname.startsWith('/shop') ? 'fixed' : 'auction',
+  );
 
   const [search, setSearch] = useState('');
-  const [cropSlug, setCropSlug] = useState('');
+  const [categorySlug, setCategorySlug] = useState('');
+  const [district, setDistrict] = useState('');
 
-  const crops = useQuery({
-    queryKey: ['crops'],
-    queryFn: () => api.get<Crop[]>('/crops'),
-    // Reference data — no reason to refetch during a session.
-    staleTime: 60 * 60_000,
-  });
-
-  const params = new URLSearchParams();
-  if (search.trim()) params.set('q', search.trim());
-  if (cropSlug) params.set('cropSlug', cropSlug);
-
-  const listings = useQuery({
-    queryKey: ['listings', search, cropSlug],
-    queryFn: () => api.get<Page<ListingDto>>(`/marketplace/listings?${params.toString()}`),
-  });
-
-  const cropName = (slug: string): string => {
-    const crop = crops.data?.find((c) => c.slug === slug);
-    return crop ? crop.names[locale] : slug;
-  };
+  const categories = useCategories();
+  const categoryName = useCategoryName();
+  const listings = useShopListings(saleMode, { categorySlug, district, q: search });
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-brand-900">{t('market.title')}</h1>
         {user?.role === 'farmer' && (
           <Link to="/listing/new" className="btn-primary text-sm">
-            + {t('market.createListing')}
+            <Icon name="sprout" className="h-4 w-4" />
+            {t('market.createListing')}
           </Link>
         )}
+      </div>
+
+      {/* ---- which shop ---- */}
+      <div className="flex rounded-xl border border-brand-100 bg-white p-1 shadow-sm">
+        {(['auction', 'fixed'] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setSaleMode(mode)}
+            aria-pressed={saleMode === mode}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition ${
+              saleMode === mode
+                ? 'bg-brand-700 text-white shadow-sm'
+                : 'text-slate-600 hover:bg-brand-50'
+            }`}
+          >
+            <Icon name={mode === 'auction' ? 'trending' : 'basket'} className="h-4 w-4" />
+            {t(`market.shop.${mode}`)}
+          </button>
+        ))}
+      </div>
+
+      <p className="text-sm text-slate-600">{t(`market.shopHelp.${saleMode}`)}</p>
+
+      {/* ---- category rail ---- */}
+      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
+        <button
+          type="button"
+          onClick={() => setCategorySlug('')}
+          className={`badge shrink-0 ${
+            categorySlug === ''
+              ? 'bg-brand-700 text-white'
+              : 'bg-white text-brand-800 ring-1 ring-brand-100'
+          }`}
+        >
+          {t('market.allCategories')}
+        </button>
+        {categories.data?.map((category) => (
+          <button
+            key={category.slug}
+            type="button"
+            onClick={() => setCategorySlug(category.slug)}
+            className={`badge shrink-0 ${
+              categorySlug === category.slug
+                ? 'bg-brand-700 text-white'
+                : 'bg-white text-brand-800 ring-1 ring-brand-100'
+            }`}
+          >
+            {category.names[locale]}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row">
@@ -111,30 +116,36 @@ export default function MarketPage() {
           aria-label={t('market.search')}
         />
         <select
-          value={cropSlug}
-          onChange={(e) => setCropSlug(e.target.value)}
+          value={district}
+          onChange={(e) => setDistrict(e.target.value)}
           className="field sm:w-48"
-          aria-label={t('market.allCrops')}
+          aria-label={t('market.allDistricts')}
         >
-          <option value="">{t('market.allCrops')}</option>
-          {crops.data?.map((crop) => (
-            <option key={crop.slug} value={crop.slug}>
-              {crop.names[locale]}
+          <option value="">{t('market.allDistricts')}</option>
+          {DISTRICTS.map((d) => (
+            <option key={d} value={d}>
+              {d}
             </option>
           ))}
         </select>
       </div>
 
       {listings.isLoading && <CardSkeleton />}
-      {listings.isError && <ErrorNote error={listings.error} onRetry={() => void listings.refetch()} />}
-
-      {listings.data && listings.data.items.length === 0 && (
-        <EmptyState icon="market" title={t('market.empty')} />
+      {listings.isError && (
+        <ErrorNote error={listings.error} onRetry={() => void listings.refetch()} />
       )}
 
-      <div className="space-y-3">
+      {listings.data && listings.data.items.length === 0 && (
+        <EmptyState icon="market" title={t(`market.empty.${saleMode}`)} />
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2">
         {listings.data?.items.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} cropName={cropName(listing.cropSlug)} />
+          <ListingCard
+            key={listing.id}
+            listing={listing}
+            categoryName={categoryName(listing.categorySlug)}
+          />
         ))}
       </div>
     </div>

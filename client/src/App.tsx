@@ -129,6 +129,9 @@ export default function App() {
           {/* The market at its own address too, so the landing page can link to it and a
               signed-in user's bookmark keeps working. */}
           <Route path="market" element={<MarketPage />} />
+          {/* The same screen, opened on the fixed-price side. One component because the two
+              shops share every filter — what differs is what is shown, not how it is fetched. */}
+          <Route path="shop" element={<MarketPage />} />
           <Route path="listing/:id" element={<ListingDetailPage />} />
 
           {/* Public: an advisory or a scheme deadline is useful to a farmer who has not signed
