@@ -110,12 +110,21 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
         </div>
       </section>
 
-      {/* ------------------------------------------------------------ category */}
+      {/**
+       * The rail navigates; it does not filter.
+       *
+       * Tapping a category opens that category's own page, which is the thing somebody asking
+       * for "vegetables" actually wants — the whole category, not this shop narrowed down with
+       * the rest of the filter bar still sitting above it.
+       *
+       * The current shop rides along in `?mode=`, so a buyer browsing auctions who taps
+       * Vegetables lands on the auctions in Vegetables rather than being quietly moved to the
+       * buy-now side.
+       */}
       <section>
         <div className="flex gap-3 overflow-x-auto pb-2">
-          <button
-            type="button"
-            onClick={() => setFilter('category', '')}
+          <Link
+            to="/categories"
             className={`shrink-0 text-center ${categorySlug === '' ? '' : 'opacity-70 hover:opacity-100'}`}
           >
             <div
@@ -128,20 +137,20 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
             <p className="mt-1.5 w-16 truncate text-[11px] font-semibold text-slate-700">
               {t('market.allCategories')}
             </p>
-          </button>
+          </Link>
 
           {categories.data?.map((category) => {
+            // Highlighted when the dropdown below has narrowed to this category, so the two
+            // controls never disagree about what is currently being shown.
             const active = categorySlug === category.slug;
             return (
-              <button
+              <Link
                 key={category.slug}
-                type="button"
-                onClick={() => setFilter('category', active ? '' : category.slug)}
-                aria-pressed={active}
+                to={`/category/${category.slug}?mode=${saleMode}`}
                 className={`shrink-0 text-center ${active ? '' : 'opacity-70 hover:opacity-100'}`}
               >
                 <div
-                  className={`h-16 w-16 overflow-hidden rounded-full ring-2 transition ${
+                  className={`h-16 w-16 overflow-hidden rounded-full ring-2 transition hover:ring-brand-300 ${
                     active ? 'ring-brand-600' : 'ring-transparent'
                   }`}
                 >
@@ -159,24 +168,49 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
                 >
                   {category.names[locale]}
                 </p>
-              </button>
+              </Link>
             );
           })}
         </div>
       </section>
 
-      {/* -------------------------------------------------------------- search */}
+      {/**
+       * One search bar: category, words, district, go.
+       *
+       * The three controls read as a single field on a desk — divided by hairlines rather than
+       * each in its own bordered box — because they are one question asked in three parts, not
+       * three separate settings. On a phone they stack, since four controls on one line at that
+       * width is four controls nobody can hit.
+       *
+       * The category dropdown carries the same list as the rail above it. The rail is for
+       * browsing by eye; this is for somebody who already knows the word and wants to narrow the
+       * results in place rather than leave the shop they are in.
+       */}
       <form
-        className="flex flex-col gap-2 sm:flex-row"
+        className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:gap-0"
         onSubmit={(e) => {
           e.preventDefault();
           setFilter('q', searchDraft.trim());
         }}
       >
+        <select
+          value={categorySlug}
+          onChange={(e) => setFilter('category', e.target.value)}
+          aria-label={t('market.allCategories')}
+          className="h-11 shrink-0 rounded-xl border-0 bg-transparent px-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-100 sm:w-44 sm:border-r sm:border-slate-200"
+        >
+          <option value="">{t('market.allCategories')}</option>
+          {categories.data?.map((category) => (
+            <option key={category.slug} value={category.slug}>
+              {category.names[locale]}
+            </option>
+          ))}
+        </select>
+
         <div className="relative flex-1">
           <Icon
             name="market"
-            className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 sm:hidden"
           />
           <input
             type="search"
@@ -184,14 +218,15 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
             onChange={(e) => setSearchDraft(e.target.value)}
             placeholder={t('market.search')}
             aria-label={t('market.search')}
-            className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+            className="h-11 w-full border-0 bg-transparent pl-10 pr-3 text-sm outline-none placeholder:text-slate-400 focus:ring-0 sm:pl-4"
           />
         </div>
+
         <select
           value={district}
           onChange={(e) => setFilter('district', e.target.value)}
           aria-label={t('market.allDistricts')}
-          className="h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none transition focus:border-brand-400 sm:w-48"
+          className="h-11 shrink-0 rounded-xl border-0 bg-transparent px-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-100 sm:w-40 sm:border-l sm:border-slate-200"
         >
           <option value="">{t('market.allDistricts')}</option>
           {DISTRICTS.map((d) => (
@@ -200,9 +235,10 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
             </option>
           ))}
         </select>
+
         <button
           type="submit"
-          className="h-12 rounded-xl bg-brand-700 px-6 text-sm font-semibold text-white transition hover:bg-brand-600"
+          className="h-11 shrink-0 rounded-xl bg-brand-700 px-6 text-sm font-semibold text-white transition hover:bg-brand-800 sm:ml-2"
         >
           {t('common.search')}
         </button>
