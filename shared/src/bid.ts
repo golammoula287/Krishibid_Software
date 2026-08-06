@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { objectId, positivePoishaSchema } from './common.js';
+import type { Unit } from './catalogue.js';
 
 export const bidStatusSchema = z.enum(['active', 'outbid', 'won', 'lost', 'withdrawn']);
 export type BidStatus = z.infer<typeof bidStatusSchema>;
@@ -41,8 +42,12 @@ export interface BidDto {
  * fifty bids would be fifty requests on a connection that can barely afford one.
  */
 export interface MyBidDto extends BidDto {
+  /** The category the lot sits in, e.g. `crops` or `oil`. */
   cropSlug: string;
-  quantityKg: number;
+  /** What it actually is: "BR-28 rice". */
+  title: string;
+  quantity: number;
+  unit: Unit;
   district: string;
   bidClosesAt: string;
   listingStatus: 'open' | 'sold' | 'expired' | 'cancelled';

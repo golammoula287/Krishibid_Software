@@ -11,7 +11,7 @@ import {
 } from '@krishibid/shared';
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
-import { conflict, forbidden, notFound, unprocessable } from '../utils/errors.js';
+import { badRequest, conflict, forbidden, notFound, unprocessable } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { Bid, type BidDoc } from '../models/Bid.js';
 import { Listing } from '../models/Listing.js';
@@ -56,7 +56,18 @@ export async function placeBid(
   if (listing.status !== 'open') {
     throw conflict('listing_closed', 'this listing is no longer open for bidding');
   }
-  if (listing.bidClosesAt.getTime() <= Date.now()) {
+  /**
+   * Bidding applies to auctions only.
+   *
+   * Checked before anything reads `bidClosesAt`, which a fixed-price listing does not have —
+   * this is what makes the deadline certain for the rest of the function rather than assumed.
+   */
+  if (listing.saleMode !== 'auction') {
+    throw badRequest('not_an_auction', 'this lot is sold at a fixed price — buy it instead');
+  }
+  const closesAt = listing.bidClosesAt!;
+
+  if (closesAt.getTime() <= Date.now()) {
     throw conflict('bidding_closed', 'bidding has closed for this listing');
   }
 
@@ -64,7 +75,9 @@ export async function placeBid(
   // Authority still rests with the filter below.
   const currentHigh = listing.highestBid?.amountPoisha ?? null;
   const minimum =
-    currentHigh === null ? listing.reservePricePoisha : currentHigh + MIN_BID_INCREMENT_POISHA;
+    currentHigh === null
+      ? (listing.reservePricePoisha ?? 0)
+      : currentHigh + MIN_BID_INCREMENT_POISHA;
 
   if (input.amountPoisha < minimum) {
     throw unprocessable(
@@ -81,7 +94,7 @@ export async function placeBid(
 
   // Anti-snipe: decide from the state we read, but only *apply* inside the atomic
   // update so an extension can never be granted against a stale listing.
-  const msRemaining = listing.bidClosesAt.getTime() - now.getTime();
+  const msRemaining = closesAt.getTime() - now.getTime();
   const withinSnipeWindow = msRemaining <= ANTI_SNIPE_WINDOW_SECONDS * 1000;
   const canExtend = (listing.extensionCount ?? 0) < ANTI_SNIPE_MAX_EXTENSIONS;
   const shouldExtend = withinSnipeWindow && canExtend;
@@ -105,9 +118,7 @@ export async function placeBid(
   const inc: Record<string, number> = { version: 1, bidCount: 1 };
 
   if (shouldExtend) {
-    set.bidClosesAt = new Date(
-      listing.bidClosesAt.getTime() + ANTI_SNIPE_EXTENSION_SECONDS * 1000,
-    );
+    set.bidClosesAt = new Date(closesAt.getTime() + ANTI_SNIPE_EXTENSION_SECONDS * 1000);
     inc.extensionCount = 1;
   }
 
@@ -145,7 +156,7 @@ export async function placeBid(
     bidId: String(bidId),
     listingId: String(listing._id),
     amountPoisha: input.amountPoisha,
-    bidClosesAt: updated.bidClosesAt,
+    bidClosesAt: updated.bidClosesAt ?? closesAt,
     extended: shouldExtend,
   };
 }
@@ -266,8 +277,8 @@ export async function acceptBid(
             bidId: bid._id,
             farmerId: listing.farmerId,
             buyerId: bid.buyerId,
-            cropSlug: listing.cropSlug,
-            quantityKg: listing.quantityKg,
+            cropSlug: listing.categorySlug,
+            quantityKg: listing.quantity,
             agreedAmountPoisha: bid.amountPoisha,
             status: 'awaiting_payment',
             paymentDeadline,
@@ -376,7 +387,7 @@ export async function listMyBidsDetailed(
   }
 
   const listings = await Listing.find({ _id: { $in: bids.map((b) => b.listingId) } })
-    .select('cropSlug quantityKg district bidClosesAt status highestBid')
+    .select('categorySlug title quantity unit district bidClosesAt status highestBid')
     .lean();
 
   const byId = new Map(listings.map((l) => [String(l._id), l]));
@@ -387,8 +398,10 @@ export async function listMyBidsDetailed(
 
     return {
       ...toBidDto(bid as never),
-      cropSlug: listing?.cropSlug ?? '',
-      quantityKg: listing?.quantityKg ?? 0,
+      cropSlug: listing?.categorySlug ?? '',
+      title: listing?.title ?? '',
+      quantity: listing?.quantity ?? 0,
+      unit: (listing?.unit ?? 'kg') as MyBidDto['unit'],
       district: listing?.district ?? '',
       bidClosesAt: (listing?.bidClosesAt ?? new Date()).toISOString(),
       listingStatus: (listing?.status ?? 'expired') as MyBidDto['listingStatus'],

@@ -46,6 +46,11 @@ export async function myBidsDetailed(req: Request, res: Response): Promise<void>
   res.json(await bidService.listMyBidsDetailed(req.user!.id));
 }
 
+/** Buying at the listed price. The auction equivalent is placeBid below. */
+export async function buyNow(req: Request, res: Response): Promise<void> {
+  res.status(201).json(await listingService.buyNow(req.user!.id, req.body));
+}
+
 export async function placeBid(req: Request, res: Response): Promise<void> {
   // Captured before the bid lands so we know who to notify about being displaced.
   const previousLeader = (await listingService.getListing(req.body.listingId)).highestBid;

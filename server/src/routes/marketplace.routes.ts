@@ -1,5 +1,6 @@
 import {
   acceptBidSchema,
+  buyNowSchema,
   createListingSchema,
   listingQuerySchema,
   placeBidSchema,
@@ -41,6 +42,22 @@ marketplaceRoutes.delete(
   requireRole('farmer'),
   requireActiveAccount,
   controller.cancelListing,
+);
+
+/**
+ * Buying at the listed price.
+ *
+ * Same gates as bidding: an active account and the buyer's tier ceiling, because a fixed-price
+ * purchase commits exactly the same money as a winning bid and the ceiling exists to bound what
+ * an unverified account can commit.
+ */
+marketplaceRoutes.post(
+  '/buy',
+  requireAuth,
+  requireRole('buyer'),
+  requireActiveAccount,
+  validate(buyNowSchema),
+  controller.buyNow,
 );
 
 // ---- bids ----

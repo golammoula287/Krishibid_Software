@@ -107,7 +107,7 @@ describe('bidding engine — anti-sniping', () => {
     const buyer = await makeUser('buyer');
     // 60s remaining — inside the 120s anti-snipe window.
     const listing = await makeListing({ farmerId: farmer._id, closesInMs: 60_000 });
-    const originalClose = listing.bidClosesAt.getTime();
+    const originalClose = listing.bidClosesAt!.getTime();
 
     const result = await placeBid(String(buyer._id), {
       listingId: String(listing._id),
@@ -129,7 +129,7 @@ describe('bidding engine — anti-sniping', () => {
     });
 
     expect(result.extended).toBe(false);
-    expect(result.bidClosesAt.getTime()).toBe(listing.bidClosesAt.getTime());
+    expect(result.bidClosesAt.getTime()).toBe(listing.bidClosesAt!.getTime());
   });
 
   it('stops extending once the cap is reached', async () => {

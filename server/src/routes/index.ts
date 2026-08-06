@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { getMessages } from '../controllers/messages.controller.js';
+import { Category } from '../models/Category.js';
 import { Crop } from '../models/Crop.js';
 import { accountRoutes } from './account.routes.js';
 import { advisoryRoutes } from './advisory.routes.js';
@@ -27,6 +28,15 @@ apiRoutes.use('/content', contentRoutes);
  * will need iteration with real users — changes without a client rebuild.
  */
 apiRoutes.get('/messages', getMessages);
+
+/**
+ * Category catalogue — what can be sold, and in which units.
+ *
+ * Data rather than an enum in the client, so adding a category is a seed run and not a redeploy.
+ */
+apiRoutes.get('/categories', async (_req: Request, res: Response) => {
+  res.json(await Category.find({ active: true }).sort({ order: 1 }).lean());
+});
 
 /** Crop catalogue — localisation as data, so the client never hardcodes crop names. */
 apiRoutes.get('/crops', async (_req: Request, res: Response) => {

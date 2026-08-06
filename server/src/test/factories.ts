@@ -64,21 +64,53 @@ export interface MakeListingOptions {
   reservePricePoisha?: number;
   closesInMs?: number;
   status?: 'open' | 'sold' | 'expired' | 'cancelled';
+  /** Defaults to an auction, which is what almost every test is about. */
+  saleMode?: 'auction' | 'fixed';
+  pricePerUnitPoisha?: number;
+  stock?: number;
 }
 
 export async function makeListing(opts: MakeListingOptions) {
   await makeCrop();
+  const saleMode = opts.saleMode ?? 'auction';
+
   return Listing.create({
     farmerId: opts.farmerId,
-    cropSlug: 'rice',
-    quantityKg: 500,
+    categorySlug: 'crops',
+    title: 'BR-28 rice',
+    quantity: 500,
+    unit: 'kg',
     qualityGrade: 'A',
     district: 'Dhaka',
-    reservePricePoisha: opts.reservePricePoisha ?? 100_000, // 1,000 BDT
     status: opts.status ?? 'open',
-    bidClosesAt: new Date(Date.now() + (opts.closesInMs ?? 60 * 60 * 1000)),
+    saleMode,
     version: 0,
+    ...(saleMode === 'auction'
+      ? {
+          reservePricePoisha: opts.reservePricePoisha ?? 100_000, // 1,000 BDT
+          bidClosesAt: new Date(Date.now() + (opts.closesInMs ?? 60 * 60 * 1000)),
+        }
+      : {
+          pricePerUnitPoisha: opts.pricePerUnitPoisha ?? 200, // 2 BDT per kg
+          stock: opts.stock ?? 500,
+        }),
   });
+}
+
+/** The category catalogue a listing needs to exist against. */
+export async function makeCategory(slug = 'crops') {
+  const { Category } = await import('../models/Category.js');
+  return Category.findOneAndUpdate(
+    { slug },
+    {
+      slug,
+      names: { bn: 'ফসল', en: 'Crops' },
+      units: ['kg', 'maund', 'sack'],
+      active: true,
+      order: 10,
+    },
+    { upsert: true, new: true },
+  );
 }
 
 export async function makeOrder(opts: {
