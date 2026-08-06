@@ -580,5 +580,21 @@
       "platform": "KrishiBid delivers",
       "courier": "By courier"
     }
+  },
+  "dash": {
+    "greeting": "Hello, {{name}}",
+    "supplierSubtitle": "What is happening to your produce, and what you are owed.",
+    "buyerSubtitle": "Where your bids stand, and what needs paying.",
+    "liveListings": "Live listings",
+    "toShip": "Waiting to be shipped",
+    "toPay": "Waiting to be paid",
+    "needsYourAction": "Needs you",
+    "allOrders": "All orders",
+    "closingSoon": "Closing within a day",
+    "yourListings": "Your listings",
+    "noListings": "You have not listed anything yet",
+    "losing": "You have been outbid on these",
+    "freshOnMarket": "New on the marketplace",
+    "notApprovedYet": "Your account is not open for selling yet"
   }
 }
