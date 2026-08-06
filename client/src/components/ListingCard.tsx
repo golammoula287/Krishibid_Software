@@ -3,36 +3,20 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons.js';
 import { Stars } from './Stars.js';
+import { categoryImage } from '../lib/categoryImage.js';
 import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 
-/**
- * A fallback picture, chosen from the category.
- *
- * A grid where some cards have a photograph and others have a grey rectangle looks broken rather
- * than sparse, and it is the older listings — the ones from before photos existed — that would
- * carry the holes. A category-appropriate image is honest enough: it is obviously a stock shot of
- * vegetables rather than a photograph of this particular lot, and the card says which category it
- * is right underneath.
- */
-const CATEGORY_IMAGE: Record<string, string> = {
-  crops: '/img/produce-spread.webp',
-  vegetables: '/img/cat-vegetables.webp',
-  fruit: '/img/cat-fruit.webp',
-  fish: '/img/cat-mixed.webp',
-  meat: '/img/cat-mixed.webp',
-  dairy: '/img/cat-dairy.webp',
-  oil: '/img/cat-mixed.webp',
-  spices: '/img/cat-mixed.webp',
-  pulses: '/img/cat-mixed.webp',
-  seeds: '/img/plant-1.webp',
-  fertiliser: '/img/plant-2.webp',
-  equipment: '/img/field-green.webp',
-  other: '/img/cat-mixed.webp',
-};
-
 export function listingImage(listing: Pick<ListingDto, 'photos' | 'categorySlug'>): string {
-  return listing.photos[0] ?? CATEGORY_IMAGE[listing.categorySlug] ?? '/img/cat-mixed.webp';
+  /**
+   * Falls back to the category's picture.
+   *
+   * A grid where some cards have a photograph and others have a grey rectangle looks broken
+   * rather than sparse, and it is the older listings — the ones from before photos existed —
+   * that would carry the holes. A category shot is honest enough: it is obviously not this
+   * particular lot, and the card names the category right underneath.
+   */
+  return listing.photos[0] ?? categoryImage(listing.categorySlug);
 }
 
 /**
@@ -70,6 +54,9 @@ export default function ListingCard({
       to={`/listing/${listing.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-lg"
     >
+      {/* 4:3 and large. The photograph is the single most persuasive thing on this card —
+          produce is what somebody is buying and cannot touch — so it gets the top of the card
+          at full width rather than a thumbnail beside the text. */}
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
         <img
           src={listingImage(listing)}
@@ -118,7 +105,7 @@ export default function ListingCard({
         <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-600">
           {categoryName}
         </p>
-        <h3 className="mt-0.5 truncate font-bold text-slate-900 group-hover:text-brand-800">
+        <h3 className="mt-0.5 truncate text-base font-bold text-slate-900 group-hover:text-brand-800">
           {listing.title}
         </h3>
         <p className="mt-0.5 text-xs text-slate-500">
@@ -137,7 +124,7 @@ export default function ListingCard({
                   : t('market.reserve')
                 : t('shop.perUnit', { unit: t(`units.${listing.unit}`) })}
             </p>
-            <p className="text-xl font-bold text-brand-700">{formatBdt(price, locale)}</p>
+            <p className="text-2xl font-bold text-brand-700">{formatBdt(price, locale)}</p>
           </div>
 
           <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400">

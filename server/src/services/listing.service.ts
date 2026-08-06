@@ -170,6 +170,41 @@ export async function listListings(query: ListingQuery): Promise<Page<ListingDto
     return { items: await searchListings(query.q, filter, query.limit), nextCursor: null };
   }
 
+  /**
+   * Numbered pages, for the browse screens.
+   *
+   * `skip` is used here and nowhere else, deliberately. It degrades linearly, which is why the
+   * cursor path exists — but a person clicking `1 2 3 … 8` can only reach a page the count says
+   * is there, and nobody deep-paginates to page 400 of one district's vegetables. The count is
+   * the price of telling a shopper how much is on offer, which is information they expect.
+   */
+  if (query.page) {
+    const skip = (query.page - 1) * query.limit;
+
+    const [docs, total] = await Promise.all([
+      Listing.find(filter)
+        .sort({ _id: -1 })
+        .skip(skip)
+        .limit(query.limit)
+        .populate<{ farmerId: { _id: unknown; name: string } }>(
+          'farmerId',
+          'name supplierType rating',
+        )
+        .lean(),
+      Listing.countDocuments(filter),
+    ]);
+
+    return {
+      items: docs.map((d) => toDto(d as unknown as Populated)),
+      // Numbered paging is not cursor paging; offering both would be two ways to ask the same
+      // question that disagree at the boundaries.
+      nextCursor: null,
+      total,
+      page: query.page,
+      pageCount: Math.max(1, Math.ceil(total / query.limit)),
+    };
+  }
+
   if (query.cursor) {
     const decoded = decodeCursor(query.cursor);
     if (decoded) filter._id = { $lt: new mongoose.Types.ObjectId(decoded) };

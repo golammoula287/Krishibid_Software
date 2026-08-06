@@ -29,6 +29,9 @@ export interface ShopFilters {
   categorySlug?: string;
   district?: string;
   q?: string;
+  /** 1-based. When set, the API returns a total and a page count instead of a cursor. */
+  page?: number;
+  limit?: number;
 }
 
 /**
@@ -43,9 +46,18 @@ export function useShopListings(saleMode: SaleMode, filters: ShopFilters) {
   if (filters.categorySlug) params.set('categorySlug', filters.categorySlug);
   if (filters.district) params.set('district', filters.district);
   if (filters.q?.trim()) params.set('q', filters.q.trim());
+  if (filters.page) params.set('page', String(filters.page));
+  if (filters.limit) params.set('limit', String(filters.limit));
 
   return useQuery({
     queryKey: ['listings', saleMode, filters],
     queryFn: () => api.get<Page<ListingDto>>(`/marketplace/listings?${params.toString()}`),
+    /**
+     * The previous page stays on screen while the next one loads.
+     *
+     * Without this, clicking page 2 empties the grid to a skeleton and jumps the scroll position,
+     * which on a slow connection feels like the page broke rather than like it is working.
+     */
+    placeholderData: (previous) => previous,
   });
 }

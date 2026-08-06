@@ -132,6 +132,15 @@ export const listingQuerySchema = z.object({
   /** Free-text search, served by the Atlas Search BM25 index on listings. */
   q: z.string().max(120).optional(),
   cursor: z.string().optional(),
+  /**
+   * 1-based page number, for the browse screens that show `1 2 3 … 8`.
+   *
+   * Mutually exclusive with `cursor` in practice: a caller wants either an endless feed or
+   * numbered pages, never both. When present the service switches to skip/limit and returns a
+   * total; `skip` is acceptable here precisely because it is bounded by a page count the user can
+   * see — nobody is deep-paginating to page 400 of a district's vegetables.
+   */
+  page: z.coerce.number().int().min(1).max(500).optional(),
   limit: z.coerce.number().int().min(1).max(50).default(20),
 });
 export type ListingQuery = z.infer<typeof listingQuerySchema>;

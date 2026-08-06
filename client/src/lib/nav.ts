@@ -20,6 +20,16 @@ export interface Tab {
    * page is taken from a daily one.
    */
   primary?: boolean;
+  /**
+   * Turns this entry into a dropdown.
+   *
+   * The marketplace is two shops at two addresses, and a single link had to pick one. A menu
+   * says there are two without spending two slots in a nav that is already full.
+   *
+   * The parent `to` stays a real destination — the menu opens on hover or click, but tapping the
+   * label still goes somewhere, which is what a phone user will do.
+   */
+  children?: { to: string; key: string; icon: IconName }[];
 }
 
 /**
@@ -40,10 +50,27 @@ export interface Tab {
 
 /** Read by everyone, signed in or not, and always last. */
 const PUBLIC_TAIL: Tab[] = [
-  { to: '/shop', key: 'shop', icon: 'basket' },
   { to: '/blog', key: 'blog', icon: 'learn' },
   { to: '/contact', key: 'contact', icon: 'advisor' },
 ];
+
+/**
+ * The marketplace, as one entry with two doors.
+ *
+ * `/shop` used to be a separate top-level tab beside `/market`, which read as two unrelated
+ * places rather than as the two halves of one marketplace.
+ */
+const MARKET: Tab = {
+  to: '/',
+  key: 'market',
+  icon: 'market',
+  primary: true,
+  children: [
+    { to: '/auctions', key: 'auctions', icon: 'trending' },
+    { to: '/shop', key: 'shop', icon: 'basket' },
+    { to: '/categories', key: 'categories', icon: 'market' },
+  ],
+};
 
 /**
  * A guest gets the front door and the marketplace.
@@ -52,8 +79,7 @@ const PUBLIC_TAIL: Tab[] = [
  * collapsing them would leave no way back to the page that explains what this is.
  */
 const GUEST: Tab[] = [
-  { to: '/', key: 'home', icon: 'home', primary: true },
-  { to: '/market', key: 'market', icon: 'market', primary: true },
+  MARKET,
   ...PUBLIC_TAIL.map((tab) => ({ ...tab, primary: true })),
 ];
 
@@ -69,7 +95,7 @@ const GUEST: Tab[] = [
  */
 const FARMER: Tab[] = [
   { to: '/', key: 'dashboard', icon: 'home', primary: true },
-  { to: '/market', key: 'market', icon: 'market', primary: true },
+  MARKET,
   { to: '/diagnose', key: 'diagnose', icon: 'diagnose', primary: true },
   { to: '/advisor', key: 'advisor', icon: 'advisor', primary: true },
   { to: '/orders', key: 'orders', icon: 'orders', primary: true },
@@ -77,9 +103,15 @@ const FARMER: Tab[] = [
   ...PUBLIC_TAIL,
 ];
 
+/**
+ * A buyer's `/` is the marketplace now, so their dashboard has its own address.
+ *
+ * Leaving it pointing at `/` would have given them a nav entry labelled "Dashboard" that opened
+ * the shop — two names for one page, and the actual dashboard unreachable.
+ */
 const BUYER: Tab[] = [
-  { to: '/', key: 'dashboard', icon: 'home', primary: true },
-  { to: '/market', key: 'market', icon: 'market', primary: true },
+  MARKET,
+  { to: '/dashboard', key: 'dashboard', icon: 'home', primary: true },
   { to: '/bids', key: 'bids', icon: 'trending', primary: true },
   { to: '/orders', key: 'orders', icon: 'orders', primary: true },
   { to: '/account', key: 'account', icon: 'account', primary: true },
@@ -88,7 +120,7 @@ const BUYER: Tab[] = [
 
 const ADMIN: Tab[] = [
   { to: '/admin', key: 'dashboard', icon: 'insights', primary: true },
-  { to: '/market', key: 'market', icon: 'market', primary: true },
+  MARKET,
   { to: '/admin/review', key: 'review', icon: 'review', primary: true },
   { to: '/admin/blog', key: 'manageBlog', icon: 'learn', primary: true },
   { to: '/account', key: 'account', icon: 'account', primary: true },

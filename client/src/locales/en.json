@@ -19,7 +19,9 @@
     "menu": "Menu",
     "bids": "My Bids",
     "shop": "Buy Now",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "auctions": "Auctions",
+    "categories": "Categories"
   },
   "auth": {
     "login": "Log in",
@@ -99,7 +101,13 @@
       "approvedHelp": "An administrator checks identity documents before anyone can list.",
       "delivery": "Delivery you can track",
       "deliveryHelp": "Collect it yourself, or we assign an agent whose name and number you get."
-    }
+    },
+    "bannerLabel": "Featured",
+    "goToSlide": "Go to slide {{n}}",
+    "pagination": "Pagination",
+    "pageOf": "Page {{page}} of {{pageCount}} · {{count}} products",
+    "totalProducts_one": "{{count}} product",
+    "totalProducts_other": "{{count}} products"
   },
   "diagnose": {
     "title": "Crop disease detection",
@@ -181,7 +189,10 @@
     "offline": "You are offline",
     "error": "Something went wrong",
     "kg": "kg",
-    "required": "This field is required"
+    "required": "This field is required",
+    "search": "Search",
+    "previous": "Previous",
+    "next": "Next"
   },
   "account": {
     "phone": "Mobile number",
@@ -686,5 +697,52 @@
     "escrowNote": "Payments held in escrow until delivery",
     "rights": "© {{year}} KrishiBid. All rights reserved.",
     "madeIn": "Built in Bangladesh"
+  },
+  "home": {
+    "slide1": {
+      "kicker": "Direct from the field",
+      "title": "Fresh produce, straight from the people who grew it",
+      "body": "No middlemen, no hidden margin. Buy at the listed price and pay only when it arrives.",
+      "cta": "Shop now"
+    },
+    "slide2": {
+      "kicker": "Live auctions",
+      "title": "Name your price on the season's best lots",
+      "body": "Bid against other buyers on whole lots. The highest bid when the window closes takes it.",
+      "cta": "See the auctions"
+    },
+    "slide3": {
+      "kicker": "Everything we sell",
+      "title": "Crops, fish, dairy, spices and more",
+      "body": "Thirteen categories and growing, each sold in the units that make sense for it.",
+      "cta": "Browse categories"
+    },
+    "slide4": {
+      "kicker": "For farmers",
+      "title": "Sell your harvest to the whole country",
+      "body": "List a lot in minutes. Your payment is held in escrow and released the day it is delivered.",
+      "cta": "Start selling"
+    },
+    "categoriesTitle": "What are you looking for?",
+    "categoriesBody": "Pick a category, or search for something in particular.",
+    "searchPlaceholder": "Search for rice, mangoes, mustard oil…",
+    "seeAllCategories": "See all categories",
+    "auctionsTitle": "Live auctions",
+    "auctionsBody": "Bid on whole lots. Highest bid when the clock stops wins.",
+    "seeAllAuctions": "See all auctions",
+    "shopTitle": "Buy now",
+    "shopBody": "Listed prices, bought in the quantity you need. No waiting.",
+    "seeAllProducts": "See all products"
+  },
+  "browse": {
+    "auctionTitle": "Live auctions",
+    "shopTitle": "Buy at a fixed price",
+    "clearFilters": "Clear all filters"
+  },
+  "categories": {
+    "title": "All categories",
+    "body": "Everything the marketplace sells, and the units each is sold in.",
+    "search": "Find a category",
+    "noMatch": "No category matches that."
   }
 }

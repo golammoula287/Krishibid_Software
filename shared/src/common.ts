@@ -71,6 +71,17 @@ export type Pagination = z.infer<typeof paginationSchema>;
 export interface Page<T> {
   items: T[];
   nextCursor: string | null;
+  /**
+   * Present only when the caller asked for a numbered page.
+   *
+   * Cursor paging cannot produce these: it walks `_id < cursor` and has no idea how much is
+   * behind it. A shopper on a marketplace expects "87 products, page 2 of 8" and expects to be
+   * able to jump to page 5, which is worth one extra `countDocuments` on an indexed filter.
+   * Absent for the cursor path, so nothing pays for a count it did not ask for.
+   */
+  total?: number;
+  page?: number;
+  pageCount?: number;
 }
 
 /** 64 districts of Bangladesh; kept as data so the UI never hardcodes them. */
