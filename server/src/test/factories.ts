@@ -123,6 +123,14 @@ export async function makeOrder(opts: {
   buyerId: mongoose.Types.ObjectId | string;
   agreedAmountPoisha?: number;
   status?: string;
+  /** Defaults to a pickup, which is the case that involves nobody else. */
+  delivery?: {
+    method?: 'pickup' | 'platform' | 'courier';
+    status?: 'not_required' | 'awaiting_dispatch' | 'dispatched' | 'delivered';
+    chargePoisha?: number;
+    agentName?: string;
+    agentPhone?: string;
+  };
 }) {
   return Order.create({
     listingId: opts.listingId,
@@ -132,6 +140,16 @@ export async function makeOrder(opts: {
     cropSlug: 'rice',
     quantityKg: 500,
     agreedAmountPoisha: opts.agreedAmountPoisha ?? 150_000,
+    delivery: {
+      method: opts.delivery?.method ?? 'pickup',
+      status: opts.delivery?.status ?? 'not_required',
+      chargePoisha: opts.delivery?.chargePoisha ?? 0,
+      addressLine: opts.delivery?.method === 'pickup' ? undefined : 'House 12, Road 3, Dhanmondi',
+      district: opts.delivery?.method === 'pickup' ? undefined : 'Dhaka',
+      contactPhone: opts.delivery?.method === 'pickup' ? undefined : '01712345678',
+      agentName: opts.delivery?.agentName,
+      agentPhone: opts.delivery?.agentPhone,
+    },
     status: opts.status ?? 'awaiting_payment',
     paymentDeadline: new Date(Date.now() + 48 * 60 * 60 * 1000),
     statusHistory: [],

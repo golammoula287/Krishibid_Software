@@ -301,7 +301,8 @@
       "agentPhone": "Agent phone",
       "trackingNote": "Tracking note (optional)",
       "assign": "Assign a delivery agent",
-      "markDispatched": "Mark as dispatched"
+      "markDispatched": "Mark as dispatched",
+      "reassign": "Change agent"
     },
     "inbox": {
       "empty": "No messages",
@@ -597,7 +598,21 @@
       "pickup": "I will collect it",
       "platform": "KrishiBid delivers",
       "courier": "By courier"
-    }
+    },
+    "status": {
+      "not_required": "No delivery needed",
+      "awaiting_dispatch": "Waiting to be collected",
+      "dispatched": "On the way",
+      "delivered": "Delivered"
+    },
+    "carriedBy": "Carried by",
+    "withAgent": "With {{name}}",
+    "dispatchedAt": "Handed over {{date}}",
+    "deliveredAt": "Delivered",
+    "awaitingAgent": "We have this order. An agent will be assigned shortly, and their name and number will appear here.",
+    "note": "Note for the delivery",
+    "weCollect": "We are collecting this one",
+    "weCollectHelp": "Have it ready — the order moves to in transit the moment our agent takes it, and you do not need to mark it shipped."
   },
   "dash": {
     "greeting": "Hello, {{name}}",
