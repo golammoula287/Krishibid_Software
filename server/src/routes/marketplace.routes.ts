@@ -1,4 +1,7 @@
 import {
+  ALLOWED_IMAGE_MIME,
+  MAX_IMAGE_BYTES,
+  MAX_LISTING_PHOTOS,
   acceptBidSchema,
   buyNowSchema,
   createListingSchema,
@@ -6,10 +9,26 @@ import {
   placeBidSchema,
 } from '@krishibid/shared';
 import { Router } from 'express';
+import multer from 'multer';
 import * as controller from '../controllers/marketplace.controller.js';
+import { badRequest } from '../utils/errors.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { enforceBidCeiling, requireActiveAccount, requireApprovedFarmer } from '../middleware/gate.js';
+import { uploadLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
+
+/** Memory storage: photos are re-encoded and forwarded to Cloudinary, never written to disk. */
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGE_BYTES, files: MAX_LISTING_PHOTOS },
+  fileFilter: (_req, file, cb) => {
+    if (!(ALLOWED_IMAGE_MIME as readonly string[]).includes(file.mimetype)) {
+      cb(badRequest('bad_image_type', `image must be one of: ${ALLOWED_IMAGE_MIME.join(', ')}`));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 export const marketplaceRoutes = Router();
 
@@ -34,6 +53,26 @@ marketplaceRoutes.post(
   requireApprovedFarmer,
   validate(createListingSchema),
   controller.createListing,
+);
+
+/**
+ * Photographs for a lot.
+ *
+ * Behind the same gate as creating one — an unapproved supplier uploading images would be filling
+ * a shared Cloudinary quota with pictures for a listing they are not allowed to publish.
+ *
+ * Declared before `/listings/:id` matters not at all here (the method differs), but the file limit
+ * does: multer enforces `MAX_LISTING_PHOTOS` before a single byte is buffered, so an oversized
+ * request is refused rather than read into a 512 MB dyno and then rejected.
+ */
+marketplaceRoutes.post(
+  '/listings/photos',
+  requireAuth,
+  requireRole('farmer'),
+  requireApprovedFarmer,
+  uploadLimiter,
+  upload.array('photos', MAX_LISTING_PHOTOS),
+  controller.uploadListingPhotos,
 );
 
 marketplaceRoutes.delete(

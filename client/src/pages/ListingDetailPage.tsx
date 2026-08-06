@@ -15,6 +15,59 @@ import { useToast } from '../lib/toast.js';
 /** 1 BDT, matching MIN_BID_INCREMENT_POISHA on the server. */
 const MIN_INCREMENT_POISHA = 100;
 
+/**
+ * The lot, as photographed.
+ *
+ * One large image with a thumbnail strip, rather than a carousel that auto-advances or hides the
+ * others behind a swipe. A buyer comparing the close-up of the grain against the shot of the whole
+ * pile needs to move between them deliberately, and a picture that slides away on its own while
+ * they are looking at it is actively worse than one picture.
+ *
+ * Absent entirely when there are no photographs. A grey placeholder saying "no image" tells the
+ * buyer nothing they cannot already see, and costs the fold.
+ */
+function Gallery({ photos, title }: { photos: string[]; title: string }) {
+  const [active, setActive] = useState(0);
+  const { t } = useTranslation();
+
+  if (photos.length === 0) return null;
+
+  // Clamped rather than trusted: a listing can be refetched with fewer photos than when the
+  // index was set, and an out-of-range index would render a blank frame.
+  const current = photos[Math.min(active, photos.length - 1)];
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-2xl bg-slate-100">
+        <img
+          src={current}
+          alt={title}
+          className="max-h-[26rem] w-full object-contain"
+        />
+      </div>
+
+      {photos.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {photos.map((url, index) => (
+            <button
+              key={url}
+              type="button"
+              onClick={() => setActive(index)}
+              aria-label={t('market.photoNumber', { n: index + 1 })}
+              aria-current={index === active}
+              className={`h-16 w-16 shrink-0 overflow-hidden rounded-xl ring-2 transition ${
+                index === active ? 'ring-brand-600' : 'ring-transparent hover:ring-brand-200'
+              }`}
+            >
+              <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ListingDetailPage() {
   const { id = '' } = useParams();
   const { t } = useTranslation();
@@ -172,6 +225,8 @@ export default function ListingDetailPage() {
 
   return (
     <div className="space-y-4">
+      <Gallery photos={data.photos} title={data.title} />
+
       <div className="card">
         <div className="flex items-start justify-between gap-3">
           <div>

@@ -36,12 +36,30 @@ export default function ListingCard({
       className="card block transition hover:border-brand-200 hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        {/* The cover photo, small. Produce is the one thing here a buyer cannot inspect before
+            committing money, so a picture of the actual lot earns its space on the card — but
+            not more than a thumbnail's worth, or the list stops being scannable. */}
+        {listing.photos[0] && (
+          <img
+            src={listing.photos[0]}
+            alt=""
+            loading="lazy"
+            className="h-16 w-16 shrink-0 rounded-xl bg-slate-100 object-cover"
+          />
+        )}
+
+        <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold text-brand-900">{listing.title}</p>
           <p className="mt-0.5 text-sm text-slate-600">
             {formatNumber(listing.quantity, locale)} {t(`units.${listing.unit}`)} ·{' '}
             {t('market.grade')} {listing.qualityGrade} · {listing.district}
           </p>
+          {listing.photos.length > 1 && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-slate-400">
+              <Icon name="camera" className="h-3.5 w-3.5" />
+              {listing.photos.length}
+            </p>
+          )}
         </div>
 
         {isAuction ? (

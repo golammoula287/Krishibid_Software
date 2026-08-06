@@ -6,6 +6,39 @@ import { deliveryChoiceSchema } from './delivery.js';
 export const qualityGradeSchema = z.enum(['A', 'B', 'C']);
 export type QualityGrade = z.infer<typeof qualityGradeSchema>;
 
+/**
+ * How many photographs one listing may carry.
+ *
+ * Five, not unlimited. A buyer deciding on produce they cannot touch wants the lot from a few
+ * angles — the whole pile, a close-up of the grain, the sacks it is in — and past that the extra
+ * pictures stop informing and start costing: every one is bandwidth on a free Cloudinary quota
+ * and a scroll on a phone. It also bounds what a single upload request can be made to do.
+ */
+export const MAX_LISTING_PHOTOS = 5;
+
+/**
+ * One photograph's address.
+ *
+ * `z.string().url()` is not enough on its own: it accepts any syntactically valid URL, including
+ * `javascript:alert(1)`. These strings are written straight into an `<img src>` on a page every
+ * buyer sees, so the scheme is the thing being checked, not the shape.
+ *
+ * Two are allowed. `https:` is what Cloudinary returns. `data:image/…;base64,…` is what the
+ * storage service falls back to when no Cloudinary account is configured, which is how a
+ * contributor runs the whole marketplace without signing up for one — bounded in length, because
+ * that fallback stores the image inside the listing document and five unbounded ones would
+ * approach Mongo's 16 MB ceiling.
+ */
+export const photoUrlSchema = z
+  .string()
+  .max(2_000_000)
+  .refine(
+    (value) =>
+      /^https:\/\/\S+$/i.test(value) ||
+      /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(value),
+    { message: 'a photo must be an https URL or an inline image' },
+  );
+
 export const listingStatusSchema = z.enum(['open', 'sold', 'expired', 'cancelled']);
 export type ListingStatus = z.infer<typeof listingStatusSchema>;
 
@@ -29,7 +62,15 @@ const listingBase = z.object({
   qualityGrade: qualityGradeSchema,
   district: districtSchema,
   description: z.string().max(1000).optional(),
-  imageUrl: z.string().url().optional(),
+  /**
+   * Photographs of the actual lot, in the order the supplier arranged them — the first is the
+   * cover, and that is the one decision worth giving them.
+   *
+   * URLs rather than file data: the images are uploaded first, to their own endpoint, and this
+   * form carries only the results. Posting binary and JSON together would mean the whole listing
+   * had to be retyped whenever an upload failed halfway, which on a rural connection is often.
+   */
+  photos: z.array(photoUrlSchema).max(MAX_LISTING_PHOTOS).optional(),
 
   // ---- auction only ----
   /** Minimum acceptable price for the whole lot, in poisha. */
@@ -104,6 +145,11 @@ export const buyNowSchema = z.object({
 });
 export type BuyNowInput = z.infer<typeof buyNowSchema>;
 
+/** What the photo endpoint hands back: the URLs, in the order the files were sent. */
+export interface ListingPhotoUploadResult {
+  urls: string[];
+}
+
 export interface HighestBidSummary {
   bidId: string;
   buyerId: string;
@@ -133,7 +179,8 @@ export interface ListingDto {
   qualityGrade: QualityGrade;
   district: string;
   description?: string;
-  imageUrl?: string;
+  /** Always an array, possibly empty — a caller should never have to handle two shapes. */
+  photos: string[];
   status: ListingStatus;
   saleMode: SaleMode;
 

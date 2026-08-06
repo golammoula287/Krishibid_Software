@@ -6,7 +6,7 @@ import {
 import type { Request, Response } from 'express';
 import { badRequest } from '../utils/errors.js';
 import * as accountService from '../services/account.service.js';
-import { sniffImage } from '../services/diagnosis.service.js';
+import { sniffImage } from '../utils/image.js';
 import * as kycService from '../services/kyc.service.js';
 
 // ---- profile ----

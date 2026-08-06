@@ -32,6 +32,7 @@ export type IconName =
   | 'arrowRight'
   | 'truck'
   | 'phone'
+  | 'camera'
   | 'check';
 
 const PATHS: Record<IconName, ReactElement> = {
@@ -154,6 +155,13 @@ const PATHS: Record<IconName, ReactElement> = {
   /** Somebody to ring. Always next to a real number, never decoration on its own. */
   phone: (
     <path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16.5 16.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2Z" />
+  ),
+  /** Adding a photograph of the lot. */
+  camera: (
+    <>
+      <path d="M3 8.5a2 2 0 0 1 2-2h2l1.5-2h7L17 6.5h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8Z" />
+      <circle cx="12" cy="12.5" r="3.25" />
+    </>
   ),
   check: <path d="M20 6 9 17l-5-5" />,
 };
