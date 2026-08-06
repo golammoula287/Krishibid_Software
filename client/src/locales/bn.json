@@ -36,7 +36,9 @@
     "demoFarmer": "কৃষক হিসেবে",
     "demoBuyer": "ক্রেতা হিসেবে",
     "haveAccount": "অ্যাকাউন্ট আছে?",
-    "noAccount": "অ্যাকাউন্ট নেই?"
+    "noAccount": "অ্যাকাউন্ট নেই?",
+    "identifier": "ফোন নম্বর বা ইমেইল",
+    "identifierPlaceholder": "01XXXXXXXXX অথবা you@example.com"
   },
   "market": {
     "title": "বাজার",
@@ -278,7 +280,8 @@
       "overview": "সারসংক্ষেপ",
       "delivery": "ডেলিভারি",
       "messages": "বার্তা",
-      "users": "ব্যবহারকারী"
+      "users": "ব্যবহারকারী",
+      "categories": "বিভাগ"
     },
     "order": {
       "awaitingPayment": "পেমেন্টের অপেক্ষায়",
@@ -327,6 +330,21 @@
         "pending_approval": "অনুমোদনের অপেক্ষায়",
         "rejected": "প্রত্যাখ্যাত"
       }
+    },
+    "categories": {
+      "new": "নতুন বিভাগ",
+      "editing": "সম্পাদনা /{{slug}}",
+      "slug": "ঠিকানা",
+      "slugHelp": "ছোট হাতের অক্ষর, সংখ্যা ও হাইফেন। একবার তৈরি হলে বদলানো যায় না — তালিকাগুলো এটি ব্যবহার করে।",
+      "nameEn": "নাম (ইংরেজি)",
+      "nameBn": "নাম (বাংলা)",
+      "units": "যে এককে বিক্রি",
+      "unitsHelp": "এই বিভাগে তালিকা দিলে কেবল এই এককগুলোই দেখানো হবে।",
+      "perishable": "পচনশীল",
+      "order": "ক্রম",
+      "inactive": "নিষ্ক্রিয়",
+      "deactivate": "নিষ্ক্রিয় করুন",
+      "reactivate": "আবার সক্রিয় করুন"
     }
   },
   "login": {

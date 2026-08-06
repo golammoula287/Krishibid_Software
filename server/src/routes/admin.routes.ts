@@ -1,4 +1,9 @@
-import { assignDeliverySchema, roleSchema } from '@krishibid/shared';
+import {
+  assignDeliverySchema,
+  categoryInputSchema,
+  categoryUpdateSchema,
+  roleSchema,
+} from '@krishibid/shared';
 import { Router } from 'express';
 import { z } from 'zod';
 import * as controller from '../controllers/admin.controller.js';
@@ -35,6 +40,16 @@ adminRoutes.post(
   ),
   controller.setUserStatus,
 );
+
+// ---- categories: what the marketplace may sell ----
+adminRoutes.get('/categories', controller.listCategories);
+adminRoutes.post('/categories', validate(categoryInputSchema), controller.createCategory);
+adminRoutes.patch(
+  '/categories/:slug',
+  validate(categoryUpdateSchema),
+  controller.updateCategory,
+);
+adminRoutes.delete('/categories/:slug', controller.deactivateCategory);
 
 /**
  * Changing who is an administrator: SUPER ADMIN only.

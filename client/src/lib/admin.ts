@@ -1,5 +1,6 @@
 import type {
   AdminOverviewDto,
+  CategoryDto,
   AssignDeliveryInput,
   ContactStatus,
   DeliveryQueueItemDto,
@@ -94,6 +95,50 @@ export function useSetContactStatus() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['contact-messages'] });
       await queryClient.invalidateQueries({ queryKey: ['admin', 'overview'] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+/** Includes deactivated ones — the public endpoint serves only active. */
+export function useAllCategories() {
+  return useQuery({
+    queryKey: ['admin', 'categories'],
+    queryFn: () => api.get<CategoryDto[]>('/admin/categories'),
+  });
+}
+
+export function useSaveCategory() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  return useMutation({
+    mutationFn: ({ slug, input }: { slug?: string; input: Record<string, unknown> }) =>
+      slug
+        ? apiRequest(`/admin/categories/${slug}`, { method: 'PATCH', body: input })
+        : api.post('/admin/categories', input),
+    onSuccess: async () => {
+      toast.showSuccess('category_saved');
+      // Both the admin list and the public rail, or the new category is invisible until reload.
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] });
+    },
+  });
+}
+
+export function useDeactivateCategory() {
+  const queryClient = useQueryClient();
+  const toast = useToast();
+
+  return useMutation({
+    mutationFn: (slug: string) => api.del(`/admin/categories/${slug}`),
+    onSuccess: async () => {
+      toast.showSuccess('category_saved');
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'categories'] });
+      await queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
   });
 }

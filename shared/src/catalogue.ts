@@ -40,6 +40,13 @@ export interface CategoryDto {
   perishable: boolean;
   /** Sort order in the category rail; lower comes first. */
   order: number;
+  /**
+   * Only ever false in the admin listing.
+   *
+   * The public endpoint serves active categories alone, so a client browsing the marketplace
+   * never sees this — it exists so an operator can tell a retired category from a live one.
+   */
+  active?: boolean;
 }
 
 /**
@@ -51,3 +58,38 @@ export interface CategoryDto {
  */
 export const saleModeSchema = z.enum(['auction', 'fixed']);
 export type SaleMode = z.infer<typeof saleModeSchema>;
+
+// ---------------------------------------------------------------------------
+// Admin: managing what can be sold
+// ---------------------------------------------------------------------------
+
+/**
+ * Adding a category should not need a deploy.
+ *
+ * The seed covers the initial set, but a new one appearing in a market — a crop coming into
+ * season, a product line somebody starts bringing — arrives faster than a release cycle.
+ */
+export const categoryInputSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(2)
+    .max(40)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'use lowercase letters, numbers and hyphens'),
+  names: z.object({
+    bn: z.string().trim().min(1).max(60),
+    en: z.string().trim().min(1).max(60),
+  }),
+  units: z.array(unitSchema).min(1).max(6),
+  perishable: z.boolean().default(false),
+  order: z.number().int().min(0).max(999).default(100),
+  active: z.boolean().default(true),
+});
+export type CategoryInput = z.infer<typeof categoryInputSchema>;
+
+/** Every field optional — deactivating one is a normal edit. */
+export const categoryUpdateSchema = categoryInputSchema
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, 'no fields to update');
+export type CategoryUpdateInput = z.infer<typeof categoryUpdateSchema>;

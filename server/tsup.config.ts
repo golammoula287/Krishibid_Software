@@ -29,6 +29,9 @@ export default defineConfig({
     // So mail configuration can be proven on the deployed box, where a silent
     // MAIL_PROVIDER=none is the difference between working signup and none.
     sendTestEmail: 'src/scripts/sendTestEmail.ts',
+    // "Can anybody actually sign in?" is the first question after a deploy or a reseed, and the
+    // only place worth asking it is the box people will be signing in to.
+    verifyLogins: 'src/scripts/verifyLogins.ts',
   },
   outDir: 'dist',
   format: ['esm'],

@@ -1,5 +1,6 @@
 import {
   LOGIN_ALLOWED_STATUSES,
+  normalisePhone,
   type AccountStatus,
   type AuthResult,
   type LoginInput,
@@ -157,7 +158,18 @@ function loginRefusal(status: AccountStatus, reason?: string | null) {
 export async function login(
   input: LoginInput,
 ): Promise<{ auth: AuthResult; refreshToken: string }> {
-  const user = await User.findOne({ phone: input.phone }).select('+passwordHash');
+  /**
+   * An email if it looks like one, a phone number otherwise.
+   *
+   * Decided by shape rather than by asking the user which they typed — a login form with a
+   * "type of identifier" dropdown is a form asking somebody to do the computer's job.
+   */
+  const identifier = input.identifier.trim();
+  const query = identifier.includes('@')
+    ? { email: identifier.toLowerCase() }
+    : { phone: normalisePhone(identifier) };
+
+  const user = await User.findOne(query).select('+passwordHash');
 
   // Compare against a dummy hash when the user is absent so a missing account and
   // a wrong password take the same time. Otherwise response timing enumerates
@@ -166,7 +178,7 @@ export async function login(
     user?.passwordHash ?? '$2a$12$invalidinvalidinvalidinvalidinvalidinvalidinvalidinva';
   const ok = await bcrypt.compare(input.password, hash);
 
-  if (!user || !ok) throw unauthorized('incorrect phone number or password');
+  if (!user || !ok) throw unauthorized('those details do not match an account');
 
   /**
    * Checked only after the password, never before.
@@ -220,11 +232,19 @@ export async function logout(userId: string): Promise<void> {
   await User.findByIdAndUpdate(userId, { refreshTokenHash: null });
 }
 
-/** One-click demo login. Only reachable when DEMO_MODE=true. */
+/**
+ * One-click demo login. Only reachable when DEMO_MODE=true.
+ *
+ * Scoped to active accounts. The seed deliberately leaves one supplier in the review queue so an
+ * admin has something to decide on, and that account shares this role and this demo flag — without
+ * the status filter, which of the two this hands out would come down to collection order, and the
+ * unlucky outcome is a session for an account the approval wall exists to keep out. This path skips
+ * `login()`, so it does not inherit that check; it has to make it itself.
+ */
 export async function demoLogin(
   role: Role,
 ): Promise<{ auth: AuthResult; refreshToken: string }> {
-  const user = await User.findOne({ role, isDemo: true });
+  const user = await User.findOne({ role, isDemo: true, accountStatus: 'active' });
   if (!user) throw unauthorized('demo account not seeded; run `npm run seed`');
 
   return establishSession(user);

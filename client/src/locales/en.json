@@ -36,7 +36,9 @@
     "demoFarmer": "As a farmer",
     "demoBuyer": "As a buyer",
     "haveAccount": "Already have an account?",
-    "noAccount": "No account yet?"
+    "noAccount": "No account yet?",
+    "identifier": "Phone or email",
+    "identifierPlaceholder": "01XXXXXXXXX or you@example.com"
   },
   "market": {
     "title": "Marketplace",
@@ -278,7 +280,8 @@
       "overview": "Overview",
       "delivery": "Delivery",
       "messages": "Messages",
-      "users": "Users"
+      "users": "Users",
+      "categories": "Categories"
     },
     "order": {
       "awaitingPayment": "Awaiting payment",
@@ -327,6 +330,21 @@
         "pending_approval": "Awaiting approval",
         "rejected": "Rejected"
       }
+    },
+    "categories": {
+      "new": "Add a category",
+      "editing": "Editing /{{slug}}",
+      "slug": "Address",
+      "slugHelp": "Lowercase letters, numbers and hyphens. Fixed once created — listings reference it.",
+      "nameEn": "Name (English)",
+      "nameBn": "Name (Bangla)",
+      "units": "Sold by",
+      "unitsHelp": "Only these are offered when somebody lists in this category.",
+      "perishable": "Perishable",
+      "order": "Sort order",
+      "inactive": "Inactive",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate"
     }
   },
   "login": {

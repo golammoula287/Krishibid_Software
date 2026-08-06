@@ -6,7 +6,8 @@ interface AuthState {
   user: UserDto | null;
   /** True until the initial silent refresh completes, so routes don't flash. */
   initialising: boolean;
-  login: (phone: string, password: string) => Promise<void>;
+  /** Either an email address or a phone number — the server works out which. */
+  login: (identifier: string, password: string) => Promise<void>;
   demoLogin: (role: Role) => Promise<void>;
   logout: () => Promise<void>;
   /** Attempts to restore a session from the httpOnly refresh cookie. */
@@ -17,8 +18,8 @@ export const useAuth = create<AuthState>((set) => ({
   user: null,
   initialising: true,
 
-  login: async (phone, password) => {
-    const result = await api.post<AuthResult>('/auth/login', { phone, password });
+  login: async (identifier, password) => {
+    const result = await api.post<AuthResult>('/auth/login', { identifier, password });
     setAccessToken(result.accessToken);
     set({ user: result.user });
   },

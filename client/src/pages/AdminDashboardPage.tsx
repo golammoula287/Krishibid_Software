@@ -1,4 +1,10 @@
-import type { ContactMessageDto, DeliveryQueueItemDto, ManagedUserDto, Role } from '@krishibid/shared';
+import type {
+  ContactMessageDto,
+  DeliveryQueueItemDto,
+  ManagedUserDto,
+  Role,
+  Unit,
+} from '@krishibid/shared';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -12,6 +18,9 @@ import {
   useSetContactStatus,
   useSetUserRole,
   useSetUserStatus,
+  useAllCategories,
+  useSaveCategory,
+  useDeactivateCategory,
 } from '../lib/admin.js';
 import { useAuth } from '../lib/auth.js';
 import { useContactMessages } from '../lib/content.js';
@@ -29,7 +38,7 @@ import { currentLocale } from '../lib/i18n.js';
  * and money come after, because they are interesting rather than urgent.
  */
 
-type Tab = 'overview' | 'delivery' | 'messages' | 'users';
+type Tab = 'overview' | 'delivery' | 'messages' | 'users' | 'categories';
 
 function Stat({
   icon,
@@ -37,12 +46,14 @@ function Stat({
   value,
   tone = 'slate',
   to,
+  onSelect,
 }: {
   icon: IconName;
   label: string;
   value: string;
   tone?: 'urgent' | 'brand' | 'slate';
   to?: string;
+  onSelect?: () => void;
 }) {
   const tones = {
     urgent: 'bg-amber-50 text-amber-700 ring-amber-200',
@@ -64,10 +75,23 @@ function Stat({
     </div>
   );
 
-  return to ? <Link to={to}>{body}</Link> : body;
+  /**
+   * A count of people waiting is not information, it is a job — so the ones that have somewhere to
+   * be actioned are the control that takes you there. `to` leaves the page, `onSelect` switches
+   * tab within it.
+   */
+  if (to) return <Link to={to}>{body}</Link>;
+  if (onSelect) {
+    return (
+      <button type="button" onClick={onSelect} className="w-full text-left">
+        {body}
+      </button>
+    );
+  }
+  return body;
 }
 
-function Overview() {
+function Overview({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const { t } = useTranslation();
   const locale = currentLocale();
   const overview = useAdminOverview();
@@ -99,12 +123,14 @@ function Overview() {
             tone={data.unreadMessages > 0 ? 'urgent' : 'slate'}
             label={t('admin.unreadMessages')}
             value={formatNumber(data.unreadMessages, locale)}
+            onSelect={() => onNavigate('messages')}
           />
           <Stat
             icon="orders"
             tone={data.awaitingDispatch > 0 ? 'urgent' : 'slate'}
             label={t('admin.awaitingDispatch')}
             value={formatNumber(data.awaitingDispatch, locale)}
+            onSelect={() => onNavigate('delivery')}
           />
         </div>
       </section>
@@ -503,6 +529,252 @@ function Users() {
   );
 }
 
+
+const ALL_UNITS: Unit[] = ['kg', 'litre', 'piece', 'dozen', 'sack', 'maund'];
+
+const BLANK_CATEGORY = {
+  slug: '',
+  bn: '',
+  en: '',
+  units: ['kg'] as Unit[],
+  perishable: false,
+  order: 100,
+};
+
+/**
+ * What the marketplace is allowed to sell.
+ *
+ * Adding one should not need a deploy: a crop coming into season, or a product line somebody
+ * starts bringing, arrives faster than a release cycle.
+ *
+ * Removing is deactivation, never deletion — every listing already filed under a category
+ * references it by slug, and deleting would leave those showing a raw slug where their category
+ * name should be. Inactive takes it out of the rail and the listing form while keeping the name
+ * resolvable for the lots that already point at it.
+ */
+function Categories() {
+  const { t } = useTranslation();
+  const locale = currentLocale();
+  const categories = useAllCategories();
+  const save = useSaveCategory();
+  const deactivate = useDeactivateCategory();
+
+  const [form, setForm] = useState(BLANK_CATEGORY);
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+
+  const set = (patch: Partial<typeof form>): void => setForm({ ...form, ...patch });
+  const reset = (): void => {
+    setForm(BLANK_CATEGORY);
+    setEditingSlug(null);
+  };
+
+  const toggleUnit = (unit: Unit): void => {
+    const next = form.units.includes(unit)
+      ? form.units.filter((u) => u !== unit)
+      : [...form.units, unit];
+    // At least one, or the listing form would offer a category nothing can be measured in.
+    if (next.length > 0) set({ units: next });
+  };
+
+  const submit = (): void => {
+    const input = {
+      ...(editingSlug ? {} : { slug: form.slug }),
+      names: { bn: form.bn, en: form.en },
+      units: form.units,
+      perishable: form.perishable,
+      order: Number(form.order),
+    };
+    save.mutate({ slug: editingSlug ?? undefined, input }, { onSuccess: reset });
+  };
+
+  const canSubmit =
+    form.bn.trim() && form.en.trim() && (editingSlug || /^[a-z0-9-]{2,}$/.test(form.slug));
+
+  return (
+    <div className="space-y-4">
+      <section className="card space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-brand-900">
+            {editingSlug ? t('admin.categories.editing', { slug: editingSlug }) : t('admin.categories.new')}
+          </h2>
+          {editingSlug && (
+            <button type="button" onClick={reset} className="text-sm text-brand-700 underline">
+              {t('common.cancel')}
+            </button>
+          )}
+        </div>
+
+        {!editingSlug && (
+          <div>
+            <label htmlFor="cat-slug" className="label">
+              {t('admin.categories.slug')}
+            </label>
+            <input
+              id="cat-slug"
+              className="field"
+              placeholder="honey"
+              value={form.slug}
+              onChange={(e) => set({ slug: e.target.value.toLowerCase() })}
+            />
+            {/* Said once, here: the address is what listings reference, so it is fixed after
+                creation and renaming is not offered. */}
+            <p className="mt-1 text-xs text-slate-500">{t('admin.categories.slugHelp')}</p>
+          </div>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="cat-en" className="label">
+              {t('admin.categories.nameEn')}
+            </label>
+            <input
+              id="cat-en"
+              className="field"
+              value={form.en}
+              onChange={(e) => set({ en: e.target.value })}
+            />
+          </div>
+          <div>
+            <label htmlFor="cat-bn" className="label">
+              {t('admin.categories.nameBn')}
+            </label>
+            <input
+              id="cat-bn"
+              className="field"
+              value={form.bn}
+              onChange={(e) => set({ bn: e.target.value })}
+            />
+          </div>
+        </div>
+
+        <div>
+          <span className="label">{t('admin.categories.units')}</span>
+          <div className="flex flex-wrap gap-2">
+            {ALL_UNITS.map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                onClick={() => toggleUnit(unit)}
+                className={`badge ${
+                  form.units.includes(unit)
+                    ? 'bg-brand-700 text-white'
+                    : 'bg-brand-50 text-brand-800'
+                }`}
+              >
+                {t(`units.${unit}`)}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">{t('admin.categories.unitsHelp')}</p>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={form.perishable}
+              onChange={(e) => set({ perishable: e.target.checked })}
+              className="h-4 w-4"
+            />
+            {t('admin.categories.perishable')}
+          </label>
+          <div>
+            <label htmlFor="cat-order" className="label">
+              {t('admin.categories.order')}
+            </label>
+            <input
+              id="cat-order"
+              type="number"
+              className="field"
+              value={form.order}
+              onChange={(e) => set({ order: Number(e.target.value) })}
+            />
+          </div>
+        </div>
+
+        {save.isError && <ErrorNote error={save.error} />}
+
+        <button
+          type="button"
+          className="btn-primary w-full"
+          disabled={!canSubmit || save.isPending}
+          onClick={submit}
+        >
+          {save.isPending ? t('common.loading') : t('common.save')}
+        </button>
+      </section>
+
+      <section className="space-y-2">
+        {categories.isLoading && <CardSkeleton count={2} />}
+        {categories.data?.map((category) => (
+          <div
+            key={category.slug}
+            className={`card ${category.active === false ? 'opacity-60' : ''}`}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-semibold text-brand-900">
+                  {category.names[locale]}{' '}
+                  <span className="text-xs font-normal text-slate-400">/{category.slug}</span>
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {category.units.map((u) => t(`units.${u}`)).join(' · ')}
+                  {category.perishable && ` · ${t('admin.categories.perishable')}`}
+                </p>
+              </div>
+              {category.active === false && (
+                <span className="badge bg-slate-200 text-slate-600">
+                  {t('admin.categories.inactive')}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={() => {
+                  setEditingSlug(category.slug);
+                  setForm({
+                    slug: category.slug,
+                    bn: category.names.bn,
+                    en: category.names.en,
+                    units: category.units,
+                    perishable: category.perishable,
+                    order: category.order,
+                  });
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+              >
+                {t('blog.edit')}
+              </button>
+              {category.active === false ? (
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  onClick={() =>
+                    save.mutate({ slug: category.slug, input: { active: true } })
+                  }
+                >
+                  {t('admin.categories.reactivate')}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-secondary text-sm text-red-700"
+                  onClick={() => deactivate.mutate(category.slug)}
+                >
+                  {t('admin.categories.deactivate')}
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </section>
+    </div>
+  );
+}
+
 export default function AdminDashboardPage() {
   const { t } = useTranslation();
   const me = useAuth((s) => s.user);
@@ -513,6 +785,7 @@ export default function AdminDashboardPage() {
     { key: 'delivery', icon: 'orders' },
     { key: 'messages', icon: 'advisor' },
     { key: 'users', icon: 'account' },
+    { key: 'categories', icon: 'market' },
   ];
 
   return (
@@ -552,10 +825,11 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {tab === 'overview' && <Overview />}
+      {tab === 'overview' && <Overview onNavigate={setTab} />}
       {tab === 'delivery' && <DeliveryBoard />}
       {tab === 'messages' && <Inbox />}
       {tab === 'users' && <Users />}
+      {tab === 'categories' && <Categories />}
     </div>
   );
 }

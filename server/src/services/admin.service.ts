@@ -1,13 +1,17 @@
 import type {
   AdminOverviewDto,
+  CategoryDto,
+  CategoryInput,
+  CategoryUpdateInput,
   AssignDeliveryInput,
   DeliveryQueueItemDto,
   ManagedUserDto,
   Role,
 } from '@krishibid/shared';
 import mongoose from 'mongoose';
-import { badRequest, forbidden, notFound } from '../utils/errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
+import { Category } from '../models/Category.js';
 import { ContactMessage } from '../models/ContactMessage.js';
 import { Listing } from '../models/Listing.js';
 import { Order } from '../models/Order.js';
@@ -320,6 +324,60 @@ export async function createAdmin(
   userId: string,
 ): Promise<void> {
   await setUserRole(actor, userId, 'admin');
+}
+
+// ---------------------------------------------------------------------------
+// Categories
+// ---------------------------------------------------------------------------
+
+/** Everything, including deactivated ones — the public endpoint only serves active. */
+export async function listAllCategories(): Promise<CategoryDto[]> {
+  const categories = await Category.find().sort({ order: 1 }).lean();
+  return categories.map((c) => ({
+    slug: c.slug,
+    names: c.names as CategoryDto['names'],
+    units: c.units as CategoryDto['units'],
+    perishable: Boolean(c.perishable),
+    order: c.order ?? 100,
+    active: Boolean(c.active),
+  }));
+}
+
+export async function createCategory(input: CategoryInput): Promise<void> {
+  const clash = await Category.findOne({ slug: input.slug }).select('_id').lean();
+  if (clash) throw conflict('category_exists', 'a category with that address already exists');
+
+  await Category.create(input);
+  logger.info({ slug: input.slug }, 'category created');
+}
+
+export async function updateCategory(slug: string, input: CategoryUpdateInput): Promise<void> {
+  /**
+   * The slug never moves.
+   *
+   * Every listing references it, and renaming would orphan them — a lot whose category cannot be
+   * resolved shows a raw slug where its name should be. Deactivate and create instead; the old
+   * one keeps resolving for the listings that already point at it.
+   */
+  const { slug: _ignored, ...changes } = input;
+
+  const updated = await Category.findOneAndUpdate({ slug }, { $set: changes });
+  if (!updated) throw notFound('category');
+
+  logger.info({ slug, fields: Object.keys(changes) }, 'category updated');
+}
+
+/**
+ * Deactivates rather than deletes.
+ *
+ * Deleting would break every listing already filed under it. Inactive keeps the name resolving
+ * while removing it from the rail and from the listing form, which is what "remove" actually
+ * means here.
+ */
+export async function deactivateCategory(slug: string): Promise<void> {
+  const updated = await Category.findOneAndUpdate({ slug }, { $set: { active: false } });
+  if (!updated) throw notFound('category');
+  logger.warn({ slug }, 'category deactivated');
 }
 
 export const objectId = (id: string): mongoose.Types.ObjectId =>

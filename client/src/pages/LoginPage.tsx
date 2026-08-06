@@ -42,7 +42,7 @@ export default function LoginPage() {
 
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
-  const [form, setForm] = useState({ phone: '', password: '' });
+  const [form, setForm] = useState({ identifier: '', password: '' });
 
   if (user) {
     const from = (location.state as { from?: string } | null)?.from ?? '/';
@@ -109,21 +109,22 @@ export default function LoginPage() {
         className="card space-y-3"
         onSubmit={(e) => {
           e.preventDefault();
-          void run(() => login(form.phone, form.password));
+          void run(() => login(form.identifier, form.password));
         }}
       >
         <div>
-          <label htmlFor="phone" className="label">
-            {t('auth.phone')}
+          <label htmlFor="identifier" className="label">
+            {t('auth.identifier')}
           </label>
+          {/* One field, either kind. A dropdown asking which sort of identifier this is would be
+              a form making somebody do the computer's job. */}
           <input
-            id="phone"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel"
-            placeholder="01XXXXXXXXX"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            id="identifier"
+            type="text"
+            autoComplete="username"
+            placeholder={t('auth.identifierPlaceholder')}
+            value={form.identifier}
+            onChange={(e) => setForm({ ...form, identifier: e.target.value })}
             className="field"
             required
           />

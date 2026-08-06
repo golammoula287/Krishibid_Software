@@ -23,8 +23,19 @@ export const registerSchema = z.object({
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
+/**
+ * Login accepts an email address OR a phone number.
+ *
+ * The number was the only identifier, which is defensible — it is what a farmer remembers — but
+ * it also meant an operator who knows their own email address could not get in, and a buyer who
+ * signed up with both had to remember which one this particular form wanted. Accepting either
+ * costs one branch in the lookup and removes a whole category of "I cannot log in".
+ *
+ * Not validated as a phone here: an address that fails `phoneSchema` is not an invalid login, it
+ * is an email. The service decides which by looking at it.
+ */
 export const loginSchema = z.object({
-  phone: phoneSchema,
+  identifier: z.string().trim().min(3).max(160),
   password: z.string().min(1).max(128),
 });
 export type LoginInput = z.infer<typeof loginSchema>;

@@ -20,6 +20,9 @@ import { Category } from '../models/Category.js';
 import { Crop } from '../models/Crop.js';
 import { Listing } from '../models/Listing.js';
 import { Order } from '../models/Order.js';
+import { OtpChallenge } from '../models/OtpChallenge.js';
+import { Payment } from '../models/Payment.js';
+import { PendingRegistration } from '../models/PendingRegistration.js';
 import { User } from '../models/User.js';
 import { CATEGORIES } from './categories.js';
 
@@ -53,11 +56,52 @@ const pick = <T>(arr: readonly T[], i: number): T => arr[i % arr.length]!;
 const randInt = (min: number, max: number): number =>
   Math.floor(Math.random() * (max - min + 1)) + min;
 
+/**
+ * The named accounts, with the passwords an operator actually logs in with.
+ *
+ * Real addresses rather than `@krishibid.invalid` placeholders, because these are the accounts a
+ * person signs in as — and login now accepts an email or a phone number, so the address IS the
+ * credential they will type.
+ *
+ * The password is deliberately weak and deliberately shared: these exist to be handed to somebody
+ * evaluating the platform. Anything on a public deployment with real money in it needs different
+ * credentials, and the README says so rather than leaving it implied.
+ */
+const ACCOUNTS = {
+  superAdmin: {
+    email: 'rakibmoula2001@gmail.com',
+    phone: '01700000001',
+    name: 'Rakib Moula',
+    role: 'superadmin' as const,
+  },
+  admin: {
+    email: 'gmrakib2001@gmail.com',
+    phone: '01700000002',
+    name: 'GM Rakib',
+    role: 'admin' as const,
+  },
+  supplier: {
+    email: 'suplier@gmail.com',
+    phone: '01700000003',
+    name: 'ডেমো সরবরাহকারী (Demo Supplier)',
+    role: 'farmer' as const,
+  },
+  buyer: {
+    email: 'buyer@gmail.com',
+    phone: '01700000004',
+    name: 'ডেমো ক্রেতা (Demo Buyer)',
+    role: 'buyer' as const,
+  },
+};
+
+const ACCOUNT_PASSWORD = '12345678';
+
 async function seed(): Promise<void> {
   await connectDb();
 
   const password = env().DEMO_PASSWORD || 'demo1234';
   const passwordHash = await bcrypt.hash(password, env().BCRYPT_ROUNDS);
+  const accountHash = await bcrypt.hash(ACCOUNT_PASSWORD, env().BCRYPT_ROUNDS);
 
   /**
    * Every seeded user needs an email, because `users.email` is now required and unique — a
@@ -69,22 +113,63 @@ async function seed(): Promise<void> {
   const demoEmail = (slug: string): string => `${slug}@krishibid.invalid`;
 
   /**
-   * The admin's address comes from the environment, never from the source.
+   * A full wipe, not a demo-only one.
    *
-   * This repository is public. A personal Gmail committed into it gets scraped permanently, and
-   * rewriting history later does not un-scrape it. Without the variable the admin still gets a
-   * placeholder so the seed runs — it simply receives nothing.
+   * The previous version deleted `isDemo: true` and left everything else, which is right for
+   * topping up a live database and wrong for the thing this is now used for — starting clean.
+   * Half-migrated users and orphaned listings from earlier schema versions are exactly what makes
+   * "it works locally" untrue later.
+   *
+   * Everything below is dropped: users, listings, bids, orders, payments, ledger entries, pending
+   * registrations, OTP challenges. Blog posts and contact messages are kept — they are content
+   * somebody wrote, not fixtures.
    */
-  const adminEmail = env().ADMIN_NOTIFY_EMAIL || demoEmail('admin');
-
-  logger.info('clearing previous demo data');
+  logger.warn('WIPING the database — every user, listing, bid, order and payment');
   await Promise.all([
-    User.deleteMany({ isDemo: true }),
+    User.deleteMany({}),
     Crop.deleteMany({}),
+    Category.deleteMany({}),
     Listing.deleteMany({}),
     Bid.deleteMany({}),
     Order.deleteMany({}),
+    Payment.deleteMany({}),
+    PendingRegistration.deleteMany({}),
+    OtpChallenge.deleteMany({}),
   ]);
+
+  /**
+   * The ledger is dropped through the driver, deliberately going around its own guard.
+   *
+   * `LedgerEntry` refuses `deleteMany` — entries are immutable and a mistake is corrected with a
+   * compensating entry, never by erasing history. That guard is right and stays: it protects the
+   * application from itself, and every code path that touches money goes through the model.
+   *
+   * A seed is not that. It is an operator deliberately discarding a database, and leaving the
+   * ledger behind would be worse than removing it — double-entry rows referencing payments and
+   * users that no longer exist, which is a corrupt ledger rather than a preserved one. Bypassing
+   * the model here is explicit and confined to this line, rather than the guard being weakened
+   * for everybody.
+   */
+  const db = mongoose.connection.db;
+  if (db) {
+    const dropped = await db.collection('ledgerentries').deleteMany({});
+    logger.warn({ deleted: dropped.deletedCount }, 'ledger discarded with the rest of the data');
+  }
+
+  /**
+   * Indexes rebuilt after the wipe.
+   *
+   * A database that has been through several schema versions carries indexes for fields that no
+   * longer exist, and is missing the ones added since. `syncIndexes` reconciles both, which is
+   * what makes a fresh seed genuinely fresh rather than merely empty.
+   */
+  await Promise.all([
+    User.syncIndexes(),
+    Listing.syncIndexes(),
+    Order.syncIndexes(),
+    Category.syncIndexes(),
+  ]);
+  logger.info('indexes rebuilt');
 
   // ---- crops ----
   await Crop.insertMany(CROPS.map((c) => ({ ...c, unit: 'kg' })));
@@ -100,31 +185,46 @@ async function seed(): Promise<void> {
   }
   logger.info({ count: CATEGORIES.length }, 'categories seeded');
 
-  // ---- the three one-click demo logins ----
-  const [demoFarmer, demoBuyer, demoAdmin] = await User.create([
+  // ---- the four named accounts, which are what somebody actually logs in as ----
+  const [superAdmin, secondAdmin, demoFarmer, demoBuyer] = await User.create([
     {
-      phone: '01700000001',
-      email: demoEmail('farmer'),
+      ...ACCOUNTS.superAdmin,
       emailVerified: true,
-      name: 'ডেমো কৃষক (Demo Farmer)',
-      passwordHash,
-      role: 'farmer',
+      passwordHash: accountHash,
+      district: 'Dhaka',
+      locale: 'en',
+      accountStatus: 'active',
+      isDemo: true,
+    },
+    {
+      ...ACCOUNTS.admin,
+      emailVerified: true,
+      passwordHash: accountHash,
+      district: 'Dhaka',
+      locale: 'en',
+      accountStatus: 'active',
+      isDemo: true,
+    },
+    {
+      ...ACCOUNTS.supplier,
+      emailVerified: true,
+      passwordHash: accountHash,
       district: 'Rangpur',
       locale: 'bn',
       isDemo: true,
       /**
        * Seeded already approved.
        *
-       * Demo mode is a first-class feature: someone opening the public URL must reach a working
-       * marketplace, and a demo farmer who cannot list produce because an admin never reviewed
-       * them would look like a broken app rather than a policy. Real farmers still go through
-       * the queue — this account is created by an operator with database access, not by signup.
+       * Somebody opening the deployment must reach a working marketplace, and a demo supplier who
+       * cannot list produce because no admin reviewed them would look like a broken app rather
+       * than a policy. Real suppliers still go through the queue — this account is created by an
+       * operator with database access, not through signup.
        */
       accountStatus: 'active',
       supplierType: 'farmer',
       kyc: {
         status: 'approved',
-        fullNameOnNid: 'Demo Farmer',
+        fullNameOnNid: 'Demo Supplier',
         documents: [],
         submittedAt: new Date(),
         decidedAt: new Date(),
@@ -134,38 +234,46 @@ async function seed(): Promise<void> {
       cropsGrown: ['rice', 'potato'],
     },
     {
-      phone: '01700000002',
-      email: demoEmail('buyer'),
+      ...ACCOUNTS.buyer,
       emailVerified: true,
-      name: 'ডেমো ক্রেতা (Demo Buyer)',
-      passwordHash,
-      role: 'buyer',
+      passwordHash: accountHash,
       district: 'Dhaka',
       locale: 'bn',
+      accountStatus: 'active',
       isDemo: true,
       businessName: 'ডেমো ট্রেডার্স',
       buyerType: 'trader',
     },
-    {
-      phone: '01700000003',
-      email: adminEmail,
-      emailVerified: true,
-      name: 'Demo Officer',
-      passwordHash,
-      /**
-       * The first super admin, and the only way one comes into existence.
-       *
-       * No endpoint creates or promotes to `superadmin` — the application can appoint an admin
-       * (super admin only) but never another super admin. That is deliberate: the account that
-       * decides who holds power should require database or deploy access to create, not a
-       * session.
-       */
-      role: 'superadmin',
-      district: 'Dhaka',
-      locale: 'en',
-      isDemo: true,
-    },
   ]);
+
+  /**
+   * One supplier left waiting on purpose.
+   *
+   * The review queue is the first thing an admin is shown, and an empty one tells them nothing
+   * about whether it works. This account gives them something to approve or reject.
+   */
+  await User.create({
+    phone: '01700000005',
+    email: 'pending-supplier@krishibid.invalid',
+    emailVerified: false,
+    name: 'অপেক্ষমাণ সরবরাহকারী (Pending Supplier)',
+    passwordHash: accountHash,
+    role: 'farmer',
+    district: 'Bogura',
+    locale: 'bn',
+    isDemo: true,
+    accountStatus: 'pending_approval',
+    supplierType: 'retailer',
+    kyc: {
+      status: 'pending_review',
+      fullNameOnNid: 'Pending Supplier',
+      documents: [],
+      submittedAt: new Date(),
+      attempts: 1,
+    },
+    farmSizeAcres: 1.5,
+    cropsGrown: ['onion'],
+  });
 
   // ---- supporting cast, so the marketplace doesn't look like one person ----
   const farmers = await User.create(
@@ -225,8 +333,6 @@ async function seed(): Promise<void> {
       unit: 'kg' as const,
       // Roughly a third of the demo market is fixed price, so both shops have stock.
       saleMode: (i % 3 === 0 ? 'fixed' : 'auction') as 'auction' | 'fixed',
-      cropSlug: crop.slug,
-      quantityKg,
       qualityGrade: pick(['A', 'B', 'C'] as const, i),
       district: farmer.district,
       reservePricePoisha: bdtToPoisha(quantityKg * pricePerKg),
@@ -302,8 +408,8 @@ async function seed(): Promise<void> {
       bidId: bid._id,
       farmerId: payable.farmerId,
       buyerId: demoBuyer!._id,
-      cropSlug: payable.cropSlug,
-      quantityKg: payable.quantityKg,
+      cropSlug: payable.categorySlug,
+      quantityKg: payable.quantity,
       agreedAmountPoisha: bid.amountPoisha,
       status: 'awaiting_payment',
       paymentDeadline: new Date(Date.now() + 48 * 60 * 60 * 1000),
@@ -321,11 +427,11 @@ async function seed(): Promise<void> {
 
   logger.info(
     {
-      demoPassword: password,
-      farmer: demoFarmer!.phone,
-      buyer: demoBuyer!.phone,
-      admin: demoAdmin!.phone,
-      adminRole: demoAdmin!.role,
+      accountPassword: ACCOUNT_PASSWORD,
+      supplier: demoFarmer!.email,
+      buyer: demoBuyer!.email,
+      superAdmin: superAdmin!.email,
+      admin: secondAdmin!.email,
     },
     'seed complete — demo logins ready',
   );

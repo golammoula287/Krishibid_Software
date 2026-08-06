@@ -191,6 +191,11 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'এই ফসলটি তালিকায় নেই', hint: 'তালিকা থেকে একটি ফসল বেছে নিন।' },
     en: { title: 'That crop is not in the catalogue', hint: 'Pick one from the list.' },
   },
+  category_exists: {
+    tone: 'error',
+    bn: { title: 'এই ঠিকানায় একটি বিভাগ আগে থেকেই আছে', hint: 'অন্য একটি ঠিকানা দিন।' },
+    en: { title: 'A category already uses that address', hint: 'Choose a different one.' },
+  },
   unknown_category: {
     tone: 'error',
     bn: { title: 'এই বিভাগে বিক্রি করা যায় না', hint: 'তালিকা থেকে একটি বিভাগ বেছে নিন।' },
@@ -779,6 +784,11 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     tone: 'info',
     bn: { title: 'ভূমিকা পরিবর্তন হয়েছে', hint: 'তাদের চালু সেশনগুলো বাতিল হয়েছে।' },
     en: { title: 'Role updated', hint: 'Their existing sessions have been ended.' },
+  },
+  category_saved: {
+    tone: 'info',
+    bn: { title: 'বিভাগ সংরক্ষণ হয়েছে', hint: 'বাজারে সঙ্গে সঙ্গে দেখা যাবে।' },
+    en: { title: 'Category saved', hint: 'It appears in the marketplace immediately.' },
   },
   review_recorded: {
     tone: 'info',

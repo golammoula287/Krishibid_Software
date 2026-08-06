@@ -15,6 +15,8 @@ export interface MakeUserOptions {
   email?: string;
   emailVerified?: boolean;
   accountStatus?: 'active' | 'pending_approval' | 'rejected' | 'suspended';
+  /** What the one-click demo login picks from. */
+  isDemo?: boolean;
 }
 
 /** The password every fixture user has, for tests that actually log in. */
@@ -43,6 +45,7 @@ export async function makeUser(
     email: opts.email ?? `${role}-${n}-${Date.now()}@example.test`,
     emailVerified: opts.emailVerified ?? true,
     accountStatus: opts.accountStatus ?? 'active',
+    isDemo: opts.isDemo ?? false,
     name: opts.name ?? `${role}-${n}`,
     passwordHash: FIXTURE_PASSWORD_HASH,
     role,

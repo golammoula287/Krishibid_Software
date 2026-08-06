@@ -25,7 +25,9 @@
     "ingest:kb:prod": "node dist/ingestKb.js",
     "create:indexes:prod": "node dist/createIndexes.js",
     "eval:rag": "tsx src/scripts/evalRag.ts",
-    "eval:rag:prod": "node dist/evalRag.js"
+    "eval:rag:prod": "node dist/evalRag.js",
+    "verify:logins": "tsx src/scripts/verifyLogins.ts",
+    "verify:logins:prod": "node dist/verifyLogins.js"
   },
   "dependencies": {
     "@krishibid/shared": "*",

@@ -262,7 +262,7 @@ describe('signup — buyer completion', () => {
     const { input, token } = await upToCompletion({ role: 'buyer', email: 'login@example.test' });
     await completeRegistration(token, {});
 
-    const session = await login({ phone: input.phone, password: 'password123' });
+    const session = await login({ identifier: input.phone, password: 'password123' });
     expect(session.auth.user.phone).toBe(input.phone);
   });
 });
@@ -284,7 +284,7 @@ describe('signup — farmer completion', () => {
     expect(user?.kyc?.status).toBe('pending_review');
     expect(user?.kyc?.documents).toHaveLength(3);
 
-    await expect(login({ phone: input.phone, password: 'password123' })).rejects.toMatchObject({
+    await expect(login({ identifier: input.phone, password: 'password123' })).rejects.toMatchObject({
       status: 403,
       code: 'account_pending_approval',
     });

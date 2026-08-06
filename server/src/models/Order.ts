@@ -17,8 +17,8 @@ const orderSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'Listing',
       required: true,
-      index: true,
-      // Uniqueness moved to a partial index below — see the note there.
+      // Indexed by the partial unique index below, not here. Declaring it in both places makes
+      // two definitions compete for the same auto-generated name, which Mongo rejects outright.
     },
     /**
      * The winning bid, when the order came from an auction.
@@ -121,7 +121,19 @@ const orderSchema = new Schema(
  */
 orderSchema.index(
   { listingId: 1 },
-  { unique: true, partialFilterExpression: { bidId: { $type: 'objectId' } } },
+  {
+    unique: true,
+    partialFilterExpression: { bidId: { $type: 'objectId' } },
+    /**
+     * Named, rather than left to Mongo's `listingId_1` default.
+     *
+     * An earlier version of this schema declared a plain unique index on the same key, so that
+     * name already exists on any database that ran it — and Mongo refuses to redefine an index
+     * under a name it already holds with different options. A distinct name lets the two coexist
+     * while `syncIndexes` retires the old one.
+     */
+    name: 'auction_order_per_listing',
+  },
 );
 
 /** The dispatch board: platform deliveries waiting on an admin, oldest first. */

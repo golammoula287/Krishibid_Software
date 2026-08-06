@@ -46,3 +46,24 @@ export async function setUserRole(req: Request, res: Response): Promise<void> {
   );
   res.status(204).send();
 }
+
+// ---- categories ----
+
+export async function listCategories(_req: Request, res: Response): Promise<void> {
+  res.json(await adminService.listAllCategories());
+}
+
+export async function createCategory(req: Request, res: Response): Promise<void> {
+  await adminService.createCategory(req.body);
+  res.status(201).json({ created: true });
+}
+
+export async function updateCategory(req: Request, res: Response): Promise<void> {
+  await adminService.updateCategory(String(req.params.slug), req.body);
+  res.status(204).send();
+}
+
+export async function deactivateCategory(req: Request, res: Response): Promise<void> {
+  await adminService.deactivateCategory(String(req.params.slug));
+  res.status(204).send();
+}
