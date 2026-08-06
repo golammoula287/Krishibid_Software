@@ -24,6 +24,7 @@ import { disconnectSocket } from './lib/socket.js';
  */
 const MarketPage = lazy(() => import('./pages/MarketPage.js'));
 const LandingPage = lazy(() => import('./pages/LandingPage.js'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage.js'));
 const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage.js'));
 const CreateListingPage = lazy(() => import('./pages/CreateListingPage.js'));
 const DiagnosePage = lazy(() => import('./pages/DiagnosePage.js'));
@@ -61,10 +62,13 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage.js'));
  * claims. Someone signed in has already made that decision, and showing them a sales pitch every
  * time they open the app would be noise.
  *
- * They are redirected to `/market` rather than shown the market here, so the marketplace has
- * exactly one address. Rendering it at both meant two nav links leading to the same screen, and
- * a "Home" tab that was really the market. When the role dashboards land this stops redirecting
- * and `/` becomes something genuinely different.
+ * A member gets their dashboard, which is genuinely different per role: a supplier needs to know
+ * what is happening to their lots and what they are owed, a buyer whether they are still winning
+ * anything and what they owe. Neither question is answered by a feed of everybody else's produce,
+ * which is what `/` used to redirect to.
+ *
+ * An admin keeps going to the marketplace: their own dashboard is at `/admin`, and duplicating it
+ * here would be two front doors to the same room.
  */
 function Home() {
   const { user, initialising } = useAuth();
@@ -72,7 +76,9 @@ function Home() {
   // Waiting matters here: rendering the landing page for a frame before the silent refresh
   // resolves would flash a "Sign up" pitch at somebody who is already a member.
   if (initialising) return <Spinner />;
-  return user ? <Navigate to="/market" replace /> : <LandingPage />;
+  if (!user) return <LandingPage />;
+  if (user.role === 'farmer' || user.role === 'buyer') return <DashboardPage />;
+  return <Navigate to="/market" replace />;
 }
 
 function RequireAuth({ children }: { children: React.ReactNode }) {

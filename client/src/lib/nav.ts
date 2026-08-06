@@ -58,14 +58,17 @@ const GUEST: Tab[] = [
 ];
 
 /**
- * Signed-in roles have no `/` entry.
+ * `/` is a dashboard for a supplier and a buyer, and the marketplace lives only at `/market`.
  *
- * The marketplace lives at exactly one address, `/market`, and `/` redirects there for anyone
- * signed in. Having both meant two links that led to the same screen and a "Home" tab that was
- * really the market — the sort of thing that makes a navigation bar feel untrustworthy. When the
- * role dashboards land, `/` becomes something genuinely different and Home returns with it.
+ * There was a period where both addresses rendered the marketplace, which meant two nav links
+ * leading to the same screen and a "Home" tab that was really the market. They are genuinely
+ * different pages now, so both earn a place.
+ *
+ * An admin has no `/` entry: their dashboard is at `/admin`, and a second door to it here would
+ * be the same mistake in a new place.
  */
 const FARMER: Tab[] = [
+  { to: '/', key: 'dashboard', icon: 'home', primary: true },
   { to: '/market', key: 'market', icon: 'market', primary: true },
   { to: '/diagnose', key: 'diagnose', icon: 'diagnose', primary: true },
   { to: '/advisor', key: 'advisor', icon: 'advisor', primary: true },
@@ -75,6 +78,7 @@ const FARMER: Tab[] = [
 ];
 
 const BUYER: Tab[] = [
+  { to: '/', key: 'dashboard', icon: 'home', primary: true },
   { to: '/market', key: 'market', icon: 'market', primary: true },
   { to: '/bids', key: 'bids', icon: 'trending', primary: true },
   { to: '/orders', key: 'orders', icon: 'orders', primary: true },
