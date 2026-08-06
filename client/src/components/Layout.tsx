@@ -33,14 +33,14 @@ function OfflineBanner() {
   );
 }
 
-function LocaleToggle({ dark = true }: { dark?: boolean }) {
+function LocaleToggle({ dark = false }: { dark?: boolean }) {
   const locale = currentLocale();
   return (
     <button
       type="button"
       onClick={() => setLocale(locale === 'bn' ? 'en' : 'bn')}
       className={`rounded-lg px-2.5 py-1.5 text-sm font-semibold transition ${
-        dark ? 'text-brand-100 hover:bg-white/10' : 'text-slate-600 hover:bg-slate-100'
+        dark ? 'text-brand-100 hover:bg-white/10' : 'text-slate-500 hover:bg-slate-100 hover:text-slate-800'
       }`}
       aria-label="Switch language"
     >
@@ -55,7 +55,7 @@ function LocaleToggle({ dark = true }: { dark?: boolean }) {
  * A drawn sprout rather than 🌾: the emoji was a different picture on every platform, and the
  * one thing a logo cannot be is inconsistent.
  */
-function Brand({ dark = true }: { dark?: boolean }) {
+function Brand({ dark = false }: { dark?: boolean }) {
   const { t } = useTranslation();
 
   return (
@@ -71,14 +71,18 @@ function Brand({ dark = true }: { dark?: boolean }) {
       </span>
       <span className="leading-tight">
         <span
-          className={`block text-[17px] font-bold tracking-tight ${dark ? 'text-white' : 'text-brand-900'}`}
+          className={`block whitespace-nowrap text-[17px] font-bold tracking-tight ${dark ? 'text-white' : 'text-brand-900'}`}
         >
           {t('app.name')}
         </span>
         {/* Hidden once the nav needs the room — the tagline is scene-setting, and the links
             are what people came for. */}
+        {/* `whitespace-nowrap`, because "Farmer to buyer, directly" was breaking across two
+            lines and dragging the whole header taller than its content needed. */}
         <span
-          className={`hidden text-[11px] lg:block ${dark ? 'text-brand-200/80' : 'text-slate-500'}`}
+          className={`hidden whitespace-nowrap text-[11px] xl:block ${
+            dark ? 'text-brand-200/80' : 'text-slate-500'
+          }`}
         >
           {t('app.tagline')}
         </span>
@@ -115,14 +119,14 @@ function NavDropdown({ tab }: { tab: Tab }) {
         end={tab.to === '/'}
         onClick={() => setOpen(false)}
         className={({ isActive }) =>
-          `flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition ${
+          `flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition ${
             isActive
-              ? 'bg-white/15 font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
-              : 'font-medium text-brand-100/90 hover:bg-white/10 hover:text-white'
+              ? 'bg-brand-50 font-semibold text-brand-800'
+              : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           }`
         }
       >
-        <Icon name={tab.icon} className="h-4 w-4 opacity-90" />
+        <Icon name={tab.icon} className="h-4 w-4" />
         {t(`nav.${tab.key}`)}
         <svg
           viewBox="0 0 24 24"
@@ -164,6 +168,79 @@ function NavDropdown({ tab }: { tab: Tab }) {
   );
 }
 
+/**
+ * The signed-in user's own menu.
+ *
+ * Account moved here out of the nav row. Two doors to one page is a small waste on its own; the
+ * cost was that it made the row seven items wide, and the last two labels wrapped onto a second
+ * line — which is what made the header look broken rather than merely busy.
+ *
+ * Logout belongs here too. It was buried in the mobile sheet and had no desktop home at all, so
+ * the only way to sign out on a laptop was to open a menu meant for small screens.
+ */
+function UserMenu({ name, onLogout }: { name: string; onLogout: () => void }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="relative hidden sm:block"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex items-center gap-2 rounded-lg py-1.5 pl-2.5 pr-1.5 text-sm text-slate-600 transition hover:bg-slate-100"
+      >
+        {/* The name is hidden below xl rather than truncated to nothing: a name clipped to
+            "ডেমো ক্রেতা (Demo B…" tells you less than the avatar already does. */}
+        <span className="hidden max-w-[10rem] truncate font-medium xl:block">{name}</span>
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-brand-700">
+          <Icon name="account" className="h-4 w-4" />
+        </span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full w-52 pt-1.5">
+          <div className="overflow-hidden rounded-xl border border-slate-100 bg-white py-1.5 shadow-xl">
+            <p className="truncate border-b border-slate-100 px-4 pb-2 pt-1 text-xs text-slate-400">
+              {name}
+            </p>
+            <Link
+              to="/account"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-slate-50 hover:text-brand-700"
+            >
+              <Icon name="account" className="h-4 w-4" />
+              {t('nav.account')}
+            </Link>
+            <Link
+              to="/orders"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 transition hover:bg-slate-50 hover:text-brand-700"
+            >
+              <Icon name="orders" className="h-4 w-4" />
+              {t('nav.orders')}
+            </Link>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="flex w-full items-center gap-2.5 border-t border-slate-100 px-4 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-50 hover:text-red-700"
+            >
+              <Icon name="arrowRight" className="h-4 w-4" />
+              {t('auth.logout')}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Layout() {
   const { t } = useTranslation();
   const user = useAuth((s) => s.user);
@@ -195,8 +272,17 @@ export default function Layout() {
        * like the boundary of the page. Folding the links into the same row halves the height and
        * leaves a single, definite edge.
        */}
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-gradient-to-r from-brand-900 via-brand-800 to-brand-900 text-white shadow-lg shadow-brand-900/10">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
+      {/**
+       * White, with green as an accent rather than as the background.
+       *
+       * It was a saturated dark-green band across the top of every page. Two things were wrong
+       * with that: it is the loudest element on a screen whose actual subject is photographs of
+       * produce, and with white-on-green the only way to show an active tab was a slightly lighter
+       * green, which is a weak signal. On white, the active tab can simply be green — the brand
+       * colour then means "this is where you are" instead of meaning "this is a header".
+       */}
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4">
           <Brand />
 
           {/* Inline, centred, and the reason the second rail is gone. */}
@@ -210,10 +296,10 @@ export default function Layout() {
                 to={tab.to}
                 end={tab.to === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 rounded-full px-3.5 py-2 text-sm transition ${
+                  `flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition ${
                     isActive
-                      ? 'bg-white/15 font-semibold text-white shadow-sm ring-1 ring-inset ring-white/15'
-                      : 'font-medium text-brand-100/90 hover:bg-white/10 hover:text-white'
+                      ? 'bg-brand-50 font-semibold text-brand-800'
+                      : 'font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                   }`
                 }
               >
@@ -221,9 +307,11 @@ export default function Layout() {
                   <>
                     <Icon
                       name={tab.icon}
-                      className="h-4 w-4 opacity-90"
+                      className="h-4 w-4"
                       strokeWidth={isActive ? 2.2 : 1.75}
                     />
+                    {/* Nowrap on every label. "My Bids" and "My Account" were breaking onto a
+                        second line, which is what made the bar look broken rather than full. */}
                     {t(`nav.${tab.key}`)}
                   </>
                 )}
@@ -237,26 +325,18 @@ export default function Layout() {
             <LocaleToggle />
 
             {user ? (
-              <Link
-                to="/account"
-                className="hidden items-center gap-2 rounded-lg py-1 pl-2 pr-1 text-sm text-brand-100 transition hover:bg-white/10 sm:flex"
-              >
-                <span className="max-w-[9rem] truncate">{user.name}</span>
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15">
-                  <Icon name="account" className="h-4 w-4" />
-                </span>
-              </Link>
+              <UserMenu name={user.name} onLogout={() => void logout()} />
             ) : (
               <div className="hidden items-center gap-1.5 sm:flex">
                 <Link
                   to="/login"
-                  className="rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-100 transition hover:bg-white/10"
+                  className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
                 >
                   {t('auth.login')}
                 </Link>
                 <Link
                   to="/signup"
-                  className="rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-brand-800 transition hover:bg-brand-50"
+                  className="rounded-lg bg-brand-700 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-800"
                 >
                   {t('auth.register')}
                 </Link>
@@ -268,7 +348,7 @@ export default function Layout() {
             <button
               type="button"
               onClick={() => setMenuOpen((open) => !open)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-brand-100 transition hover:bg-white/10 md:hidden"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition hover:bg-slate-100 md:hidden"
               aria-label={t('nav.menu')}
               aria-expanded={menuOpen}
             >
@@ -300,7 +380,7 @@ export default function Layout() {
 
         {/* Mobile overflow sheet */}
         {menuOpen && (
-          <div className="border-t border-white/10 bg-brand-800 px-4 py-3 md:hidden">
+          <div className="border-t border-slate-200 bg-white px-4 py-3 shadow-lg md:hidden">
             <div className="flex flex-col gap-0.5">
               {/* Children are flattened in, indented. There is no room for a hover menu on a
                   phone, and burying the two shops behind a tap would make them harder to reach
@@ -312,7 +392,7 @@ export default function Layout() {
                   end={link.to === '/'}
                   className={({ isActive }) =>
                     `flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
-                      isActive ? 'bg-white/15 text-white' : 'text-brand-100 hover:bg-white/10'
+                      isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-600 hover:bg-slate-100'
                     }`
                   }
                 >
@@ -325,7 +405,7 @@ export default function Layout() {
                     to={child.to}
                     className={({ isActive }) =>
                       `ml-6 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                        isActive ? 'bg-white/15 text-white' : 'text-brand-100/80 hover:bg-white/10'
+                        isActive ? 'bg-brand-50 text-brand-800' : 'text-slate-500 hover:bg-slate-100'
                       }`
                     }
                   >
@@ -336,12 +416,12 @@ export default function Layout() {
               ])}
             </div>
 
-            <div className="mt-3 border-t border-white/10 pt-3">
+            <div className="mt-3 border-t border-slate-200 pt-3">
               {user ? (
                 <button
                   type="button"
                   onClick={() => void logout()}
-                  className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-brand-100 hover:bg-white/10"
+                  className="w-full rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-red-700"
                 >
                   {t('auth.logout')}
                 </button>
@@ -352,7 +432,7 @@ export default function Layout() {
                   </Link>
                   <Link
                     to="/signup"
-                    className="btn flex-1 bg-white text-sm text-brand-800 hover:bg-brand-50"
+                    className="btn flex-1 bg-brand-700 text-sm text-white hover:bg-brand-800"
                   >
                     {t('auth.register')}
                   </Link>

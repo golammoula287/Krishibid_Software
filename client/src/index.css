@@ -9,7 +9,7 @@
   }
 
   body {
-    @apply bg-brand-50 text-slate-900 antialiased;
+    @apply bg-surface text-slate-900 antialiased;
     /* Bottom nav is fixed; keep content clear of it and of the home indicator. */
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -31,20 +31,27 @@
     @apply btn bg-brand-700 text-white shadow-sm hover:bg-brand-800;
   }
   .btn-secondary {
-    @apply btn border border-brand-200 bg-white text-brand-800 hover:bg-brand-50;
+    @apply btn border border-slate-200 bg-white text-slate-700 hover:border-brand-300 hover:text-brand-800;
   }
   .btn-danger {
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
 
+  /**
+   * A neutral border, not a green one.
+   *
+   * Every card outlined in `brand-100` meant the green that should mark a price or an action was
+   * also drawing every box on the page — so nothing it marked stood out. Slate at low opacity
+   * defines the edge and gets out of the way.
+   */
   .card {
-    @apply rounded-2xl border border-brand-100 bg-white p-4 shadow-sm;
+    @apply rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm;
   }
 
   .field {
-    @apply min-h-touch w-full rounded-xl border border-slate-300 bg-white px-3.5
-           py-2.5 text-base placeholder:text-slate-400
-           focus:border-brand-600 focus:ring-1 focus:ring-brand-600;
+    @apply min-h-touch w-full rounded-xl border border-slate-200 bg-white px-3.5
+           py-2.5 text-base outline-none transition placeholder:text-slate-400
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
   }
 
   .label {
@@ -57,6 +64,6 @@
 
   /* Skeletons rather than spinners: they preserve layout and read as faster. */
   .skeleton {
-    @apply animate-pulse rounded-lg bg-brand-100;
+    @apply animate-pulse rounded-lg bg-slate-200/70;
   }
 }
