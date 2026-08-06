@@ -4,7 +4,7 @@
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-165%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-172%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A supplier-to-buyer **agricultural marketplace** — auctions *and* fixed-price shops — with
@@ -13,7 +13,7 @@ advisory assistant**, built for smallholder farmers in Bangladesh.
 
 > **Live client:** <https://krishibid.vercel.app>
 >
-> **Status:** frontend deployed, 165 passing tests, verified end-to-end against live
+> **Status:** frontend deployed, 172 passing tests, verified end-to-end against live
 > MongoDB Atlas and Gemini. The API is not deployed on serverless — it cannot be
 > (interval jobs, WebSockets, native ONNX/sharp binaries), so it needs Render or similar; see
 > [Deployment](#deployment-free-tier). The disease model ships as a placeholder until the
@@ -131,7 +131,7 @@ a field renamed on one side is a compile error on the other.
 git clone <your-repo-url> && cd Krishibid
 npm install
 cp .env.example .env      # then fill in the blanks below
-npm run seed              # wipes, then seeds accounts, 13 categories, 40 listings, bids, one order
+npm run seed              # wipes, then seeds accounts, 13 categories, 40 listings, bids, two orders
 npm run verify:logins     # proves you can actually sign in
 npm run dev               # server :5000 + client :5173
 ```
@@ -205,6 +205,20 @@ which is not a service being provided.
 Anything but pickup requires an address, a district and a contact phone before the order is
 created. "We will sort it out later" is how a consignment ends up in a warehouse while two
 people argue about whose job it was.
+
+**Dispatching is what ships a platform delivery.** When an admin assigns an agent from the
+dispatch board, the order moves to `in_transit`, the seven-day auto-release clock starts, and the
+agent's **name and phone number appear on the order** for both the buyer and the supplier — a
+tappable number, because the buyer wanting to know where their goods are is the whole reason any
+of it is recorded. The supplier is not asked to mark it shipped: on a platform delivery the
+platform is the carrier, and letting them declare it sent would start the buyer's inspection
+window before anybody had collected anything.
+
+Reassigning an agent — the first one fell ill, the parcel came back — updates who is carrying it
+without shipping the order twice, so the buyer's dispute window is not silently restarted. An
+order cannot be dispatched before the buyer has paid into escrow; goods leaving against no held
+funds would hand away the supplier's only protection, from a screen that shows no payment status.
+When the buyer confirms receipt, the consignment is marked delivered and escrow releases.
 
 ---
 
@@ -466,7 +480,7 @@ Full reasoning: [ADR-006](docs/adr/ADR-006-escrow-payments.md).
 ## Testing
 
 ```bash
-npm test          # 165 tests
+npm test          # 172 tests
 npm run typecheck
 npm run build
 npm run budget    # initial JS payload budget
@@ -518,6 +532,10 @@ see [ADR-004](docs/adr/ADR-004-hybrid-retrieval.md). Re-run at 300+ chunks to se
   exactly zero on release.
 - **The admin / super admin boundary** — that an admin cannot appoint another, cannot demote
   one, cannot suspend one, and that nobody can change their own role.
+- **Dispatching a platform delivery** — that assigning an agent records who is carrying it AND
+  moves the order to `in_transit`, that it starts the auto-release clock, that it refuses an
+  unpaid order, that reassigning does not ship the order twice, and that confirming receipt marks
+  the consignment delivered without forgetting who brought it.
 - **Signing in** — by email, by phone, case-insensitively; that an unapproved supplier gets
   `account_pending_approval` and not a wrong-password error; and that the one-click demo login
   can never hand out the account that is still awaiting approval.

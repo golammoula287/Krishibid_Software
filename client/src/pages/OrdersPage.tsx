@@ -2,6 +2,7 @@ import type { OrderDto } from '@krishibid/shared';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { Icon } from '../components/icons.js';
 import { CardSkeleton, EmptyState, ErrorNote, StatusBadge } from '../components/ui.js';
 import { api } from '../lib/api.js';
 import { formatBdt, formatDate } from '../lib/format.js';
@@ -40,6 +41,18 @@ export default function OrdersPage() {
                 <p className="mt-1 text-xs text-slate-500">
                   {formatDate(order.createdAt, locale)}
                 </p>
+
+                {/* Who is carrying it, on the list itself. The most common reason for opening an
+                    order at all is to find this, and a list that makes you open each one to see
+                    whether it moved is a list that failed at being a list. */}
+                {order.delivery.agentName && (
+                  <p className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-brand-700">
+                    <Icon name="truck" className="h-3.5 w-3.5" />
+                    {order.delivery.status === 'delivered'
+                      ? t('delivery.status.delivered')
+                      : t('delivery.withAgent', { name: order.delivery.agentName })}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1.5">
                 <StatusBadge status={order.status} label={t(`orders.status.${order.status}`)} />

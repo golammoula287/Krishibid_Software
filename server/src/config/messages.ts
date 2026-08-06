@@ -254,6 +254,28 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
       hint: 'The buyer is collecting it, or it goes by courier.',
     },
   },
+  delivery_not_dispatchable: {
+    tone: 'warning',
+    bn: {
+      title: 'এই অর্ডার এখন পাঠানো যাবে না',
+      hint: 'টাকা এসক্রোতে জমা হওয়ার আগে সরবরাহকারীর কাছ থেকে কিছু বের হবে না।',
+    },
+    en: {
+      title: 'This order cannot be dispatched yet',
+      hint: 'Nothing leaves the supplier until the buyer has paid into escrow.',
+    },
+  },
+  platform_delivery_not_yours_to_ship: {
+    tone: 'info',
+    bn: {
+      title: 'এই চালান আমরা সংগ্রহ করব',
+      hint: 'আমাদের এজেন্ট মালামাল নেওয়ার সঙ্গে সঙ্গে অর্ডারটি পথে চলে যাবে।',
+    },
+    en: {
+      title: 'We are collecting this one',
+      hint: 'The order moves to in transit the moment our agent takes it.',
+    },
+  },
   bad_amount: {
     tone: 'error',
     bn: { title: 'পরিমাণটি সঠিক নয়' },

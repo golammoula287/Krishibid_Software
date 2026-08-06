@@ -9,6 +9,7 @@
  *
  *   npm run seed
  */
+import { DELIVERY_CHARGE_POISHA } from '@krishibid/shared';
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 import { env } from '../config/env.js';
@@ -423,6 +424,94 @@ async function seed(): Promise<void> {
       ],
     });
     logger.info('seeded one order awaiting payment for the demo buyer');
+  }
+
+  /**
+   * A second order, paid and waiting to be collected.
+   *
+   * The dispatch board is the admin's other daily job and an empty one demonstrates nothing —
+   * the same reason a supplier is left in the review queue. This one is a platform delivery with
+   * escrow already held, so assigning an agent exercises the whole chain: the order moves to in
+   * transit, the auto-release clock starts, and the buyer sees who is carrying their goods.
+   */
+  const forDelivery = created.find(
+    (l) => String(l.farmerId) !== String(demoBuyer!._id) && String(l._id) !== String(payable?._id),
+  );
+
+  if (forDelivery) {
+    const bid = await Bid.create({
+      listingId: forDelivery._id,
+      buyerId: demoBuyer!._id,
+      amountPoisha: forDelivery.reservePricePoisha + bdtToPoisha(300),
+      status: 'won',
+    });
+
+    await Listing.findByIdAndUpdate(forDelivery._id, { status: 'sold', $inc: { version: 1 } });
+
+    const goodsPoisha = bid.amountPoisha;
+    const deliveryPoisha = DELIVERY_CHARGE_POISHA.platform;
+    const commissionPoisha = Math.floor((goodsPoisha * env().PLATFORM_COMMISSION_BPS) / 10_000);
+
+    const order = await Order.create({
+      listingId: forDelivery._id,
+      bidId: bid._id,
+      farmerId: forDelivery.farmerId,
+      buyerId: demoBuyer!._id,
+      cropSlug: forDelivery.categorySlug,
+      quantityKg: forDelivery.quantity,
+      agreedAmountPoisha: goodsPoisha,
+      delivery: {
+        method: 'platform',
+        status: 'awaiting_dispatch',
+        addressLine: 'House 42, Road 7, Dhanmondi',
+        district: 'Dhaka',
+        contactPhone: demoBuyer!.phone,
+        note: 'Please ring before arriving',
+        chargePoisha: deliveryPoisha,
+      },
+      status: 'confirmed',
+      // In the past, because it was met: the window this order had to be paid in has closed and
+      // the payment landed inside it.
+      paymentDeadline: new Date(Date.now() - 60 * 60 * 1000),
+      statusHistory: [
+        {
+          status: 'awaiting_payment',
+          at: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          by: forDelivery.farmerId,
+          note: 'seeded: bid accepted, awaiting escrow payment',
+        },
+        {
+          status: 'confirmed',
+          at: new Date(Date.now() - 60 * 60 * 1000),
+          by: null,
+          note: 'seeded: payment held in escrow',
+        },
+      ],
+    });
+
+    /**
+     * The matching payment, `held`.
+     *
+     * Without it the order would claim escrow that the ledger has never heard of, and the
+     * admin overview — which reads escrow from held payments — would show zero next to an
+     * order it says is paid.
+     */
+    await Payment.create({
+      orderId: order._id,
+      buyerId: demoBuyer!._id,
+      farmerId: forDelivery.farmerId,
+      // The gateway was charged goods AND carriage; commission comes off the goods alone.
+      amountPoisha: goodsPoisha + deliveryPoisha,
+      commissionPoisha,
+      farmerNetPoisha: goodsPoisha - commissionPoisha + deliveryPoisha,
+      status: 'held',
+      tranId: `SEED-${String(order._id)}`,
+      bankTranId: 'SEED-BANK-1',
+      heldAt: new Date(Date.now() - 60 * 60 * 1000),
+      simulated: true,
+    });
+
+    logger.info('seeded one paid order awaiting dispatch, for the admin delivery board');
   }
 
   logger.info(

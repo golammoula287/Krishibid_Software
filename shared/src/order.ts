@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { objectId, positivePoishaSchema } from './common.js';
+import type { DeliveryDto } from './delivery.js';
 
 /**
  * Order lifecycle. Payment is interleaved: an order is not `confirmed` until
@@ -50,7 +51,17 @@ export const ORDER_TRANSITION_ACTORS: Readonly<
 > = {
   awaiting_payment: [],
   confirmed: ['system'], // only the verified payment IPN moves an order here
-  in_transit: ['farmer'],
+  /**
+   * The supplier, or an admin dispatching a platform delivery.
+   *
+   * On a platform delivery the platform IS the carrier — the goods start moving when an admin
+   * hands them to an agent, not when the supplier says so. Leaving this to the supplier alone
+   * would ask them to attest to a shipment somebody else made, and would leave the order sitting
+   * at `confirmed` while an agent was already carrying it: the buyer could not confirm receipt
+   * (release requires `in_transit`) and the auto-release clock, which starts on shipping, would
+   * never start at all.
+   */
+  in_transit: ['farmer', 'admin'],
   completed: ['buyer', 'system', 'admin'], // buyer confirms, or auto-release
   disputed: ['buyer'],
   refunded: ['admin', 'system'],
@@ -80,6 +91,14 @@ export interface OrderDto {
   agreedAmountPoisha: number;
   status: OrderStatus;
   statusHistory: OrderStatusEvent[];
+  /**
+   * How the goods travel, and — once an admin has handed them over — who is carrying them.
+   *
+   * On the order rather than fetched separately, because the question it answers is asked at
+   * exactly one moment: the buyer looking at their order wanting to know where it is and who to
+   * ring. A second request for that would be a second chance to show them nothing.
+   */
+  delivery: DeliveryDto;
   paymentStatus: string | null;
   paymentDeadline: string | null;
   createdAt: string;

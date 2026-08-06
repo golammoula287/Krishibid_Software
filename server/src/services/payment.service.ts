@@ -532,6 +532,19 @@ export async function releaseEscrow(
     await session?.endSession();
   }
 
+  /**
+   * The consignment arrived — which is what releasing escrow means.
+   *
+   * Recorded after the ledger, not inside it: a delivery marked complete against money that
+   * failed to move would be a lie, and the reverse — money released against a consignment still
+   * showing "dispatched" — is merely untidy. Scoped to deliveries actually in flight so a pickup
+   * is not retitled as something we carried.
+   */
+  await Order.updateOne(
+    { _id: orderId, 'delivery.status': 'dispatched' },
+    { $set: { 'delivery.status': 'delivered', 'delivery.deliveredAt': new Date() } },
+  );
+
   logger.info(
     { orderId, paymentId: String(claimed._id), netPoisha: claimed.farmerNetPoisha, by: actor.kind },
     'escrow released to farmer',
@@ -707,6 +720,48 @@ export interface ShipResult {
  * The auto-release clock starts here rather than at capture, because the buyer's
  * window to inspect the goods only meaningfully begins once they are on the way.
  */
+/**
+ * Everything that happens when goods start moving, whoever set them moving.
+ *
+ * Extracted because there are two ways an order ships and they must not diverge: the supplier
+ * marking their own consignment sent, and an admin handing a platform delivery to an agent. The
+ * part that matters to the buyer — the auto-release clock, which is the window they have to
+ * inspect and dispute — is identical either way, and a second copy of it is a second place for
+ * that window to be wrong.
+ *
+ * Callers own the authorisation and the state check; this records the fact.
+ */
+export async function recordShipment(
+  orderId: string,
+  actorId: string,
+  note: string,
+): Promise<ShipResult> {
+  const order = await Order.findById(orderId);
+  if (!order) throw notFound('order');
+
+  const shippedAt = new Date();
+  const autoReleaseAt = new Date(
+    shippedAt.getTime() + env().ESCROW_AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000,
+  );
+
+  await transitionOrder(orderId, 'in_transit', actorId, note);
+
+  await Order.findByIdAndUpdate(orderId, { shippedAt });
+  await Payment.findOneAndUpdate(
+    { orderId: order._id, status: 'held' },
+    { $set: { autoReleaseAt } },
+  );
+
+  logger.info({ orderId, autoReleaseAt }, 'order shipped; auto-release scheduled');
+
+  emitToUser(String(order.buyerId), 'order:shipped', {
+    orderId,
+    autoReleaseAt: autoReleaseAt.toISOString(),
+  });
+
+  return { orderId, autoReleaseAt: autoReleaseAt.toISOString() };
+}
+
 export async function markShipped(
   farmerId: string,
   orderId: string,
@@ -726,32 +781,21 @@ export async function markShipped(
     );
   }
 
-  const shippedAt = new Date();
-  const autoReleaseAt = new Date(
-    shippedAt.getTime() + env().ESCROW_AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000,
-  );
+  /**
+   * A platform delivery is not the supplier's to declare shipped.
+   *
+   * They hand the goods to us; an admin dispatching them to an agent is what puts them in
+   * transit. Letting the supplier mark it themselves would start the buyer's inspection window
+   * before anybody had actually collected anything.
+   */
+  if (order.delivery?.method === 'platform') {
+    throw conflict(
+      'platform_delivery_not_yours_to_ship',
+      'we are collecting this one — it moves to in transit when our agent takes it',
+    );
+  }
 
-  await transitionOrder(
-    orderId,
-    'in_transit',
-    farmerId,
-    courierNote ?? 'marked shipped by seller',
-  );
-
-  await Order.findByIdAndUpdate(orderId, { shippedAt });
-  await Payment.findOneAndUpdate(
-    { orderId: order._id, status: 'held' },
-    { $set: { autoReleaseAt } },
-  );
-
-  logger.info({ orderId, autoReleaseAt }, 'order shipped; auto-release scheduled');
-
-  emitToUser(String(order.buyerId), 'order:shipped', {
-    orderId,
-    autoReleaseAt: autoReleaseAt.toISOString(),
-  });
-
-  return { orderId, autoReleaseAt: autoReleaseAt.toISOString() };
+  return recordShipment(orderId, farmerId, courierNote ?? 'marked shipped by seller');
 }
 
 export async function getPaymentForOrder(

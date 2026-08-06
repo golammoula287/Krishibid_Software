@@ -1,4 +1,9 @@
-import type { InitiatePaymentResult, OrderDto, PaymentDto } from '@krishibid/shared';
+import type {
+  DeliveryDto,
+  InitiatePaymentResult,
+  OrderDto,
+  PaymentDto,
+} from '@krishibid/shared';
 import { Icon } from '../components/icons.js';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -9,6 +14,119 @@ import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
 import { formatBdt, formatDate, formatNumber } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
+
+/**
+ * Where the goods are, and who has them.
+ *
+ * The order status says "in transit"; this says by whose hands. When an admin dispatches a
+ * platform delivery they record an agent and a number, and this is the only place that reaches
+ * the two people who need it — a buyer wondering where their consignment is, and a supplier
+ * wanting to know it actually left. Recording it and not showing it would have made the dispatch
+ * board a private note.
+ *
+ * Not rendered at all for a pickup: there is no journey to report, and a card saying "you are
+ * collecting this" is a card explaining a decision back to the person who made it.
+ */
+function DeliveryCard({ delivery }: { delivery: DeliveryDto }) {
+  const { t } = useTranslation();
+  const locale = currentLocale();
+
+  if (delivery.method === 'pickup') return null;
+
+  const dispatched = delivery.status === 'dispatched' || delivery.status === 'delivered';
+
+  return (
+    <div className="card">
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="flex items-center gap-2 font-bold text-brand-900">
+          <Icon name="truck" className="h-5 w-5 text-brand-600" />
+          {t(`delivery.method.${delivery.method}`)}
+        </h2>
+        <span
+          className={`badge ${
+            delivery.status === 'delivered'
+              ? 'bg-brand-100 text-brand-800'
+              : delivery.status === 'dispatched'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-amber-100 text-amber-800'
+          }`}
+        >
+          {t(`delivery.status.${delivery.status}`)}
+        </span>
+      </div>
+
+      {/* The agent, given the weight the question deserves — this is what somebody scrolled
+          here to find, so it is a panel rather than another row in a list of details. */}
+      {dispatched && delivery.agentName && (
+        <div className="mt-3 rounded-xl bg-brand-50 p-3">
+          <p className="text-xs text-brand-700">{t('delivery.carriedBy')}</p>
+          <p className="mt-0.5 font-semibold text-brand-900">{delivery.agentName}</p>
+
+          {delivery.agentPhone && (
+            // A number you can ring rather than a number you must copy. On the phone this is
+            // most people will open the app on, that is the difference between usable and not.
+            <a
+              href={`tel:${delivery.agentPhone}`}
+              className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-700 underline"
+            >
+              <Icon name="phone" className="h-4 w-4" />
+              {delivery.agentPhone}
+            </a>
+          )}
+
+          {delivery.trackingNote && (
+            <p className="mt-2 text-sm text-brand-800">{delivery.trackingNote}</p>
+          )}
+          {delivery.dispatchedAt && (
+            <p className="mt-2 text-xs text-brand-700">
+              {t('delivery.dispatchedAt', { date: formatDate(delivery.dispatchedAt, locale) })}
+            </p>
+          )}
+        </div>
+      )}
+
+      {delivery.status === 'awaiting_dispatch' && (
+        <p className="mt-2 text-sm text-slate-600">{t('delivery.awaitingAgent')}</p>
+      )}
+
+      <dl className="mt-3 space-y-2 border-t border-brand-50 pt-3 text-sm">
+        {delivery.addressLine && (
+          <div>
+            <dt className="text-xs text-slate-500">{t('delivery.address')}</dt>
+            <dd className="text-slate-800">
+              {delivery.addressLine}
+              {delivery.district && `, ${delivery.district}`}
+            </dd>
+          </div>
+        )}
+        {delivery.contactPhone && (
+          <div>
+            <dt className="text-xs text-slate-500">{t('delivery.contactPhone')}</dt>
+            <dd className="text-slate-800">{delivery.contactPhone}</dd>
+          </div>
+        )}
+        {delivery.note && (
+          <div>
+            <dt className="text-xs text-slate-500">{t('delivery.note')}</dt>
+            <dd className="text-slate-800">{delivery.note}</dd>
+          </div>
+        )}
+        <div className="flex justify-between">
+          <dt className="text-slate-500">{t('delivery.charge')}</dt>
+          <dd className="font-semibold tabular-nums text-slate-800">
+            {delivery.chargePoisha > 0 ? formatBdt(delivery.chargePoisha, locale) : t('delivery.free')}
+          </dd>
+        </div>
+        {delivery.deliveredAt && (
+          <div className="flex justify-between">
+            <dt className="text-slate-500">{t('delivery.deliveredAt')}</dt>
+            <dd className="text-slate-800">{formatDate(delivery.deliveredAt, locale)}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  );
+}
 
 export default function OrderDetailPage() {
   const { id = '' } = useParams();
@@ -138,6 +256,8 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      <DeliveryCard delivery={o.delivery} />
+
       {/* ---- actions ---- */}
       <div className="space-y-2">
         {isBuyer && o.status === 'awaiting_payment' && (
@@ -154,7 +274,10 @@ export default function OrderDetailPage() {
           </>
         )}
 
-        {isFarmer && o.status === 'confirmed' && (
+        {/* A platform delivery is not the supplier's to declare shipped — they hand it to us,
+            and our agent taking it is what puts it in transit. The API refuses either way; this
+            stops the supplier being shown a button whose only outcome is a refusal. */}
+        {isFarmer && o.status === 'confirmed' && o.delivery.method !== 'platform' && (
           <>
             {ship.isError && <ErrorNote error={ship.error} />}
             <button
@@ -166,6 +289,13 @@ export default function OrderDetailPage() {
               {t('orders.markShipped')}
             </button>
           </>
+        )}
+
+        {isFarmer && o.status === 'confirmed' && o.delivery.method === 'platform' && (
+          <div className="rounded-xl border border-brand-100 bg-brand-50 p-4">
+            <p className="text-sm font-semibold text-brand-900">{t('delivery.weCollect')}</p>
+            <p className="mt-1 text-sm text-brand-800">{t('delivery.weCollectHelp')}</p>
+          </div>
         )}
 
         {isBuyer && o.status === 'in_transit' && (

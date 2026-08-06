@@ -30,6 +30,8 @@ export type IconName =
   | 'review'
   | 'insights'
   | 'arrowRight'
+  | 'truck'
+  | 'phone'
   | 'check';
 
 const PATHS: Record<IconName, ReactElement> = {
@@ -138,6 +140,20 @@ const PATHS: Record<IconName, ReactElement> = {
       <path d="M4 12h15" />
       <path d="m13 6 6 6-6 6" />
     </>
+  ),
+  /** A consignment on the move — the delivery agent carrying it. */
+  truck: (
+    <>
+      <path d="M3 7a1 1 0 0 1 1-1h9v10H4a1 1 0 0 1-1-1V7Z" />
+      <path d="M13 9h4l4 3.5V15a1 1 0 0 1-1 1h-3" />
+      <circle cx="7.5" cy="17.5" r="1.75" />
+      <circle cx="16.5" cy="17.5" r="1.75" />
+      <path d="M9.25 17.5h5.5" />
+    </>
+  ),
+  /** Somebody to ring. Always next to a real number, never decoration on its own. */
+  phone: (
+    <path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2 2A16.5 16.5 0 0 1 4.5 5.5a2 2 0 0 1 2-2Z" />
   ),
   check: <path d="M20 6 9 17l-5-5" />,
 };

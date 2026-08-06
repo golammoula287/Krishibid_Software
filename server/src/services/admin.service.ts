@@ -17,6 +17,7 @@ import { Listing } from '../models/Listing.js';
 import { Order } from '../models/Order.js';
 import { Payment } from '../models/Payment.js';
 import { User } from '../models/User.js';
+import { recordShipment } from './payment.service.js';
 
 /**
  * What an operator needs to run the platform.
@@ -168,7 +169,13 @@ export async function listDeliveryQueue(
  *
  * The agent's name and number are the whole point: an order marked "dispatched" with nobody
  * attached is not tracking, it is a claim. When a buyer rings to ask where their goods are, this
- * is the answer.
+ * is the answer, and it is why it travels on the order rather than staying on this board.
+ *
+ * Dispatching also SHIPS the order, because on a platform delivery the platform is the carrier.
+ * Recording an agent while leaving the order at `confirmed` would produce an order whose delivery
+ * says "dispatched" and whose status says nothing has happened — and worse, the buyer could not
+ * confirm receipt (escrow release requires `in_transit`) and the auto-release clock would never
+ * start, so the supplier's money would sit in escrow until somebody noticed by hand.
  */
 export async function assignDelivery(
   adminId: string,
@@ -185,6 +192,22 @@ export async function assignDelivery(
     );
   }
 
+  /**
+   * Nothing leaves before the money is in escrow.
+   *
+   * The whole protection a supplier gets from this platform is that goods move only against held
+   * funds. An admin dispatching an unpaid order would hand that away on the supplier's behalf,
+   * from a screen that shows no payment status at all.
+   */
+  if (order.status !== 'confirmed' && order.status !== 'in_transit') {
+    throw conflict(
+      'delivery_not_dispatchable',
+      order.status === 'awaiting_payment'
+        ? 'the buyer has not paid into escrow yet — nothing should leave the supplier'
+        : `an order that is ${order.status} cannot be dispatched`,
+    );
+  }
+
   await Order.updateOne(
     { _id: orderId },
     {
@@ -197,6 +220,17 @@ export async function assignDelivery(
       },
     },
   );
+
+  /**
+   * Only on the way out of `confirmed`.
+   *
+   * Reassigning an agent to something already in transit — the first one fell ill, the parcel
+   * came back — must update who is carrying it without pretending it shipped a second time, or
+   * it would reset the auto-release clock the buyer's protection window is measured from.
+   */
+  if (order.status === 'confirmed') {
+    await recordShipment(orderId, adminId, `handed to ${input.agentName} for delivery`);
+  }
 
   logger.info({ adminId, orderId, agent: input.agentName }, 'delivery assigned');
 }

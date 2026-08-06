@@ -256,9 +256,16 @@ function DeliveryBoard() {
                 {t('admin.delivery.to')} {item.buyerName} · {item.buyerPhone}
               </p>
             </div>
-            <span className="badge bg-brand-50 text-brand-800">
-              {formatBdt(item.delivery.chargePoisha, locale)}
-            </span>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <span className="badge bg-brand-50 text-brand-800">
+                {formatBdt(item.delivery.chargePoisha, locale)}
+              </span>
+              {/* Where the order itself stands. Dispatching moves it to in transit, and an admin
+                  needs to see that happened rather than trust that it did. */}
+              <span className="text-xs text-slate-500">
+                {t(`orders.status.${item.orderStatus}`)}
+              </span>
+            </div>
           </div>
 
           {item.delivery.addressLine && (
@@ -271,16 +278,37 @@ function DeliveryBoard() {
             </p>
           )}
 
-          {item.delivery.agentName ? (
-            <p className="mt-3 text-sm text-slate-700">
-              <span className="font-semibold">{t('admin.delivery.agent')}: </span>
-              {item.delivery.agentName} · {item.delivery.agentPhone}
-              {item.delivery.dispatchedAt && (
-                <span className="ml-1 text-xs text-slate-500">
-                  ({formatDate(item.delivery.dispatchedAt, locale)})
-                </span>
+          {item.delivery.agentName && openFor !== item.orderId ? (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-slate-700">
+                <span className="font-semibold">{t('admin.delivery.agent')}: </span>
+                {item.delivery.agentName} · {item.delivery.agentPhone}
+                {item.delivery.dispatchedAt && (
+                  <span className="ml-1 text-xs text-slate-500">
+                    ({formatDate(item.delivery.dispatchedAt, locale)})
+                  </span>
+                )}
+              </p>
+              {/* Agents fall ill and parcels come back. Reassigning records the new carrier
+                  without shipping the order a second time — the buyer's inspection window runs
+                  from the first dispatch and must not restart. */}
+              {item.delivery.status !== 'delivered' && (
+                <button
+                  type="button"
+                  className="text-sm font-semibold text-brand-700 underline"
+                  onClick={() => {
+                    setAgent({
+                      agentName: item.delivery.agentName ?? '',
+                      agentPhone: item.delivery.agentPhone ?? '',
+                      trackingNote: item.delivery.trackingNote ?? '',
+                    });
+                    setOpenFor(item.orderId);
+                  }}
+                >
+                  {t('admin.delivery.reassign')}
+                </button>
               )}
-            </p>
+            </div>
           ) : openFor === item.orderId ? (
             <form
               className="mt-3 space-y-2 border-t border-brand-50 pt-3"

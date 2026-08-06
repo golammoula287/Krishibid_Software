@@ -1,6 +1,9 @@
 import { DELIVERY_CHARGE_POISHA, deliveryChoiceSchema } from '@krishibid/shared';
 import { describe, expect, it } from 'vitest';
 import { splitCommission } from '../utils/money.js';
+import { Order, makeListing, makeOrder, makePayment, makeUser } from '../test/factories.js';
+import { assignDelivery } from './admin.service.js';
+import { markShipped, releaseEscrow } from './payment.service.js';
 
 /**
  * Delivery money.
@@ -81,5 +84,138 @@ describe('what a delivery choice must include', () => {
     });
 
     expect(parsed.success).toBe(true);
+  });
+});
+
+/**
+ * Handing a consignment to somebody.
+ *
+ * The point of recording an agent is that two people can find out who has their goods, so what
+ * matters is not that a field was written but that the order as a whole now says the goods are
+ * moving. Before this, an admin could dispatch an order and it would still read `confirmed`:
+ * the buyer could not confirm receipt, because escrow release requires `in_transit`, and the
+ * auto-release clock — the supplier's guarantee of eventually being paid — never started.
+ */
+describe('dispatching a platform delivery', () => {
+  async function platformOrder(status = 'confirmed') {
+    const supplier = await makeUser('farmer');
+    const buyer = await makeUser('buyer');
+    const admin = await makeUser('admin');
+    const listing = await makeListing({ farmerId: supplier._id });
+    const order = await makeOrder({
+      listingId: listing._id,
+      farmerId: supplier._id,
+      buyerId: buyer._id,
+      status,
+      delivery: { method: 'platform', status: 'awaiting_dispatch', chargePoisha: 15_000 },
+    });
+
+    return { supplier, buyer, admin, order };
+  }
+
+  const AGENT = { agentName: 'Karim Mia', agentPhone: '01812345678' };
+
+  it('records who is carrying it, and puts the order in transit', async () => {
+    const { admin, order } = await platformOrder();
+
+    await assignDelivery(String(admin._id), String(order._id), {
+      ...AGENT,
+      trackingNote: 'leaving Rangpur at 6am',
+    });
+
+    const after = await Order.findById(order._id).lean();
+    expect(after?.delivery?.agentName).toBe('Karim Mia');
+    expect(after?.delivery?.agentPhone).toBe('01812345678');
+    expect(after?.delivery?.status).toBe('dispatched');
+    expect(after?.delivery?.dispatchedAt).toBeInstanceOf(Date);
+    // The part that was missing: the order itself moved.
+    expect(after?.status).toBe('in_transit');
+    expect(after?.shippedAt).toBeInstanceOf(Date);
+  });
+
+  it('starts the auto-release clock, so the supplier is eventually paid without anybody acting', async () => {
+    const { supplier, buyer, admin, order } = await platformOrder();
+    await makePayment({ orderId: order._id, buyerId: buyer._id, farmerId: supplier._id });
+
+    await assignDelivery(String(admin._id), String(order._id), AGENT);
+
+    const { Payment } = await import('../models/Payment.js');
+    const payment = await Payment.findOne({ orderId: order._id }).lean();
+    expect(payment?.autoReleaseAt).toBeInstanceOf(Date);
+  });
+
+  it('refuses to dispatch an order the buyer has not paid for', async () => {
+    const { admin, order } = await platformOrder('awaiting_payment');
+
+    // Goods leaving against no escrow would hand away the only protection the supplier has,
+    // from a screen that does not show payment status at all.
+    await expect(
+      assignDelivery(String(admin._id), String(order._id), AGENT),
+    ).rejects.toMatchObject({ code: 'delivery_not_dispatchable' });
+
+    const after = await Order.findById(order._id).lean();
+    expect(after?.delivery?.agentName).toBeFalsy();
+  });
+
+  it('refuses an order we are not carrying', async () => {
+    const supplier = await makeUser('farmer');
+    const buyer = await makeUser('buyer');
+    const admin = await makeUser('admin');
+    const listing = await makeListing({ farmerId: supplier._id });
+    const order = await makeOrder({
+      listingId: listing._id,
+      farmerId: supplier._id,
+      buyerId: buyer._id,
+      status: 'confirmed',
+      delivery: { method: 'pickup' },
+    });
+
+    await expect(
+      assignDelivery(String(admin._id), String(order._id), AGENT),
+    ).rejects.toMatchObject({ code: 'delivery_not_ours' });
+  });
+
+  it('swaps the agent without shipping the order twice', async () => {
+    const { supplier, buyer, admin, order } = await platformOrder();
+    await makePayment({ orderId: order._id, buyerId: buyer._id, farmerId: supplier._id });
+
+    await assignDelivery(String(admin._id), String(order._id), AGENT);
+    const firstShippedAt = (await Order.findById(order._id).lean())?.shippedAt;
+
+    // The first agent fell ill; somebody else takes it. That must not reset the window the
+    // buyer has to inspect and dispute.
+    await assignDelivery(String(admin._id), String(order._id), {
+      agentName: 'Rahim Uddin',
+      agentPhone: '01911111111',
+    });
+
+    const after = await Order.findById(order._id).lean();
+    expect(after?.delivery?.agentName).toBe('Rahim Uddin');
+    expect(after?.shippedAt?.getTime()).toBe(firstShippedAt?.getTime());
+    expect(after?.statusHistory?.filter((e) => e.status === 'in_transit')).toHaveLength(1);
+  });
+
+  it('is not the supplier’s to mark shipped — we are the carrier', async () => {
+    const { supplier, order } = await platformOrder();
+
+    await expect(
+      markShipped(String(supplier._id), String(order._id)),
+    ).rejects.toMatchObject({ code: 'platform_delivery_not_yours_to_ship' });
+  });
+
+  it('marks the consignment delivered when the buyer confirms receipt', async () => {
+    const { supplier, buyer, admin, order } = await platformOrder();
+    await makePayment({ orderId: order._id, buyerId: buyer._id, farmerId: supplier._id });
+    await assignDelivery(String(admin._id), String(order._id), AGENT);
+
+    await releaseEscrow(String(order._id), { userId: String(buyer._id), kind: 'buyer' });
+
+    const after = await Order.findById(order._id).lean();
+    expect(after?.status).toBe('completed');
+    expect(after?.delivery?.status).toBe('delivered');
+    expect(after?.delivery?.deliveredAt).toBeInstanceOf(Date);
+    // Still says who brought it. A delivered order that forgot the agent would be no use in
+    // a complaint, which is exactly when somebody looks.
+    expect(after?.delivery?.agentName).toBe('Karim Mia');
   });
 });

@@ -1,9 +1,37 @@
-import { canTransitionOrder, type OrderDto, type OrderStatus } from '@krishibid/shared';
+import {
+  canTransitionOrder,
+  type DeliveryDto,
+  type OrderDto,
+  type OrderStatus,
+} from '@krishibid/shared';
 import mongoose from 'mongoose';
 import { conflict, forbidden, notFound } from '../utils/errors.js';
 import { Listing } from '../models/Listing.js';
 import { Order, type OrderDoc } from '../models/Order.js';
 import { Payment } from '../models/Payment.js';
+
+/**
+ * The delivery block, with the empty strings mongoose leaves behind turned back into absence.
+ *
+ * `agentName: ''` and no agent at all are the same fact and must render the same way — the UI
+ * asks "is there somebody carrying this?", and an empty string answers yes.
+ */
+function toDeliveryDto(d: OrderDoc['delivery']): DeliveryDto {
+  return {
+    method: (d?.method ?? 'pickup') as DeliveryDto['method'],
+    status: (d?.status ?? 'not_required') as DeliveryDto['status'],
+    addressLine: d?.addressLine || undefined,
+    district: d?.district || undefined,
+    contactPhone: d?.contactPhone || undefined,
+    note: d?.note || undefined,
+    chargePoisha: d?.chargePoisha ?? 0,
+    agentName: d?.agentName || undefined,
+    agentPhone: d?.agentPhone || undefined,
+    trackingNote: d?.trackingNote || undefined,
+    dispatchedAt: d?.dispatchedAt?.toISOString(),
+    deliveredAt: d?.deliveredAt?.toISOString(),
+  };
+}
 
 export function toOrderDto(o: OrderDoc, paymentStatus: string | null): OrderDto {
   return {
@@ -22,6 +50,7 @@ export function toOrderDto(o: OrderDoc, paymentStatus: string | null): OrderDto 
       by: ev.by ? String(ev.by) : null,
       note: ev.note ?? undefined,
     })),
+    delivery: toDeliveryDto(o.delivery),
     paymentStatus,
     paymentDeadline: o.paymentDeadline?.toISOString() ?? null,
     createdAt: (o as unknown as { createdAt: Date }).createdAt.toISOString(),
