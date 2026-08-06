@@ -49,26 +49,21 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Report client bundle size
-        run: |
-          echo "### Client bundle (gzip)" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          find client/dist/assets -name '*.js' -o -name '*.css' | while read -r f; do
-            printf '%-44s %6s KB\n' "$(basename "$f")" \
-              "$(gzip -c "$f" | wc -c | awk '{printf "%.1f", $1/1024}')" \
-              >> "$GITHUB_STEP_SUMMARY"
-          done
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-
-      # The plan commits to <200 KB gzip for the initial payload. Enforced rather than
-      # aspirational: the target user is on metered mobile data.
+      # Two numbers, two limits — see client/scripts/bundle-budget.mjs.
+      #
+      # This replaced a check that summed every emitted asset and called the result "the initial
+      # payload". It was not: most of them are lazy route chunks nobody fetches on load. The gap
+      # was not academic — splitting zod out of the entry chunk took 14 KB off what every visitor
+      # downloads, and the old check scored it as a regression.
       - name: Enforce bundle budget
+        run: npm run budget
+
+      - name: Report client bundle size
+        if: always()
         run: |
-          TOTAL=$(find client/dist/assets -name '*.js' -o -name '*.css' \
-            | xargs -I{} sh -c 'gzip -c "{}" | wc -c' | awk '{s+=$1} END {print s}')
-          LIMIT=$((200 * 1024))
-          echo "total gzip: $((TOTAL / 1024)) KB (limit $((LIMIT / 1024)) KB)"
-          if [ "$TOTAL" -gt "$LIMIT" ]; then
-            echo "::error::bundle budget exceeded"
-            exit 1
-          fi
+          {
+            echo "### Client bundle (gzip)"
+            echo '```'
+            npm run budget --silent || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
