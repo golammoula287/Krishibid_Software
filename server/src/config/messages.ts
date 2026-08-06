@@ -191,6 +191,48 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'এই ফসলটি তালিকায় নেই', hint: 'তালিকা থেকে একটি ফসল বেছে নিন।' },
     en: { title: 'That crop is not in the catalogue', hint: 'Pick one from the list.' },
   },
+  unknown_category: {
+    tone: 'error',
+    bn: { title: 'এই বিভাগে বিক্রি করা যায় না', hint: 'তালিকা থেকে একটি বিভাগ বেছে নিন।' },
+    en: { title: 'We do not sell in that category', hint: 'Pick one from the list.' },
+  },
+  unit_not_allowed: {
+    tone: 'error',
+    bn: {
+      title: 'এই এককে এই পণ্য বিক্রি হয় না',
+      hint: 'যে এককগুলো দেওয়া আছে তার একটি বেছে নিন।',
+    },
+    en: {
+      title: 'That product is not sold in that unit',
+      hint: 'Choose one of the units offered.',
+    },
+  },
+  not_an_auction: {
+    tone: 'info',
+    bn: { title: 'এই পণ্যটি নির্দিষ্ট দামে বিক্রি হচ্ছে', hint: 'দর না দিয়ে সরাসরি কিনুন।' },
+    en: { title: 'This lot is sold at a fixed price', hint: 'Buy it directly instead of bidding.' },
+  },
+  not_fixed_price: {
+    tone: 'info',
+    bn: { title: 'এই পণ্যটি নিলামে বিক্রি হচ্ছে', hint: 'কিনতে হলে দর দিন।' },
+    en: { title: 'This lot is sold by auction', hint: 'Place a bid to buy it.' },
+  },
+  out_of_stock: {
+    tone: 'warning',
+    bn: {
+      title: 'এত পরিমাণ আর নেই',
+      hint: 'আপনি ভাবার মধ্যেই কেউ কিনে নিয়েছে — কম পরিমাণে চেষ্টা করুন।',
+    },
+    en: {
+      title: 'There is not that much left',
+      hint: 'Somebody bought it while you were deciding — try a smaller quantity.',
+    },
+  },
+  bad_amount: {
+    tone: 'error',
+    bn: { title: 'পরিমাণটি সঠিক নয়' },
+    en: { title: 'That quantity is not valid' },
+  },
 
   // ---- payments & orders ----
   already_paid: {

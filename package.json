@@ -26,6 +26,7 @@
     "eval:rag": "npm run eval:rag --workspace=server",
     "create:indexes": "npm run create:indexes --workspace=server",
     "migrate:emails": "npm run migrate:emails --workspace=server",
+    "migrate:marketplace": "npm run migrate:marketplace --workspace=server",
     "mail:test": "npm run mail:test --workspace=server"
   },
   "devDependencies": {

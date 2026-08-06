@@ -25,6 +25,7 @@ export default defineConfig({
     // The one-off email migration, which has to be runnable on the deployed box — it must run
     // before the new code serves traffic, and that box has no tsx.
     migrateEmails: 'src/scripts/migrateEmails.ts',
+    migrateMarketplace: 'src/scripts/migrateMarketplace.ts',
     // So mail configuration can be proven on the deployed box, where a silent
     // MAIL_PROVIDER=none is the difference between working signup and none.
     sendTestEmail: 'src/scripts/sendTestEmail.ts',

@@ -16,10 +16,12 @@ import { connectDb, disconnectDb } from '../utils/db.js';
 import { logger } from '../utils/logger.js';
 import { bdtToPoisha } from '../utils/money.js';
 import { Bid } from '../models/Bid.js';
+import { Category } from '../models/Category.js';
 import { Crop } from '../models/Crop.js';
 import { Listing } from '../models/Listing.js';
 import { Order } from '../models/Order.js';
 import { User } from '../models/User.js';
+import { CATEGORIES } from './categories.js';
 
 const CROPS = [
   { slug: 'rice', names: { bn: 'ধান', en: 'Rice' }, seasons: ['Aman', 'Boro'], hasDiseaseModel: true },
@@ -87,6 +89,16 @@ async function seed(): Promise<void> {
   // ---- crops ----
   await Crop.insertMany(CROPS.map((c) => ({ ...c, unit: 'kg' })));
   logger.info({ count: CROPS.length }, 'crops seeded');
+
+  // ---- categories: what the marketplace can sell at all ----
+  for (const category of CATEGORIES) {
+    await Category.updateOne(
+      { slug: category.slug },
+      { $set: category, $setOnInsert: { active: true } },
+      { upsert: true },
+    );
+  }
+  logger.info({ count: CATEGORIES.length }, 'categories seeded');
 
   // ---- the three one-click demo logins ----
   const [demoFarmer, demoBuyer, demoAdmin] = await User.create([
@@ -196,6 +208,12 @@ async function seed(): Promise<void> {
 
     listings.push({
       farmerId: farmer._id,
+      categorySlug: 'crops',
+      title: `${crop.names.en} — ${farmer.district}`,
+      quantity: quantityKg,
+      unit: 'kg' as const,
+      // Roughly a third of the demo market is fixed price, so both shops have stock.
+      saleMode: (i % 3 === 0 ? 'fixed' : 'auction') as 'auction' | 'fixed',
       cropSlug: crop.slug,
       quantityKg,
       qualityGrade: pick(['A', 'B', 'C'] as const, i),
@@ -204,6 +222,8 @@ async function seed(): Promise<void> {
       description: `${crop.names.bn} — ${farmer.district} থেকে সরাসরি। গ্রেড ${pick(['A', 'B', 'C'] as const, i)}।`,
       status: 'open' as const,
       bidClosesAt: new Date(Date.now() + hours * 60 * 60 * 1000),
+      pricePerUnitPoisha: bdtToPoisha(pricePerKg),
+      stock: quantityKg,
       version: 0,
     });
   }
