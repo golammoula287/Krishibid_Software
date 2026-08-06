@@ -33,6 +33,15 @@ export interface Tab {
 }
 
 /**
+ * Account is deliberately absent from every role below.
+ *
+ * It lives in the user menu on the right of the header, which is where somebody looks for their
+ * own settings. Having it in both places was two doors to one page — and it was the seventh item
+ * in a row that had run out of width, which is what made "My Bids" and "My Account" wrap onto two
+ * lines. The mobile bottom bar keeps it, because there is no user menu there.
+ */
+
+/**
  * Navigation, as one ordered list per role.
  *
  * Previously this was two lists — primary tabs and "secondary" links — rendered in two different
@@ -99,7 +108,6 @@ const FARMER: Tab[] = [
   { to: '/diagnose', key: 'diagnose', icon: 'diagnose', primary: true },
   { to: '/advisor', key: 'advisor', icon: 'advisor', primary: true },
   { to: '/orders', key: 'orders', icon: 'orders', primary: true },
-  { to: '/account', key: 'account', icon: 'account', primary: true },
   ...PUBLIC_TAIL,
 ];
 
@@ -114,7 +122,6 @@ const BUYER: Tab[] = [
   { to: '/dashboard', key: 'dashboard', icon: 'home', primary: true },
   { to: '/bids', key: 'bids', icon: 'trending', primary: true },
   { to: '/orders', key: 'orders', icon: 'orders', primary: true },
-  { to: '/account', key: 'account', icon: 'account', primary: true },
   ...PUBLIC_TAIL,
 ];
 
@@ -123,7 +130,6 @@ const ADMIN: Tab[] = [
   MARKET,
   { to: '/admin/review', key: 'review', icon: 'review', primary: true },
   { to: '/admin/blog', key: 'manageBlog', icon: 'learn', primary: true },
-  { to: '/account', key: 'account', icon: 'account', primary: true },
   ...PUBLIC_TAIL,
 ];
 
@@ -143,11 +149,23 @@ export function tabsForRole(role: Role | undefined): Tab[] {
   }
 }
 
-/** The five that earn a slot in the mobile bar. */
-export const primaryTabs = (role: Role | undefined): Tab[] =>
-  tabsForRole(role)
-    .filter((tab) => tab.primary)
-    .slice(0, 5);
+const ACCOUNT_TAB: Tab = { to: '/account', key: 'account', icon: 'account', primary: true };
+
+/**
+ * The five that earn a slot in the mobile bar.
+ *
+ * Account is appended here rather than living in the role arrays. On a desktop it belongs in the
+ * user menu — that is where people look for their own settings, and putting it in the row as well
+ * was what pushed the nav past its width. On a phone there is no user menu, so the bar is the only
+ * way to reach it and it takes the last slot.
+ */
+export const primaryTabs = (role: Role | undefined): Tab[] => {
+  const tabs = tabsForRole(role).filter((tab) => tab.primary);
+  // Guests have no account to reach; sending them to a login wall from a tab labelled "Account"
+  // would be a promise the tab cannot keep.
+  const withAccount = role ? [...tabs.slice(0, 4), ACCOUNT_TAB] : tabs;
+  return withAccount.slice(0, 5);
+};
 
 /**
  * Whether a role may open a path, used to redirect rather than render an empty screen.
