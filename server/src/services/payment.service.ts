@@ -74,10 +74,25 @@ export async function initiatePayment(
   const attempt = (await Payment.countDocuments({ orderId: order._id })) + 1;
   const tranId = gateway.buildTranId(String(order._id), attempt);
 
-  const { commissionPoisha, netPoisha } = splitCommission(
+  /**
+   * Commission on the goods; delivery passes through untouched.
+   *
+   * The buyer pays goods + delivery into escrow, so the whole amount is protected by the same
+   * promise — money held until delivery is confirmed. But the platform's cut is taken from the
+   * sale, not from the carriage: charging commission on a delivery fee would mean profiting from
+   * the distance between two people, which is not a service being provided.
+   *
+   * The supplier's net is therefore goods-minus-commission PLUS the delivery charge they will
+   * have to pay out, so the three parts still sum to exactly what was captured.
+   */
+  const deliveryPoisha = order.delivery?.chargePoisha ?? 0;
+  const totalPoisha = order.agreedAmountPoisha + deliveryPoisha;
+
+  const { commissionPoisha, netPoisha: goodsNetPoisha } = splitCommission(
     order.agreedAmountPoisha,
     env().PLATFORM_COMMISSION_BPS,
   );
+  const netPoisha = goodsNetPoisha + deliveryPoisha;
 
   const buyer = await User.findById(buyerId).select('name phone').lean();
   if (!buyer) throw notFound('buyer');
@@ -86,7 +101,7 @@ export async function initiatePayment(
     orderId: order._id,
     buyerId: order.buyerId,
     farmerId: order.farmerId,
-    amountPoisha: order.agreedAmountPoisha,
+    amountPoisha: totalPoisha,
     commissionPoisha,
     farmerNetPoisha: netPoisha,
     status: 'created',
@@ -122,14 +137,14 @@ export async function initiatePayment(
     return {
       gatewayUrl: mockUrl.toString(),
       tranId,
-      amountPoisha: order.agreedAmountPoisha,
+      amountPoisha: totalPoisha,
       expiresAt: order.paymentDeadline.toISOString(),
     };
   }
 
   const session = await gateway.createSession({
     tranId,
-    amountPoisha: order.agreedAmountPoisha,
+    amountPoisha: totalPoisha,
     productName: `${order.cropSlug} ${order.quantityKg}kg`,
     customerName: buyer.name,
     customerPhone: buyer.phone,
@@ -150,7 +165,7 @@ export async function initiatePayment(
   return {
     gatewayUrl: session.gatewayUrl,
     tranId,
-    amountPoisha: order.agreedAmountPoisha,
+    amountPoisha: totalPoisha,
     expiresAt: order.paymentDeadline.toISOString(),
   };
 }

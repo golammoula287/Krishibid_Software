@@ -1,4 +1,4 @@
-import type { Role } from '@krishibid/shared';
+import { roleSatisfies, type Role } from '@krishibid/shared';
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
@@ -64,11 +64,17 @@ export async function requireAuth(
   }
 }
 
-/** Role gate. Always composed after `requireAuth`. */
+/**
+ * Role gate. Always composed after `requireAuth`.
+ *
+ * Satisfaction is by hierarchy rather than by equality: a super admin passes `requireRole('admin')`
+ * without every existing gate having to be found and widened. That direction matters — a gate
+ * somebody forgets to update keeps refusing rather than starts allowing.
+ */
 export function requireRole(...roles: Role[]) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     if (!req.user) return next(unauthorized());
-    if (!roles.includes(req.user.role)) {
+    if (!roles.some((role) => roleSatisfies(role, req.user!.role))) {
       return next(forbidden(`requires role: ${roles.join(' or ')}`));
     }
     next();

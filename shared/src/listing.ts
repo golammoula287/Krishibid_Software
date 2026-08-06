@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { districtSchema, objectId, positivePoishaSchema } from './common.js';
 import { saleModeSchema, unitSchema, type SaleMode, type Unit } from './catalogue.js';
+import { deliveryChoiceSchema } from './delivery.js';
 
 export const qualityGradeSchema = z.enum(['A', 'B', 'C']);
 export type QualityGrade = z.infer<typeof qualityGradeSchema>;
@@ -98,6 +99,8 @@ export type ListingQuery = z.infer<typeof listingQuerySchema>;
 export const buyNowSchema = z.object({
   listingId: objectId,
   quantity: z.number().positive().max(1_000_000),
+  /** How the goods should travel. Defaults to pickup, which costs nothing. */
+  delivery: deliveryChoiceSchema.optional(),
 });
 export type BuyNowInput = z.infer<typeof buyNowSchema>;
 

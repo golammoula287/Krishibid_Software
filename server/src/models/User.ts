@@ -39,9 +39,22 @@ const userSchema = new Schema(
     passwordHash: { type: String, required: true, select: false },
     role: {
       type: String,
-      enum: ['farmer', 'buyer', 'admin'],
+      enum: ['farmer', 'buyer', 'admin', 'superadmin'],
       required: true,
       index: true,
+    },
+
+    /**
+     * What kind of seller this is: grower, reseller, farm owner or trader.
+     *
+     * Orthogonal to `role`, which stays `farmer` for all of them — the role is a permission and
+     * this is a fact about the business. Shown to buyers, because knowing whether the person
+     * selling grew it is material to what the listing is worth.
+     */
+    supplierType: {
+      type: String,
+      enum: ['farmer', 'retailer', 'farm_owner', 'trader'],
+      default: null,
     },
     district: { type: String, required: true, index: true },
     locale: { type: String, enum: ['bn', 'en'], default: 'bn' },

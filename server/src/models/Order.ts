@@ -33,7 +33,46 @@ const orderSchema = new Schema(
 
     cropSlug: { type: String, required: true },
     quantityKg: { type: Number, required: true },
+    /**
+     * What the goods cost. NOT the total the buyer pays.
+     *
+     * Delivery is held separately below so commission can be charged on this figure alone —
+     * taking a cut of a delivery fee would be the platform profiting from the distance between
+     * two people, which is not a service it provides.
+     */
     agreedAmountPoisha: { type: Number, required: true, min: 0 },
+
+    /**
+     * How the goods travel, and where to.
+     *
+     * The status machine already had `in_transit`, but nothing recorded the method or the
+     * address — a buyer confirmed delivery of goods the system could not describe, reaching a
+     * place it had never been told about.
+     */
+    delivery: {
+      type: {
+        method: { type: String, enum: ['pickup', 'platform', 'courier'], default: 'pickup' },
+        status: {
+          type: String,
+          enum: ['not_required', 'awaiting_dispatch', 'dispatched', 'delivered'],
+          default: 'not_required',
+        },
+        addressLine: { type: String, maxlength: 300 },
+        district: { type: String },
+        contactPhone: { type: String },
+        note: { type: String, maxlength: 300 },
+        /** Goes through escrow with the goods; see the note on agreedAmountPoisha. */
+        chargePoisha: { type: Number, default: 0, min: 0 },
+
+        // Filled in by an admin when a consignment is handed over.
+        agentName: { type: String },
+        agentPhone: { type: String },
+        trackingNote: { type: String, maxlength: 300 },
+        dispatchedAt: { type: Date },
+        deliveredAt: { type: Date },
+      },
+      default: () => ({ method: 'pickup', status: 'not_required', chargePoisha: 0 }),
+    },
 
     status: {
       type: String,
@@ -84,6 +123,9 @@ orderSchema.index(
   { listingId: 1 },
   { unique: true, partialFilterExpression: { bidId: { $type: 'objectId' } } },
 );
+
+/** The dispatch board: platform deliveries waiting on an admin, oldest first. */
+orderSchema.index({ 'delivery.status': 1, createdAt: 1 });
 
 orderSchema.index({ status: 1, shippedAt: 1 });
 // Payment-window sweep.

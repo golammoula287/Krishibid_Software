@@ -1,3 +1,4 @@
+import { deliveryChargeFor } from '@krishibid/shared';
 import type {
   BuyNowInput,
   CreateListingInput,
@@ -295,8 +296,18 @@ export async function buyNow(
   const unitPrice = listing.pricePerUnitPoisha ?? 0;
   // Integer poisha throughout: a float here would put rounding error into the ledger, which is
   // the one place this codebase refuses to accept it.
-  const totalPoisha = Math.round(unitPrice * input.quantity);
-  if (totalPoisha <= 0) throw badRequest('bad_amount', 'that quantity costs nothing');
+  const goodsPoisha = Math.round(unitPrice * input.quantity);
+  if (goodsPoisha <= 0) throw badRequest('bad_amount', 'that quantity costs nothing');
+
+  /**
+   * Delivery, priced here and held in escrow with the goods.
+   *
+   * `agreedAmountPoisha` stays the goods alone so commission is charged on the sale rather than
+   * on the carriage; the buyer is charged the sum of the two at payment time.
+   */
+  const method = input.delivery?.method ?? 'pickup';
+  const deliveryPoisha = deliveryChargeFor(method);
+  const totalPoisha = goodsPoisha + deliveryPoisha;
 
   const reserved = await Listing.findOneAndUpdate(
     {
@@ -327,7 +338,18 @@ export async function buyNow(
       buyerId: new mongoose.Types.ObjectId(buyerId),
       cropSlug: listing.categorySlug,
       quantityKg: input.quantity,
-      agreedAmountPoisha: totalPoisha,
+      agreedAmountPoisha: goodsPoisha,
+      delivery: {
+        method,
+        // Platform delivery is the only one that lands on somebody's desk here; a pickup needs
+        // nobody, and a courier is the supplier's own arrangement.
+        status: method === 'platform' ? 'awaiting_dispatch' : 'not_required',
+        addressLine: input.delivery?.addressLine,
+        district: input.delivery?.district,
+        contactPhone: input.delivery?.contactPhone,
+        note: input.delivery?.note,
+        chargePoisha: deliveryPoisha,
+      },
       status: 'awaiting_payment',
       paymentDeadline: new Date(Date.now() + env().PAYMENT_WINDOW_HOURS * 60 * 60 * 1000),
       statusHistory: [
