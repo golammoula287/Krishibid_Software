@@ -20,13 +20,18 @@ const LISTING_TEXT_INDEX = 'listing_text_index';
 type Populated = ListingDoc & { farmerId: { _id: unknown; name: string } };
 
 function toDto(doc: ListingDoc | Populated): ListingDto {
-  const farmer = doc.farmerId as unknown as { _id?: unknown; name?: string };
+  const farmer = doc.farmerId as unknown as {
+    _id?: unknown;
+    name?: string;
+    supplierType?: ListingDto['supplierType'];
+  };
   const isPopulated = typeof farmer === 'object' && farmer !== null && 'name' in farmer;
 
   return {
     id: String(doc._id),
     farmerId: String(isPopulated ? farmer._id : doc.farmerId),
     farmerName: isPopulated ? (farmer.name ?? '') : '',
+    supplierType: isPopulated ? (farmer.supplierType ?? undefined) : undefined,
     categorySlug: doc.categorySlug,
     title: doc.title,
     quantity: doc.quantity,
@@ -150,7 +155,7 @@ export async function listListings(query: ListingQuery): Promise<Page<ListingDto
   const docs = await Listing.find(filter)
     .sort({ _id: -1 })
     .limit(query.limit + 1)
-    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name')
+    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType')
     .lean();
 
   const hasMore = docs.length > query.limit;
@@ -199,7 +204,7 @@ async function searchListings(
           localField: 'farmerId',
           foreignField: '_id',
           as: 'farmer',
-          pipeline: [{ $project: { name: 1 } }],
+          pipeline: [{ $project: { name: 1, supplierType: 1 } }],
         },
       },
       { $addFields: { farmerId: { $arrayElemAt: ['$farmer', 0] } } },
@@ -220,7 +225,7 @@ async function searchListings(
       ],
     })
       .limit(limit)
-      .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name')
+      .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType')
       .lean();
 
     return docs.map((d) => toDto(d as unknown as Populated));
@@ -229,7 +234,7 @@ async function searchListings(
 
 export async function getListing(listingId: string): Promise<ListingDto> {
   const doc = await Listing.findById(listingId)
-    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name')
+    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType')
     .lean();
   if (!doc) throw notFound('listing');
   return toDto(doc as unknown as Populated);

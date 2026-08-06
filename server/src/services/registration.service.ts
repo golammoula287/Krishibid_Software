@@ -473,6 +473,7 @@ async function completeFarmer(
      * something permanent — but `login()` refuses it until an admin decides.
      */
     accountStatus: 'pending_approval',
+    supplierType: input.supplierType,
     farmSizeAcres: input.farmSizeAcres,
     cropsGrown: input.cropsGrown,
     kyc: {

@@ -1,4 +1,12 @@
 import { z } from 'zod';
+import {
+  ROLES,
+  ROLE_SATISFIES,
+  SUPPLIER_TYPES,
+  roleSatisfies,
+  type Role,
+  type SupplierType,
+} from './roles.js';
 
 /** Mongo ObjectId as a hex string. */
 export const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, 'invalid id');
@@ -7,47 +15,24 @@ export const localeSchema = z.enum(['bn', 'en']);
 export type Locale = z.infer<typeof localeSchema>;
 
 /**
- * `superadmin` is ADDED to the enum rather than replacing anything.
+ * The zod mirrors of the role types.
  *
- * Adding a role is safe in a way renaming one is not: every existing check still means what it
- * meant. What makes it work is the hierarchy below — `requireRole('admin')` accepts a super
- * admin, so no existing gate has to be found and edited, and one that is missed fails closed
- * rather than open.
+ * The types and the hierarchy live in `roles.ts`, which imports nothing — see the note there for
+ * why. These enums exist for request validation, and `satisfies` pins each to its plain type so
+ * adding a role in one place and forgetting the other is a compile error rather than a hole.
  */
-export const roleSchema = z.enum(['farmer', 'buyer', 'admin', 'superadmin']);
-export type Role = z.infer<typeof roleSchema>;
+export const roleSchema = z.enum(['farmer', 'buyer', 'admin', 'superadmin']) satisfies z.ZodType<Role>;
 
-/**
- * Which roles satisfy a requirement for a given role.
- *
- * A super admin can do anything an admin can. Nothing goes the other way: an admin must never be
- * able to create, suspend or delete another admin, because that is the one power that lets a
- * compromised account entrench itself.
- */
-export const ROLE_SATISFIES: Record<Role, readonly Role[]> = {
-  farmer: ['farmer'],
-  buyer: ['buyer'],
-  admin: ['admin', 'superadmin'],
-  superadmin: ['superadmin'],
-};
+export const supplierTypeSchema = z.enum([
+  'farmer',
+  'retailer',
+  'farm_owner',
+  'trader',
+]) satisfies z.ZodType<SupplierType>;
 
-export const roleSatisfies = (required: Role, actual: Role | undefined): boolean =>
-  Boolean(actual) && ROLE_SATISFIES[required].includes(actual!);
+export type { Role, SupplierType };
+export { ROLE_SATISFIES, ROLES, SUPPLIER_TYPES, roleSatisfies };
 
-/**
- * What kind of seller somebody is.
- *
- * Orthogonal to the role: all four sell, and all four are `role: 'farmer'` internally. A buyer
- * deciding whether to trust a listing wants to know if they are dealing with the person who grew
- * it or with somebody reselling — that is material, and it was invisible.
- */
-export const supplierTypeSchema = z.enum(['farmer', 'retailer', 'farm_owner', 'trader']);
-export type SupplierType = z.infer<typeof supplierTypeSchema>;
-
-/**
- * Bangladeshi mobile number, normalised to 01XXXXXXXXX (11 digits).
- * Accepts +8801…, 8801…, 01… on input; `normalisePhone` collapses them.
- */
 export const phoneSchema = z
   .string()
   .trim()

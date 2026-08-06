@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { districtSchema, objectId, positivePoishaSchema } from './common.js';
+import { districtSchema, objectId, positivePoishaSchema, type SupplierType } from './common.js';
 import { saleModeSchema, unitSchema, type SaleMode, type Unit } from './catalogue.js';
 import { deliveryChoiceSchema } from './delivery.js';
 
@@ -123,6 +123,8 @@ export interface ListingDto {
    */
   farmerId: string;
   farmerName: string;
+  /** Grower, reseller, farm owner or trader. Material to what a listing is worth. */
+  supplierType?: SupplierType;
 
   categorySlug: string;
   title: string;

@@ -1,4 +1,4 @@
-import type { BidDto, ListingDto } from '@krishibid/shared';
+import { deliveryChargeFor, type BidDto, type DeliveryMethod, type ListingDto } from '@krishibid/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +27,12 @@ export default function ListingDetailPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [quantity, setQuantity] = useState('1');
   const [buyConfirmOpen, setBuyConfirmOpen] = useState(false);
+  const [delivery, setDelivery] = useState({
+    method: 'pickup' as DeliveryMethod,
+    addressLine: '',
+    district: '',
+    contactPhone: '',
+  });
   const [tick, setTick] = useState(0);
   const toast = useToast();
 
@@ -121,6 +127,15 @@ export default function ListingDetailPage() {
       api.post<{ orderId: string; totalPoisha: number }>('/marketplace/buy', {
         listingId: id,
         quantity: Number(quantity),
+        delivery:
+          delivery.method === 'pickup'
+            ? { method: 'pickup' }
+            : {
+                method: delivery.method,
+                addressLine: delivery.addressLine,
+                district: delivery.district,
+                contactPhone: delivery.contactPhone,
+              },
       }),
     onSuccess: (result) => {
       setBuyConfirmOpen(false);
@@ -147,10 +162,13 @@ export default function ListingDetailPage() {
   const stock = data.stock ?? 0;
   const canBuy = !isAuction && data.status === 'open' && stock > 0 && !isOwner;
   const buyQty = Number(quantity);
-  const buyTotalPoisha =
+  const goodsPoisha =
     Number.isFinite(buyQty) && buyQty > 0
       ? Math.round((data.pricePerUnitPoisha ?? 0) * buyQty)
       : 0;
+  const deliveryPoisha = deliveryChargeFor(delivery.method);
+  /** What the buyer actually pays. Showing goods alone would understate what they are agreeing to. */
+  const buyTotalPoisha = goodsPoisha + deliveryPoisha;
 
   return (
     <div className="space-y-4">
@@ -359,10 +377,85 @@ export default function ListingDetailPage() {
             />
             {/* The total is echoed as it is typed. Seeing the figure before committing is what
                 catches "50" entered where 5 was meant. */}
-            {buyTotalPoisha > 0 && (
-              <p className="mt-2 rounded-lg bg-brand-50 px-3 py-2 text-sm font-semibold text-brand-900">
-                {t('shop.youWillPay', { amount: formatBdt(buyTotalPoisha, locale) })}
-              </p>
+            {goodsPoisha > 0 && (
+              <div className="mt-2 space-y-1 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">
+                <p className="flex justify-between">
+                  <span>{t('delivery.goods')}</span>
+                  <span className="tabular-nums">{formatBdt(goodsPoisha, locale)}</span>
+                </p>
+                {deliveryPoisha > 0 && (
+                  <p className="flex justify-between">
+                    <span>{t('delivery.charge')}</span>
+                    <span className="tabular-nums">{formatBdt(deliveryPoisha, locale)}</span>
+                  </p>
+                )}
+                <p className="flex justify-between border-t border-brand-200 pt-1 font-semibold">
+                  <span>{t('delivery.total')}</span>
+                  <span className="tabular-nums">{formatBdt(buyTotalPoisha, locale)}</span>
+                </p>
+              </div>
+            )}
+          </div>
+
+
+          {/* ---- how it should reach them ---- */}
+          <div className="border-t border-brand-50 pt-3">
+            <span className="label">{t('delivery.how')}</span>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {(['pickup', 'platform', 'courier'] as const).map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  onClick={() => setDelivery({ ...delivery, method })}
+                  aria-pressed={delivery.method === method}
+                  className={`rounded-xl border p-2.5 text-left transition ${
+                    delivery.method === method
+                      ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600'
+                      : 'border-slate-200 hover:border-brand-200'
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-brand-900">
+                    {t(`delivery.method.${method}`)}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-slate-600">
+                    {deliveryChargeFor(method) === 0
+                      ? t('delivery.free')
+                      : formatBdt(deliveryChargeFor(method), locale)}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* An address only when somebody is carrying it somewhere. Asking a buyer who is
+                collecting it themselves would be a form demanding information nobody uses. */}
+            {delivery.method !== 'pickup' && (
+              <div className="mt-3 space-y-2">
+                <input
+                  className="field"
+                  placeholder={t('delivery.address')}
+                  value={delivery.addressLine}
+                  onChange={(e) => setDelivery({ ...delivery, addressLine: e.target.value })}
+                  required
+                  minLength={8}
+                />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input
+                    className="field"
+                    placeholder={t('auth.district')}
+                    value={delivery.district}
+                    onChange={(e) => setDelivery({ ...delivery, district: e.target.value })}
+                    required
+                  />
+                  <input
+                    className="field"
+                    inputMode="numeric"
+                    placeholder={t('delivery.contactPhone')}
+                    value={delivery.contactPhone}
+                    onChange={(e) => setDelivery({ ...delivery, contactPhone: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
             )}
           </div>
 
