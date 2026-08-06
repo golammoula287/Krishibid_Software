@@ -39,7 +39,13 @@ function toDto(doc: ListingDoc | Populated): ListingDto {
     qualityGrade: doc.qualityGrade as ListingDto['qualityGrade'],
     district: doc.district,
     description: doc.description ?? undefined,
-    imageUrl: doc.imageUrl ?? undefined,
+    /**
+     * The legacy single image, folded in as the cover when there is no array.
+     *
+     * Every caller gets one shape — an array, possibly empty — so nothing downstream has to know
+     * that listings once carried their picture in a different field.
+     */
+    photos: doc.photos?.length ? doc.photos : doc.imageUrl ? [doc.imageUrl] : [],
     status: doc.status as ListingDto['status'],
     saleMode: (doc.saleMode ?? 'auction') as ListingDto['saleMode'],
 
@@ -97,7 +103,7 @@ export async function createListing(
     qualityGrade: input.qualityGrade,
     district: input.district,
     description: input.description,
-    imageUrl: input.imageUrl,
+    photos: input.photos ?? [],
     saleMode: input.saleMode,
 
     ...(input.saleMode === 'auction'

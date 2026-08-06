@@ -10,8 +10,8 @@ import {
   getModelVersion,
   getRemedy,
   isModelReady,
-  sniffImage,
 } from '../services/diagnosis.service.js';
+import { sniffImage } from '../utils/image.js';
 import { uploadImage } from '../services/storage.service.js';
 
 function toDto(d: DiagnosisDoc): DiagnosisDto {

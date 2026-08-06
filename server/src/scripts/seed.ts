@@ -27,6 +27,22 @@ import { PendingRegistration } from '../models/PendingRegistration.js';
 import { User } from '../models/User.js';
 import { CATEGORIES } from './categories.js';
 
+/**
+ * The stock photography already in `client/public/crops/`, reused as demo listing images.
+ *
+ * These are the same files the landing page uses. Reusing them costs nothing — they are already
+ * downloaded and cached by the time somebody reaches the market — and it means a seeded
+ * marketplace looks like a marketplace rather than a list of grey rectangles.
+ */
+const DEMO_PHOTOS = [
+  '/crops/harvest.webp',
+  '/crops/field.webp',
+  '/crops/vegetables.webp',
+  '/crops/pumpkin.webp',
+  '/crops/cauliflower.webp',
+  '/crops/seedling.webp',
+];
+
 const CROPS = [
   { slug: 'rice', names: { bn: 'ধান', en: 'Rice' }, seasons: ['Aman', 'Boro'], hasDiseaseModel: true },
   { slug: 'potato', names: { bn: 'আলু', en: 'Potato' }, seasons: ['Rabi'], hasDiseaseModel: true },
@@ -342,6 +358,15 @@ async function seed(): Promise<void> {
       bidClosesAt: new Date(Date.now() + hours * 60 * 60 * 1000),
       pricePerUnitPoisha: bdtToPoisha(pricePerKg),
       stock: quantityKg,
+      /**
+       * Two of the stock photographs, so the seeded market is not forty grey cards.
+       *
+       * Site-relative rather than absolute, and that is deliberate: the browser resolves them
+       * against the client's own origin, which is where `client/public/crops/` is served from —
+       * so they work on localhost and on Vercel without the seed needing to know either address.
+       * A real listing's photos are Cloudinary URLs; these are demo furniture.
+       */
+      photos: [pick(DEMO_PHOTOS, i), pick(DEMO_PHOTOS, i + 3)],
       version: 0,
     });
   }

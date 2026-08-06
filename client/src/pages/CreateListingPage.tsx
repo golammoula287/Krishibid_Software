@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/icons.js';
+import PhotoPicker from '../components/PhotoPicker.js';
 import { ErrorNote } from '../components/ui.js';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
@@ -31,6 +32,13 @@ export default function CreateListingPage() {
   const categories = useCategories();
 
   const [saleMode, setSaleMode] = useState<SaleMode>('auction');
+  /**
+   * Separate from the rest of the form because it is already on the server.
+   *
+   * These are URLs of photographs that have been uploaded; the form fields are text nobody has
+   * committed yet. Keeping them apart is what lets an upload survive a failed submit.
+   */
+  const [photos, setPhotos] = useState<string[]>([]);
   const [form, setForm] = useState({
     categorySlug: '',
     title: '',
@@ -59,6 +67,7 @@ export default function CreateListingPage() {
         qualityGrade: form.qualityGrade,
         district: user?.district ?? 'Dhaka',
         description: form.description || undefined,
+        photos,
         saleMode,
         ...(saleMode === 'auction'
           ? {
@@ -282,7 +291,9 @@ export default function CreateListingPage() {
         )}
       </div>
 
-      <div className="card space-y-3">
+      <div className="card space-y-4">
+        <PhotoPicker photos={photos} onChange={setPhotos} />
+
         <div>
           <label htmlFor="desc" className="label">
             {t('sell.description')}

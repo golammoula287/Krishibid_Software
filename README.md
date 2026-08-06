@@ -4,7 +4,7 @@
 ![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-172%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-183%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
 A supplier-to-buyer **agricultural marketplace** — auctions *and* fixed-price shops — with
@@ -13,7 +13,7 @@ advisory assistant**, built for smallholder farmers in Bangladesh.
 
 > **Live client:** <https://krishibid.vercel.app>
 >
-> **Status:** frontend deployed, 172 passing tests, verified end-to-end against live
+> **Status:** frontend deployed, 183 passing tests, verified end-to-end against live
 > MongoDB Atlas and Gemini. The API is not deployed on serverless — it cannot be
 > (interval jobs, WebSockets, native ONNX/sharp binaries), so it needs Render or similar; see
 > [Deployment](#deployment-free-tier). The disease model ships as a placeholder until the
@@ -185,6 +185,30 @@ them: "3 dozen rice" should not be expressible.
 
 A category is never deleted, only deactivated. Every listing references it by slug, so deleting
 would leave already-sold lots displaying a raw slug where their category name should be.
+
+### Photos
+
+A supplier attaches up to **five photographs** to a lot — the whole pile, a close-up of the
+grain, the sacks it is in. Produce is the one thing on this platform a buyer cannot inspect
+before committing money, so the pictures are not decoration; they are most of what the decision
+gets made on. The first is the cover, and that order is the supplier's to set.
+
+They upload on selection rather than on submit, to their own endpoint, and the listing form
+carries only the resulting URLs. On a rural connection an upload that fails halfway would
+otherwise take the description with it.
+
+Storage is **Cloudinary** (`CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET`). Without an
+account configured the image is stored inline as a data URL instead — the whole marketplace still
+works for a contributor who has not signed up for one, with a warning in the log.
+
+Every file is re-encoded through sharp before it leaves the server, capped at 1600px and JPEG
+quality 82. That is partly the free bandwidth quota, and partly that a phone photograph carries
+EXIF GPS: the coordinates of the supplier's yard, which would otherwise be published to every
+buyer who opens the listing. The re-encode strips it.
+
+Photo URLs are checked by scheme, not just shape — `https:` or an inline image, nothing else.
+`z.string().url()` alone accepts `javascript:alert(1)`, and these strings go straight into an
+`<img src>` on a page every buyer sees.
 
 ### Delivery
 
@@ -480,7 +504,7 @@ Full reasoning: [ADR-006](docs/adr/ADR-006-escrow-payments.md).
 ## Testing
 
 ```bash
-npm test          # 172 tests
+npm test          # 183 tests
 npm run typecheck
 npm run build
 npm run budget    # initial JS payload budget
@@ -536,6 +560,9 @@ see [ADR-004](docs/adr/ADR-004-hybrid-retrieval.md). Re-run at 300+ chunks to se
   moves the order to `in_transit`, that it starts the auto-release clock, that it refuses an
   unpaid order, that reassigning does not ship the order twice, and that confirming receipt marks
   the consignment delivered without forgetting who brought it.
+- **Listing photos** — that the supplier's chosen order survives, that a listing created before
+  the field existed still shows its picture, and that the scheme check refuses `javascript:`,
+  plain `http:`, bare paths and non-image data URLs while accepting what Cloudinary returns.
 - **Signing in** — by email, by phone, case-insensitively; that an unapproved supplier gets
   `account_pending_approval` and not a wrong-password error; and that the one-click demo login
   can never hand out the account that is still awaiting approval.

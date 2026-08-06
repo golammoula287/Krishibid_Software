@@ -80,7 +80,8 @@
     "shopHelp": {
       "auction": "Bid against other buyers. The highest bid when the clock runs out wins the lot.",
       "fixed": "Buy at the listed price, in the quantity you need. No waiting."
-    }
+    },
+    "photoNumber": "Photo {{n}}"
   },
   "diagnose": {
     "title": "Crop disease detection",
@@ -578,7 +579,13 @@
     "pricePerUnit": "Price per {{unit}} (৳)",
     "fixedTotal": "The full lot comes to {{amount}}",
     "stockHelp": "Buyers can take part of the lot. It leaves the shop when the stock runs out.",
-    "description": "Anything else buyers should know"
+    "description": "Anything else buyers should know",
+    "photos": "Photos of the lot",
+    "photosHelp": "Up to 5. Buyers cannot see the produce in person — a photo of the actual sacks is the next best thing. The first one is what shows in the market.",
+    "addPhoto": "Add photo",
+    "cover": "Cover",
+    "makeCover": "Make cover",
+    "removePhoto": "Remove this photo"
   },
   "supplier": {
     "farmer": "Farmer",

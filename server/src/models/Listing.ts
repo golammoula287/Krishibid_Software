@@ -1,3 +1,4 @@
+import { MAX_LISTING_PHOTOS } from '@krishibid/shared';
 import { Schema, model, Types, type InferSchemaType, type Model } from 'mongoose';
 
 const highestBidSchema = new Schema(
@@ -44,6 +45,32 @@ const listingSchema = new Schema(
     qualityGrade: { type: String, enum: ['A', 'B', 'C'], required: true },
     district: { type: String, required: true, index: true },
     description: { type: String, maxlength: 1000 },
+
+    /**
+     * Cloudinary URLs, first one the cover.
+     *
+     * Order is the supplier's, and it is meaningful — they choose which photograph a buyer sees
+     * in the market list — so this is an array rather than a set.
+     *
+     * Capped in the schema as well as at the route. The route bounds one request; this bounds the
+     * document, which is what actually protects a listing from being edited into a hundred images
+     * by some path nobody thought about.
+     */
+    photos: {
+      type: [String],
+      default: [],
+      validate: {
+        validator: (v: string[]) => v.length <= MAX_LISTING_PHOTOS,
+        message: `a listing may carry at most ${MAX_LISTING_PHOTOS} photos`,
+      },
+    },
+
+    /**
+     * The single image listings used to carry.
+     *
+     * Kept, unwritten, so lots created before `photos` existed still show their picture — the DTO
+     * folds it in as the first photo when the array is empty. Nothing sets it any more.
+     */
     imageUrl: { type: String },
 
     status: {

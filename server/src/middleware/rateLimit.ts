@@ -83,3 +83,17 @@ export const paymentLimiter = rateLimit({
   windowMs: 60_000,
   limit: 10,
 });
+
+/**
+ * Image uploads, which spend somebody else's quota.
+ *
+ * Each one is re-encoded on a 512 MB dyno and then stored against a free Cloudinary allowance
+ * shared by every user of the deployment. Twenty a minute covers a supplier photographing a lot
+ * from every angle and retrying the ones that failed on a bad connection; it does not cover a
+ * script.
+ */
+export const uploadLimiter = rateLimit({
+  ...shared,
+  windowMs: 60_000,
+  limit: 20,
+});

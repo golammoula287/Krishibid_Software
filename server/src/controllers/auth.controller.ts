@@ -7,7 +7,7 @@ import type { CookieOptions, Request, Response } from 'express';
 import { env, isProd } from '../config/env.js';
 import { badRequest, forbidden, unauthorized } from '../utils/errors.js';
 import * as authService from '../services/auth.service.js';
-import { sniffImage } from '../services/diagnosis.service.js';
+import { sniffImage } from '../utils/image.js';
 import * as registrationService from '../services/registration.service.js';
 
 export const REFRESH_COOKIE = 'krishibid_rt';
