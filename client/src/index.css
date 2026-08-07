@@ -6,6 +6,18 @@
   html {
     /* Prevents iOS Safari inflating text in landscape. */
     -webkit-text-size-adjust: 100%;
+
+    /*
+     * A backstop against sideways scroll on a phone.
+     *
+     * `clip`, deliberately, not `hidden`. `overflow-x: hidden` turns the element into a scroll
+     * container, which silently breaks every `position: sticky` descendant — the header and the
+     * order page's sidebar both rely on it. `clip` cuts the overflow without creating one.
+     *
+     * This is a net, not a licence: anything wide enough to hit it is still a layout bug, and it
+     * degrades to today's behaviour on browsers too old to know the keyword.
+     */
+    overflow-x: clip;
   }
 
   body {

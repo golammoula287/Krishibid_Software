@@ -473,7 +473,7 @@ export default function OrderDetailPage() {
        * Sticky on a desk so it stays beside the action rather than scrolling away — the whole
        * point of splitting this page is that the two halves are read together.
        */}
-      <aside className="space-y-4 lg:sticky lg:top-4">
+      <aside className="space-y-4 lg:sticky lg:top-20">
         <DeliveryCard delivery={o.delivery} />
 
         <section className="card">

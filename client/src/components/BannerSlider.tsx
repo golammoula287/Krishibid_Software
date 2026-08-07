@@ -76,7 +76,14 @@ export default function BannerSlider({ slides }: { slides: Slide[] }) {
       aria-roledescription="carousel"
       aria-label={t('market.bannerLabel')}
     >
-      <div className="relative h-[22rem] sm:h-[26rem]">
+      {/**
+       * Shorter on a phone, and every line inside it steps down too.
+       *
+       * At 360px the desktop sizes put a five-line headline, a kicker, two lines of body and a
+       * button into 352px of height — the button fell off the bottom. Sizing the type to the
+       * viewport is the fix; clipping is what happens when you do not.
+       */}
+      <div className="relative h-[19rem] sm:h-[24rem] lg:h-[26rem]">
         {slides.map((slide, i) => (
           <div
             key={slide.image}
@@ -96,20 +103,23 @@ export default function BannerSlider({ slides }: { slides: Slide[] }) {
             {/* Left-weighted, so the text has contrast and the produce is not dimmed. */}
             <div className="absolute inset-0 bg-gradient-to-r from-slate-950/85 via-slate-950/55 to-transparent" />
 
-            <div className="absolute inset-0 flex flex-col justify-center px-6 sm:px-12">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-brand-300">
+            <div className="absolute inset-0 flex flex-col justify-center px-5 sm:px-12">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-300 sm:text-[11px] sm:tracking-[0.25em]">
                 {t(slide.kicker)}
               </p>
-              <h2 className="mt-3 max-w-lg text-3xl font-bold leading-tight text-white sm:text-5xl">
+              <h2 className="mt-2 max-w-lg text-2xl font-bold leading-tight text-white sm:mt-3 sm:text-4xl lg:text-5xl">
                 {t(slide.title)}
               </h2>
-              <p className="mt-3 max-w-md text-sm leading-relaxed text-slate-200 sm:text-base">
+              {/* Hidden on the smallest screens rather than shrunk to nothing: at 360px the
+                  headline and the button are what matter, and a third block of prose between
+                  them is what pushed the button off the slide. */}
+              <p className="mt-2 hidden max-w-md text-sm leading-relaxed text-slate-200 xs:block sm:mt-3 sm:text-base">
                 {t(slide.body)}
               </p>
               <Link
                 to={slide.cta.to}
                 tabIndex={i === index ? 0 : -1}
-                className="mt-6 inline-flex w-fit items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-500"
+                className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:bg-brand-500 sm:mt-6 sm:px-6 sm:py-3"
               >
                 {t(slide.cta.label)}
                 <Icon name="arrowRight" className="h-4 w-4" />
@@ -138,7 +148,7 @@ export default function BannerSlider({ slides }: { slides: Slide[] }) {
             </button>
           ))}
 
-          <div className="absolute bottom-5 left-6 flex gap-2 sm:left-12">
+          <div className="absolute bottom-4 left-5 flex gap-2 sm:bottom-5 sm:left-12">
             {slides.map((slide, i) => (
               <button
                 key={slide.image}
