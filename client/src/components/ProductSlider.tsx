@@ -6,17 +6,17 @@ import { Icon } from './icons.js';
 import ListingCard from './ListingCard.js';
 import { CardSkeleton, EmptyState } from './ui.js';
 
-const PER_PAGE = 3;
+const PER_PAGE = 4;
 
 /**
- * A section of the home page: three products at a time, with arrows to page through the rest.
+ * A section of the home page: one row of products, with arrows to page through the rest.
  *
- * Three, not a scrolling rail. A rail of twenty on a home page is a second marketplace competing
+ * A row, not a scrolling rail. A rail of twenty on a home page is a second marketplace competing
  * with the marketplace, and the job here is to show enough that somebody wants to see the rest —
  * which is what the button underneath is for. Everything is on the dedicated page.
  *
- * Paged rather than free-scrolled so the three on screen are always three whole cards. A rail cut
- * off mid-card looks like a rendering bug on the narrow screens most of this audience is using.
+ * Paged rather than free-scrolled so what is on screen is always whole cards. A rail cut off
+ * mid-card looks like a rendering bug on the narrow screens most of this audience is using.
  */
 export default function ProductSlider({
   title,
@@ -95,11 +95,11 @@ export default function ProductSlider({
       </div>
 
       {loading ? (
-        <CardSkeleton count={3} />
+        <CardSkeleton count={4} />
       ) : shown.length === 0 ? (
         <EmptyState icon={icon === 'trending' ? 'trending' : 'market'} title={emptyLabel} />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {shown.map((listing) => (
             <ListingCard
               key={listing.id}

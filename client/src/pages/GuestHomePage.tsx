@@ -66,8 +66,8 @@ export default function GuestHomePage() {
 
   const categories = useCategories();
   const categoryName = useCategoryName();
-  const auctions = useShopListings('auction', { limit: 3 });
-  const fixed = useShopListings('fixed', { limit: 3 });
+  const auctions = useShopListings('auction', { limit: 4 });
+  const fixed = useShopListings('fixed', { limit: 4 });
 
   const popular = (categories.data ?? []).filter((c) =>
     (POPULAR_CATEGORIES as readonly string[]).includes(c.slug),
@@ -150,11 +150,12 @@ export default function GuestHomePage() {
         </div>
 
         {auctions.isLoading || fixed.isLoading ? (
-          <CardSkeleton count={3} />
+          <CardSkeleton count={4} />
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {[...(auctions.data?.items ?? []).slice(0, 3), ...(fixed.data?.items ?? []).slice(0, 3)]
-              .slice(0, 6)
+          <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
+            {/* Four of each, so the two rows are whole and the shops are evenly represented. */}
+            {[...(auctions.data?.items ?? []).slice(0, 4), ...(fixed.data?.items ?? []).slice(0, 4)]
+              .slice(0, 8)
               .map((listing) => (
                 <ListingCard
                   key={listing.id}

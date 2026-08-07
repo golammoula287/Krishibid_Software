@@ -198,7 +198,7 @@ function SupplierDashboard() {
       {closingSoon.length > 0 && (
         <section>
           <SectionHeading title={t('dash.closingSoon')} />
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {closingSoon.slice(0, 4).map((listing) => (
               <ListingCard
                 key={listing.id}
@@ -234,7 +234,7 @@ function SupplierDashboard() {
             }
           />
         )}
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {live.slice(0, 4).map((listing) => (
             <ListingCard
               key={listing.id}
@@ -377,7 +377,7 @@ function BuyerDashboard() {
       <section>
         <SectionHeading title={t('dash.freshOnMarket')} action={{ to: '/market', label: t('landing.seeAll') }} />
         {fresh.isLoading && <CardSkeleton count={2} />}
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
           {fresh.data?.items.slice(0, 4).map((listing) => (
             <ListingCard
               key={listing.id}

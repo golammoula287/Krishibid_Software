@@ -43,7 +43,7 @@ const SLIDES: Slide[] = [
  * The front of the marketplace.
  *
  * Four things and nothing else: a banner, the categories people actually browse, what is on
- * auction, what can be bought outright. Each product section shows three and offers a button to
+ * auction, what can be bought outright. Each product section shows a row of four and offers a button to
  * the page that has the rest — this is a shop window, not the shop.
  *
  * What it deliberately does NOT have is filters, a shop toggle or a full grid. Those belong on
@@ -61,10 +61,10 @@ export default function MarketHomePage() {
   const categories = useCategories();
   const categoryName = useCategoryName();
 
-  // Nine each: three on screen, six more behind the arrows. Enough to feel stocked without
-  // fetching a page's worth of products the visitor may never look at.
-  const auctions = useShopListings('auction', { limit: 9 });
-  const fixed = useShopListings('fixed', { limit: 9 });
+  // Twelve each: one row of four on screen, two more rows behind the arrows. Enough to feel
+  // stocked without fetching a page's worth of products the visitor may never look at.
+  const auctions = useShopListings('auction', { limit: 12 });
+  const fixed = useShopListings('fixed', { limit: 12 });
 
   const popular = (categories.data ?? []).filter((c) =>
     (POPULAR_CATEGORIES as readonly string[]).includes(c.slug),
