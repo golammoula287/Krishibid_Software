@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog.js';
+import OwnerControls from '../components/OwnerControls.js';
 import { Icon } from '../components/icons.js';
 import { CardSkeleton, ErrorNote, Spinner } from '../components/ui.js';
 import { api, ApiRequestError } from '../lib/api.js';
@@ -227,6 +228,9 @@ export default function ListingDetailPage() {
   return (
     <div className="space-y-4">
       <Gallery photos={data.photos} title={data.title} />
+
+      {/* First, above the lot itself: a seller opening their own listing came to change it. */}
+      {isOwner && <OwnerControls listing={data} />}
 
       <div className="card">
         <div className="flex items-start justify-between gap-3">

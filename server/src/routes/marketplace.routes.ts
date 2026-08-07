@@ -7,6 +7,7 @@ import {
   createListingSchema,
   listingQuerySchema,
   placeBidSchema,
+  updateListingSchema,
 } from '@krishibid/shared';
 import { Router } from 'express';
 import multer from 'multer';
@@ -73,6 +74,19 @@ marketplaceRoutes.post(
   uploadLimiter,
   upload.array('photos', MAX_LISTING_PHOTOS),
   controller.uploadListingPhotos,
+);
+
+/**
+ * Editing your own lot. `requireApprovedFarmer` as well as ownership: an account suspended after
+ * it listed something must not be able to keep rewriting what is on the shelf.
+ */
+marketplaceRoutes.patch(
+  '/listings/:id',
+  requireAuth,
+  requireRole('farmer'),
+  requireApprovedFarmer,
+  validate(updateListingSchema),
+  controller.updateListing,
 );
 
 marketplaceRoutes.delete(

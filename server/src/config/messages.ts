@@ -829,6 +829,16 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'ভূমিকা পরিবর্তন হয়েছে', hint: 'তাদের চালু সেশনগুলো বাতিল হয়েছে।' },
     en: { title: 'Role updated', hint: 'Their existing sessions have been ended.' },
   },
+  listing_updated: {
+    tone: 'info',
+    bn: { title: 'তালিকা হালনাগাদ হয়েছে', hint: 'ক্রেতারা সঙ্গে সঙ্গেই নতুন তথ্য দেখবেন।' },
+    en: { title: 'Listing updated', hint: 'Buyers see the new details immediately.' },
+  },
+  listing_removed: {
+    tone: 'info',
+    bn: { title: 'তালিকাটি বাজার থেকে সরানো হয়েছে' },
+    en: { title: 'Listing taken off the marketplace' },
+  },
   category_saved: {
     tone: 'info',
     bn: { title: 'বিভাগ সংরক্ষণ হয়েছে', hint: 'বাজারে সঙ্গে সঙ্গে দেখা যাবে।' },

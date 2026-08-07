@@ -2,6 +2,7 @@ import { deliveryChargeFor } from '@krishibid/shared';
 import type {
   BuyNowInput,
   CreateListingInput,
+  UpdateListingInput,
   ListingDto,
   ListingQuery,
   Page,
@@ -301,6 +302,82 @@ export async function getListing(listingId: string): Promise<ListingDto> {
 export async function listMyListings(farmerId: string): Promise<ListingDto[]> {
   const docs = await Listing.find({ farmerId }).sort({ createdAt: -1 }).limit(50).lean();
   return docs.map((d) => toDto(d));
+}
+
+/**
+ * Editing a lot that is already listed.
+ *
+ * Two rules, both about the people on the other side of it.
+ *
+ * Only while `open`: a sold lot is a record of what was agreed, and letting the seller rewrite
+ * the title or the price afterwards would change what the order says was bought.
+ *
+ * The PRICE is frozen once anybody has bid. Somebody who bid ৳12,000 against a ৳10,000 reserve
+ * committed real money to a number; moving the reserve under them afterwards is the auction
+ * equivalent of moving the goalposts. Everything else — a typo in the title, a better photograph,
+ * a fuller description — stays editable, because those are the corrections a seller actually
+ * needs and none of them change the deal.
+ */
+export async function updateListing(
+  farmerId: string,
+  listingId: string,
+  input: UpdateListingInput,
+): Promise<ListingDto> {
+  const listing = await Listing.findById(listingId);
+  if (!listing) throw notFound('listing');
+  if (String(listing.farmerId) !== farmerId) {
+    throw forbidden('only the listing owner can edit it');
+  }
+  if (listing.status !== 'open') {
+    throw badRequest('not_open', 'only an open listing can be edited');
+  }
+
+  const changesPrice =
+    input.reservePricePoisha !== undefined ||
+    input.pricePerUnitPoisha !== undefined ||
+    input.stock !== undefined;
+
+  if (changesPrice && (listing.bidCount ?? 0) > 0) {
+    throw badRequest(
+      'has_bids',
+      'people have already bid on this lot, so the price can no longer be changed',
+    );
+  }
+
+  /**
+   * Only the fields that belong to this listing's own shop.
+   *
+   * A client sending `pricePerUnitPoisha` for an auction is confused, and writing it would leave
+   * a document carrying both a reserve and a unit price — which `toDto` then has to guess
+   * between. Dropped rather than rejected: it changes nothing the seller asked for.
+   */
+  const changes: Record<string, unknown> = {};
+  for (const key of ['title', 'description', 'qualityGrade', 'district', 'photos'] as const) {
+    if (input[key] !== undefined) changes[key] = input[key];
+  }
+  if (listing.saleMode === 'auction') {
+    if (input.reservePricePoisha !== undefined) {
+      changes.reservePricePoisha = input.reservePricePoisha;
+    }
+  } else {
+    if (input.pricePerUnitPoisha !== undefined) {
+      changes.pricePerUnitPoisha = input.pricePerUnitPoisha;
+    }
+    if (input.stock !== undefined) changes.stock = input.stock;
+  }
+
+  const updated = await Listing.findByIdAndUpdate(
+    listingId,
+    // `version` moves so a bid accepted against the figures somebody was looking at is still
+    // caught by the optimistic-concurrency check that already guards accepts.
+    { $set: changes, $inc: { version: 1 } },
+    { new: true },
+  ).populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType rating');
+
+  if (!updated) throw notFound('listing');
+
+  logger.info({ listingId, farmerId, fields: Object.keys(changes) }, 'listing updated');
+  return toDto(updated as unknown as Populated);
 }
 
 export async function cancelListing(farmerId: string, listingId: string): Promise<void> {

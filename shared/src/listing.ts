@@ -145,6 +145,32 @@ export const listingQuerySchema = z.object({
 });
 export type ListingQuery = z.infer<typeof listingQuerySchema>;
 
+/**
+ * Editing a lot already listed.
+ *
+ * A subset, and the omissions are the point. Category, unit and sale mode are absent because
+ * changing them does not correct a listing, it replaces it with a different thing — a buyer
+ * watching "400 kg of rice, auction" should never find it has become "400 litres of oil, fixed
+ * price" under the same address. Those need a new listing, which costs a minute.
+ *
+ * Every field optional: a supplier fixing a typo in the title should not have to resend the
+ * price, and a partial update cannot then blank what it did not mention.
+ */
+export const updateListingSchema = z
+  .object({
+    title: z.string().trim().min(3).max(120).optional(),
+    description: z.string().max(1000).optional(),
+    qualityGrade: qualityGradeSchema.optional(),
+    district: districtSchema.optional(),
+    photos: z.array(photoUrlSchema).max(MAX_LISTING_PHOTOS).optional(),
+    reservePricePoisha: positivePoishaSchema.optional(),
+    pricePerUnitPoisha: positivePoishaSchema.optional(),
+    stock: z.number().nonnegative().max(1_000_000).optional(),
+  })
+  // An empty body is almost always a client bug, and silently succeeding hides it.
+  .refine((value) => Object.keys(value).length > 0, { message: 'nothing to update' });
+export type UpdateListingInput = z.infer<typeof updateListingSchema>;
+
 /** Buying at a fixed price. Quantity is the buyer's choice, bounded by stock. */
 export const buyNowSchema = z.object({
   listingId: objectId,

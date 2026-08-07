@@ -27,6 +27,10 @@ export async function createListing(req: Request, res: Response): Promise<void> 
   res.status(201).json(await listingService.createListing(req.user!.id, req.body));
 }
 
+export async function updateListing(req: Request, res: Response): Promise<void> {
+  res.json(await listingService.updateListing(req.user!.id, String(req.params.id), req.body));
+}
+
 export async function cancelListing(req: Request, res: Response): Promise<void> {
   await listingService.cancelListing(req.user!.id, String(req.params.id));
   res.status(204).send();

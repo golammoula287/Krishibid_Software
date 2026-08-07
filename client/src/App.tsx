@@ -30,6 +30,8 @@ const LandingPage = lazy(() => import('./pages/LandingPage.js'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage.js'));
 const ListingDetailPage = lazy(() => import('./pages/ListingDetailPage.js'));
 const CreateListingPage = lazy(() => import('./pages/CreateListingPage.js'));
+const EditListingPage = lazy(() => import('./pages/EditListingPage.js'));
+const GuestHomePage = lazy(() => import('./pages/GuestHomePage.js'));
 const DiagnosePage = lazy(() => import('./pages/DiagnosePage.js'));
 const AdvisorPage = lazy(() => import('./pages/AdvisorPage.js'));
 const OrdersPage = lazy(() => import('./pages/OrdersPage.js'));
@@ -91,7 +93,7 @@ function Home() {
    *
    * A farmer's `/` stays their dashboard: they arrive to manage lots and orders, not to shop.
    */
-  if (!user) return <MarketHomePage />;
+  if (!user) return <GuestHomePage />;
   if (user.role === 'farmer') return <DashboardPage />;
   if (user.role === 'buyer') return <MarketHomePage />;
   return <Navigate to="/admin" replace />;
@@ -224,6 +226,17 @@ export default function App() {
               <RequireRole roles={['admin']}>
                 <AdminBlogPage />
               </RequireRole>
+            }
+          />
+
+          <Route
+            path="listing/:id/edit"
+            element={
+              <RequireAuth>
+                <RequireRole roles={['farmer']}>
+                  <EditListingPage />
+                </RequireRole>
+              </RequireAuth>
             }
           />
 

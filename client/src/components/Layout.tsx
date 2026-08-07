@@ -257,6 +257,9 @@ export default function Layout() {
    * deliberately public so prices are visible before signing up.
    */
   const tabs = tabsForRole(user?.role);
+  const showFooter = !['/advisor', '/diagnose'].some((path) =>
+    location.pathname.startsWith(path),
+  );
   /** Bottom bar is thumb-reachable and cannot hold everything; five is already a lot. */
   const bottomTabs = primaryTabs(user?.role);
 
@@ -447,9 +450,21 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      {/* The footer carries the bottom padding the main used to: on mobile the fixed tab bar
-          overlaps whatever is last on the page, and that is now the footer rather than content. */}
-      <Footer />
+      {/**
+       * No footer on the advisor or the diagnosis screen.
+       *
+       * Both are working tools rather than pages to read: the advisor is a conversation that
+       * grows downward and the diagnosis screen ends in a result you act on. A site footer under
+       * either one puts marketing links directly beneath a farmer's answer, and on the advisor it
+       * would sit under a thread that never really ends.
+       *
+       * The footer carries the bottom padding the main used to, so these two restore it.
+       */}
+      {showFooter ? (
+        <Footer />
+      ) : (
+        <div className="pb-24 md:pb-10" aria-hidden="true" />
+      )}
 
       {/* Mobile bottom nav — thumb-reachable, which the top of the screen is not. */}
       <nav
