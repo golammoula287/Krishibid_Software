@@ -213,7 +213,15 @@ function SupplierDashboard() {
       <section>
         <SectionHeading title={t('dash.yourListings')} action={{ to: '/market', label: t('landing.seeAll') }} />
         {listings.isLoading && <CardSkeleton count={2} />}
-        {listings.data?.length === 0 && (
+        {/**
+         * Tested against what is actually rendered below, not against every listing ever made.
+         *
+         * The grid shows `live` — open lots — while this checked `listings.data`, which includes
+         * sold, expired and cancelled ones. A supplier whose lots had all sold therefore got a
+         * "Your listings" heading with nothing whatsoever underneath it: no cards, and no empty
+         * state either, because by that measure they had plenty.
+         */}
+        {listings.data && live.length === 0 && (
           <EmptyState
             icon="market"
             title={t('dash.noListings')}
