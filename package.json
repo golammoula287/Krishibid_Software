@@ -31,7 +31,8 @@
     "budget": "npm run budget --workspace=client",
     "images": "npm run images --workspace=client",
     "check:assets": "npm run check:assets --workspace=client",
-    "verify:logins": "npm run verify:logins --workspace=server"
+    "verify:logins": "npm run verify:logins --workspace=server",
+    "model:check": "npm run model:check --workspace=server"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

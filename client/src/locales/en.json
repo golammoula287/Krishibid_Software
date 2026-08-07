@@ -120,7 +120,36 @@
     "uncertain": "Not confident enough",
     "uncertainHelp": "The photo was not clear enough to identify the disease reliably. Please consult your local agricultural extension officer.",
     "history": "Past results",
-    "unavailable": "Disease detection is currently unavailable"
+    "unavailable": "Disease detection is currently unavailable",
+    "subtitle": "Photograph a leaf, look a disease up, or reach somebody who knows.",
+    "tab": {
+      "detect": "Detect",
+      "library": "Disease library",
+      "sources": "Where to get help"
+    },
+    "unavailableHelp": "The classifier is not trained on this deployment yet. The disease library below covers the same crops, and the Krishi Call Centre is free.",
+    "callHelpline": "Call 16123",
+    "alsoConsidered": "Also considered",
+    "confirmNote": "This is a photograph classifier, not an agronomist. Confirm with your upazila agriculture officer before spraying anything.",
+    "libraryHelp": "Common crop diseases in Bangladesh — what to look for, why it happens, what to do now and how to avoid it next season.",
+    "sourcesHelp": "Every diagnosis here follows guidance from these institutions. For a dose, a confirmation, or anything urgent, go to them directly — they are free, and they are staffed by people.",
+    "sourceKind": {
+      "helpline": "Helpline",
+      "government": "Government",
+      "research": "Research"
+    },
+    "visitSite": "Visit website",
+    "severity": {
+      "low": "Low",
+      "moderate": "Moderate",
+      "severe": "Severe"
+    },
+    "pest": "Insect pest",
+    "symptoms": "What you will see",
+    "cause": "Why it happens",
+    "treatment": "What to do now",
+    "prevention": "Preventing it next season",
+    "doseWarning": "No spray doses are given here on purpose. The correct rate depends on the formulation on the packet and on your soil — ask your upazila agriculture office or call 16123 before mixing anything."
   },
   "advisor": {
     "title": "Farming advice",
