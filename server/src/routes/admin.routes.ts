@@ -1,5 +1,7 @@
 import {
+  advanceDeliverySchema,
   assignDeliverySchema,
+  resolveClaimSchema,
   categoryInputSchema,
   categoryUpdateSchema,
   roleSchema,
@@ -7,6 +9,7 @@ import {
 import { Router } from 'express';
 import { z } from 'zod';
 import * as controller from '../controllers/admin.controller.js';
+import * as fulfilment from '../controllers/fulfilment.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 
@@ -27,6 +30,25 @@ adminRoutes.post(
   validate(assignDeliverySchema),
   controller.assignDelivery,
 );
+
+/**
+ * Advancing a consignment one step: collected, processing, dispatched, delivered.
+ *
+ * Admin-only because each step is a claim that our operations team did something physical, and
+ * the last one releases money to the supplier.
+ */
+adminRoutes.post(
+  '/delivery/:orderId/status',
+  validate(advanceDeliverySchema),
+  fulfilment.advanceDelivery,
+);
+
+// ---- claims ----
+adminRoutes.get('/claims', fulfilment.adminClaims);
+adminRoutes.post('/claims/:id/resolve', validate(resolveClaimSchema), fulfilment.resolveClaim);
+
+/** Any supplier's sales figures, for chasing up or verifying a payout. */
+adminRoutes.get('/suppliers/:id/sales', fulfilment.supplierSales);
 
 // ---- users ----
 adminRoutes.get('/users', controller.listUsers);

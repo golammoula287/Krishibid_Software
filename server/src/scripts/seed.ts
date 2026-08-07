@@ -597,6 +597,31 @@ async function seed(): Promise<void> {
       statusHistory: [{ status: 'completed', at: settledAt, by: buyer._id, note: 'seeded' }],
     });
 
+    /**
+     * A released payment for every completed sale.
+     *
+     * Without this the orders look completed and the supplier's sales report reads zero, because
+     * the report derives from payments — which is correct, money lives in the payment record —
+     * and a completed order with no payment behind it is a sale that never actually paid anybody.
+     * The demo was showing exactly that.
+     */
+    const goods = order.agreedAmountPoisha;
+    const commission = Math.floor((goods * env().PLATFORM_COMMISSION_BPS) / 10_000);
+    await Payment.create({
+      orderId: order._id,
+      buyerId: buyer._id,
+      farmerId: lot.farmerId,
+      amountPoisha: goods,
+      commissionPoisha: commission,
+      farmerNetPoisha: goods - commission,
+      status: 'released',
+      tranId: `SEED-DONE-${String(order._id)}`,
+      bankTranId: 'SEED-BANK-2',
+      heldAt: settledAt,
+      releasedAt: settledAt,
+      simulated: true,
+    });
+
     // Not every completed order gets reviewed, because not every buyer writes one — a platform
     // where the review count equals the sale count is not one anybody has used.
     if (i % 4 === 3) continue;

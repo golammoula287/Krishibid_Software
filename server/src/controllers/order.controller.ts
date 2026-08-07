@@ -7,7 +7,7 @@ export async function list(req: Request, res: Response): Promise<void> {
 }
 
 export async function get(req: Request, res: Response): Promise<void> {
-  res.json(await orderService.getOrderForUser(String(req.params.id), req.user!.id));
+  res.json(await orderService.getOrderForUser(String(req.params.id), req.user!.id, req.user!.role));
 }
 
 export async function ship(req: Request, res: Response): Promise<void> {

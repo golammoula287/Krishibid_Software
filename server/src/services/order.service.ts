@@ -28,6 +28,8 @@ function toDeliveryDto(d: OrderDoc['delivery']): DeliveryDto {
     agentName: d?.agentName || undefined,
     agentPhone: d?.agentPhone || undefined,
     trackingNote: d?.trackingNote || undefined,
+    collectedAt: d?.collectedAt?.toISOString(),
+    processedAt: d?.processedAt?.toISOString(),
     dispatchedAt: d?.dispatchedAt?.toISOString(),
     deliveredAt: d?.deliveredAt?.toISOString(),
   };
@@ -163,11 +165,26 @@ export async function listOrdersForUser(userId: string): Promise<OrderDto[]> {
   return attachPaymentStatus(orders);
 }
 
-export async function getOrderForUser(orderId: string, userId: string): Promise<OrderDto> {
+export async function getOrderForUser(
+  orderId: string,
+  userId: string,
+  role?: string,
+): Promise<OrderDto> {
   const order = await Order.findById(orderId);
   if (!order) throw notFound('order');
 
-  if (String(order.buyerId) !== userId && String(order.farmerId) !== userId) {
+  /**
+   * Admins can read any order; the two parties can read their own.
+   *
+   * The gap this closes was visible rather than theoretical: an admin could advance a
+   * consignment through collection and delivery — moving money at the end of it — and then get a
+   * 403 opening the very order they had just changed. Someone operating a dispatch board has to
+   * be able to see what they are dispatching.
+   */
+  const isParty = String(order.buyerId) === userId || String(order.farmerId) === userId;
+  const isAdmin = role === 'admin' || role === 'superadmin';
+
+  if (!isParty && !isAdmin) {
     throw forbidden('not a party to this order');
   }
 

@@ -9,6 +9,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
+import ClaimPanel from '../components/ClaimPanel.js';
+import DeliveryPipeline from '../components/DeliveryPipeline.js';
 import { StarPicker } from '../components/Stars.js';
 import { CardSkeleton, ErrorNote, StatusBadge } from '../components/ui.js';
 import { useCreateReview, useReviewableOrders } from '../lib/reviews.js';
@@ -368,6 +370,12 @@ export default function OrderDetailPage() {
           <ReviewPanel orderId={o.id} supplierId={o.farmerId} />
         )}
 
+        {/* Reporting a problem, from the moment the goods are on their way. "It never arrived"
+            is a complaint you can only make once you were expecting something. */}
+        {isBuyer && ['in_transit', 'completed', 'disputed'].includes(o.status) && (
+          <ClaimPanel orderId={o.id} />
+        )}
+
         {/* ---- actions ---- */}
         <div className="space-y-2">
         {isBuyer && o.status === 'awaiting_payment' && (
@@ -474,6 +482,11 @@ export default function OrderDetailPage() {
        * point of splitting this page is that the two halves are read together.
        */}
       <aside className="space-y-4 lg:sticky lg:top-20">
+        <DeliveryPipeline
+          orderId={o.id}
+          delivery={o.delivery}
+          canAdvance={user?.role === 'admin' || user?.role === 'superadmin'}
+        />
         <DeliveryCard delivery={o.delivery} />
 
         <section className="card">

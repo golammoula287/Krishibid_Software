@@ -11,14 +11,60 @@ import { districtSchema, phoneSchema, poishaSchema } from './common.js';
 export const deliveryMethodSchema = z.enum(['pickup', 'platform', 'courier']);
 export type DeliveryMethod = z.infer<typeof deliveryMethodSchema>;
 
+/**
+ * Where a consignment is, as the operations team actually moves it.
+ *
+ * It used to be `awaiting_dispatch -> dispatched -> delivered`, which collapsed three separate
+ * days of work into one transition. A buyer asking "where is my order?" on the second day got
+ * "waiting to be collected", which was untrue — it had been collected, it was in the warehouse
+ * being weighed and graded — and the supplier asking "have you taken it yet?" had no answer at
+ * all. Each step here is a thing somebody physically did.
+ */
 export const deliveryStatusSchema = z.enum([
   'not_required',
-  /** Platform delivery, waiting for an admin to assign somebody. */
+  /** Platform delivery, waiting for an admin to send someone to the supplier. */
   'awaiting_dispatch',
+  /** Picked up from the supplier. The goods are ours now, and that matters for liability. */
+  'collected',
+  /** Being weighed, graded and packed at our end. */
+  'processing',
+  /** Handed to an agent and on the way to the buyer. */
   'dispatched',
   'delivered',
 ]);
 export type DeliveryStatus = z.infer<typeof deliveryStatusSchema>;
+
+/**
+ * The only moves allowed, as data rather than scattered `if`s.
+ *
+ * Forward one step at a time, because each transition is a claim that somebody did something —
+ * jumping straight to `delivered` would record a delivery for goods nobody collected, and the
+ * escrow release that hangs off `delivered` would pay a supplier for it.
+ *
+ * `dispatched -> collected` is deliberately absent. If a parcel comes back, that is a claim or a
+ * refund, not a rewind: pretending it never left would erase the trip from the history the buyer
+ * is reading.
+ */
+export const DELIVERY_TRANSITIONS: Readonly<Record<DeliveryStatus, readonly DeliveryStatus[]>> = {
+  not_required: [],
+  awaiting_dispatch: ['collected'],
+  collected: ['processing'],
+  processing: ['dispatched'],
+  dispatched: ['delivered'],
+  delivered: [],
+} as const;
+
+export function canMoveDelivery(from: DeliveryStatus, to: DeliveryStatus): boolean {
+  return DELIVERY_TRANSITIONS[from].includes(to);
+}
+
+/** What an admin sends to advance a consignment. */
+export const advanceDeliverySchema = z.object({
+  status: deliveryStatusSchema,
+  /** Free text kept on the order's history — "12 sacks, 2 rejected for damp". */
+  note: z.string().trim().max(300).optional(),
+});
+export type AdvanceDeliveryInput = z.infer<typeof advanceDeliverySchema>;
 
 /**
  * What the buyer chooses when they commit to an order.
@@ -80,6 +126,9 @@ export interface DeliveryDto {
   agentName?: string;
   agentPhone?: string;
   trackingNote?: string;
+  /** One per step, so the buyer sees a timeline rather than a single current word. */
+  collectedAt?: string;
+  processedAt?: string;
   dispatchedAt?: string;
   deliveredAt?: string;
 }
