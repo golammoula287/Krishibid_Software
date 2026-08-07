@@ -140,7 +140,11 @@
   },
   "orders": {
     "title": "Orders",
-    "empty": "No orders yet",
+    "empty": {
+      "active": "Nothing in progress right now.",
+      "completed": "No completed orders yet.",
+      "cancelled": "Nothing cancelled or refunded."
+    },
     "status": {
       "awaiting_payment": "Awaiting payment",
       "confirmed": "Payment held",
@@ -160,7 +164,13 @@
     "escrowHeld": "Your payment is held securely",
     "escrowHelpBuyer": "The farmer is paid only once you confirm you received the goods.",
     "escrowHelpFarmer": "Once the buyer confirms delivery, the money moves to your balance.",
-    "history": "History"
+    "history": "History",
+    "subtitle": "Everything you have bought or sold, and what each one is waiting on.",
+    "filter": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
   },
   "payment": {
     "title": "Payment",
