@@ -195,9 +195,18 @@ export default function App() {
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="category/:slug" element={<CategoryPage />} />
 
-          {/* `/market` was the marketplace for most of this project's life. Kept as a redirect
-              so old links, bookmarks and anything already shared still land somewhere real. */}
-          <Route path="market" element={<Navigate to="/" replace />} />
+          {/**
+           * The marketplace has its own address, and needs one.
+           *
+           * It was a redirect to `/`, which collided with the dashboard: a farmer's `/` is their
+           * dashboard, so the nav had two entries — "Dashboard" and "Marketplace" — pointing at
+           * the same URL, and both lit up as active at once. A destination that means different
+           * things depending on who is asking cannot be linked to, and cannot be highlighted
+           * correctly either.
+           *
+           * `/` still dispatches by role. `/market` always means the marketplace.
+           */}
+          <Route path="market" element={<MarketHomePage />} />
           <Route path="listing/:id" element={<ListingDetailPage />} />
           {/* Public, like the listings themselves. Somebody deciding whether this platform is
               worth registering for is exactly who needs to see that its suppliers are real and

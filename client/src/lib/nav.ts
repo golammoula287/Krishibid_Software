@@ -70,7 +70,9 @@ const PUBLIC_TAIL: Tab[] = [
  * places rather than as the two halves of one marketplace.
  */
 const MARKET: Tab = {
-  to: '/',
+  // Its own address, never `/`. A farmer's `/` is their dashboard, so pointing the marketplace
+  // there gave two nav entries one URL and lit both of them as active.
+  to: '/market',
   key: 'market',
   icon: 'market',
   primary: true,
