@@ -34,6 +34,7 @@ const EditListingPage = lazy(() => import('./pages/EditListingPage.js'));
 const GuestHomePage = lazy(() => import('./pages/GuestHomePage.js'));
 const DiagnosePage = lazy(() => import('./pages/DiagnosePage.js'));
 const AdvisorPage = lazy(() => import('./pages/AdvisorPage.js'));
+const MarketAssistantPage = lazy(() => import('./pages/MarketAssistantPage.js'));
 const OrdersPage = lazy(() => import('./pages/OrdersPage.js'));
 const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage.js'));
 const AccountPage = lazy(() => import('./pages/AccountPage.js'));
@@ -191,6 +192,10 @@ export default function App() {
           {/* The old marketing page. Kept rather than deleted: it explains what this is, which
               is worth a page even when it is no longer the front door. */}
           <Route path="about" element={<LandingPage />} />
+
+          {/* Public: what things cost is the most useful thing this platform knows, and
+              putting it behind a login hides it from the people deciding whether to join. */}
+          <Route path="insights" element={<MarketAssistantPage />} />
 
           <Route path="categories" element={<CategoriesPage />} />
           <Route path="category/:slug" element={<CategoryPage />} />

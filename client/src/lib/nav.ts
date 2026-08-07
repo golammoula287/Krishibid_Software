@@ -80,6 +80,7 @@ const MARKET: Tab = {
     { to: '/auctions', key: 'auctions', icon: 'trending' },
     { to: '/shop', key: 'shop', icon: 'basket' },
     { to: '/categories', key: 'categories', icon: 'market' },
+    { to: '/insights', key: 'insights', icon: 'insights' },
   ],
 };
 

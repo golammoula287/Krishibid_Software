@@ -14,4 +14,5 @@ export * from './claim.js';
 export * from './diagnosis.js';
 export * from './diagnosis.extra.js';
 export * from './advisory.js';
+export * from './market.js';
 export * from './content.js';

@@ -10,6 +10,7 @@ import { contentRoutes } from './content.routes.js';
 import { diagnosisRoutes } from './diagnosis.routes.js';
 import { marketplaceRoutes } from './marketplace.routes.js';
 import { orderRoutes } from './order.routes.js';
+import { marketRoutes } from './market.routes.js';
 import { paymentRoutes } from './payment.routes.js';
 import { reviewRoutes } from './review.routes.js';
 
@@ -22,6 +23,8 @@ apiRoutes.use('/orders', orderRoutes);
 apiRoutes.use('/payments', paymentRoutes);
 apiRoutes.use('/diagnosis', diagnosisRoutes);
 apiRoutes.use('/advisory', advisoryRoutes);
+/** Live market figures and the assistant over them. Public — see market.routes.ts. */
+apiRoutes.use('/market', marketRoutes);
 /** Blog and contact — the parts of the site written by people rather than by the marketplace. */
 apiRoutes.use('/content', contentRoutes);
 /** Operator tooling: the overview, the dispatch board, users and administrators. */
