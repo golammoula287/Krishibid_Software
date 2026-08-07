@@ -584,11 +584,15 @@ export default function ListingDetailPage() {
         <ul className="divide-y divide-brand-50">
           {bids.data?.map((bid) => (
             <li key={bid.id} className="flex items-center justify-between gap-3 py-2.5">
-              <div>
+              {/* `min-w-0` + truncate: a trading company's full name is longer than a phone is
+                  wide, and without it the name pushes the Accept button off the row. */}
+              <div className="min-w-0">
                 <p className="font-semibold text-slate-800">
                   {formatBdt(bid.amountPoisha, locale)}
                 </p>
-                <p className="text-xs text-slate-500">{bid.buyerName || bid.buyerId.slice(-6)}</p>
+                <p className="truncate text-xs text-slate-500">
+                  {bid.buyerName || bid.buyerId.slice(-6)}
+                </p>
               </div>
 
               {/* Only the owner of an open listing can accept, and only the leading

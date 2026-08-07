@@ -122,7 +122,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
        * buy-now side.
        */}
       <section>
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
           <Link
             to="/categories"
             className={`shrink-0 text-center ${categorySlug === '' ? '' : 'opacity-70 hover:opacity-100'}`}
@@ -175,7 +175,11 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
       </section>
 
       {/**
-       * One search bar: category, words, district, go.
+       * One search bar on a desk, four separate fields on a phone.
+       *
+       * The hairline dividers only work when the controls sit in a row: stacked, three
+       * transparent boxes inside one bordered card read as a single smeared field with no edges.
+       * So below `sm` each gets its own border back and the bar is just a container.
        *
        * The three controls read as a single field on a desk — divided by hairlines rather than
        * each in its own bordered box — because they are one question asked in three parts, not
@@ -197,7 +201,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
           value={categorySlug}
           onChange={(e) => setFilter('category', e.target.value)}
           aria-label={t('market.allCategories')}
-          className="h-11 shrink-0 rounded-xl border-0 bg-transparent px-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-100 sm:w-44 sm:border-r sm:border-slate-200"
+          className="h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-100 sm:w-44 sm:rounded-none sm:border-0 sm:border-r sm:bg-transparent"
         >
           <option value="">{t('market.allCategories')}</option>
           {categories.data?.map((category) => (
@@ -218,7 +222,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
             onChange={(e) => setSearchDraft(e.target.value)}
             placeholder={t('market.search')}
             aria-label={t('market.search')}
-            className="h-11 w-full border-0 bg-transparent pl-10 pr-3 text-sm outline-none placeholder:text-slate-400 focus:ring-0 sm:pl-4"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-3 text-sm outline-none placeholder:text-slate-400 focus:ring-0 sm:rounded-none sm:border-0 sm:bg-transparent sm:pl-4"
           />
         </div>
 
@@ -226,7 +230,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
           value={district}
           onChange={(e) => setFilter('district', e.target.value)}
           aria-label={t('market.allDistricts')}
-          className="h-11 shrink-0 rounded-xl border-0 bg-transparent px-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-100 sm:w-40 sm:border-l sm:border-slate-200"
+          className="h-11 shrink-0 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 outline-none focus:ring-2 focus:ring-brand-100 sm:w-40 sm:rounded-none sm:border-0 sm:border-l sm:bg-transparent"
         >
           <option value="">{t('market.allDistricts')}</option>
           {DISTRICTS.map((d) => (

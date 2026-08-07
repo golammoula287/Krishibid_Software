@@ -3,6 +3,15 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      /**
+       * One breakpoint below Tailwind's smallest.
+       *
+       * `sm` is 640px, which is a small tablet — there is nothing between it and "any phone at
+       * all". A large part of this audience is on 360px handsets, and the difference between 360
+       * and 430 is the difference between a headline fitting and a button falling off the slide.
+       */
+      screens: { xs: '400px' },
+
       colors: {
         /**
          * Agricultural green, dark enough for AA contrast on white at body sizes.
