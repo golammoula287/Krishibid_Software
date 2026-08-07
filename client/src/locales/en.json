@@ -131,7 +131,12 @@
     "insufficient": "My knowledge base does not cover this question",
     "degraded": "The service is busy — showing sources only",
     "cached": "Saved answer",
-    "intro": "Ask anything about crops, disease, fertiliser or the market"
+    "intro": "Ask about crops, disease, fertiliser or the market. Write in Bangla or English; you will be answered in the language you use.",
+    "subtitle": "Answers drawn only from cited sources — in Bangla or English",
+    "starter1": "ধানের পাতা হলুদ হয়ে যাচ্ছে কেন?",
+    "starter2": "আলুর নাবি ধ্বসা কীভাবে ঠেকাব?",
+    "starter3": "When should I apply urea to rice?",
+    "starter4": "How do I store onions after harvest?"
   },
   "orders": {
     "title": "Orders",
