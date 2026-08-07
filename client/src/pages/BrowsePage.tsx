@@ -16,7 +16,9 @@ const DISTRICTS = [
   'Mymensingh', 'Sylhet', 'Dinajpur', 'Faridpur', 'Barishal', 'Chattogram', 'Rangamati',
 ];
 
-const PER_PAGE = 12;
+// Four rows of four. A page size that is not a multiple of the row leaves a ragged
+// last line on every page but the last, which reads as missing products.
+const PER_PAGE = 16;
 
 /**
  * One shop, in full: banner, filters, grid, numbered pages.
@@ -259,7 +261,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
       )}
 
       {/* ---------------------------------------------------------------- grid */}
-      {listings.isLoading && <CardSkeleton count={6} />}
+      {listings.isLoading && <CardSkeleton count={8} />}
       {listings.isError && (
         <ErrorNote error={listings.error} onRetry={() => void listings.refetch()} />
       )}
@@ -270,7 +272,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
 
       {items.length > 0 && (
         <>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4">
             {items.map((listing) => (
               <ListingCard
                 key={listing.id}
