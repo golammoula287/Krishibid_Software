@@ -276,6 +276,32 @@ export const MESSAGE_CATALOGUE: Record<string, MessageEntry> = {
       hint: 'One review per order.',
     },
   },
+  delivery_step_not_allowed: {
+    tone: 'warning',
+    bn: {
+      title: 'এই ধাপটি এখন করা যাবে না',
+      hint: 'চালান এক ধাপ করে এগোয় — আগের ধাপটি আগে সম্পন্ন করুন।',
+    },
+    en: {
+      title: 'That step is not available yet',
+      hint: 'A consignment moves one step at a time — complete the previous step first.',
+    },
+  },
+  claim_too_early: {
+    tone: 'info',
+    bn: { title: 'এখনো অভিযোগ করার মতো কিছু নেই', hint: 'অর্ডারের টাকা পরিশোধ হওয়ার পর জানাতে পারবেন।' },
+    en: { title: 'There is nothing to report yet', hint: 'You can report a problem once the order is paid for.' },
+  },
+  claim_already_open: {
+    tone: 'info',
+    bn: { title: 'এই অর্ডারে আপনার একটি অভিযোগ চলমান', hint: 'সিদ্ধান্ত জানানোর পর নতুন অভিযোগ করতে পারবেন।' },
+    en: { title: 'You already have an open report on this order', hint: 'You can file another once this one is decided.' },
+  },
+  claim_already_resolved: {
+    tone: 'info',
+    bn: { title: 'এই অভিযোগের সিদ্ধান্ত হয়ে গেছে' },
+    en: { title: 'This report has already been decided' },
+  },
   delivery_not_dispatchable: {
     tone: 'warning',
     bn: {
@@ -838,6 +864,21 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     tone: 'info',
     bn: { title: 'তালিকাটি বাজার থেকে সরানো হয়েছে' },
     en: { title: 'Listing taken off the marketplace' },
+  },
+  claim_filed: {
+    tone: 'info',
+    bn: { title: 'আপনার অভিযোগ জমা হয়েছে', hint: 'একজন প্রশাসক দেখে সিদ্ধান্ত জানাবেন।' },
+    en: { title: 'Your report has been filed', hint: 'An administrator will review it and tell you what they decide.' },
+  },
+  claim_resolved: {
+    tone: 'info',
+    bn: { title: 'অভিযোগের সিদ্ধান্ত সংরক্ষণ হয়েছে' },
+    en: { title: 'Decision recorded' },
+  },
+  delivery_advanced: {
+    tone: 'info',
+    bn: { title: 'চালানের অবস্থা হালনাগাদ হয়েছে' },
+    en: { title: 'Consignment updated' },
   },
   category_saved: {
     tone: 'info',

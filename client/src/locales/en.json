@@ -356,7 +356,8 @@
       "delivery": "Delivery",
       "messages": "Messages",
       "users": "Users",
-      "categories": "Categories"
+      "categories": "Categories",
+      "claims": "Claims"
     },
     "order": {
       "awaitingPayment": "Awaiting payment",
@@ -421,6 +422,15 @@
       "inactive": "Inactive",
       "deactivate": "Deactivate",
       "reactivate": "Reactivate"
+    },
+    "claims": {
+      "empty": "No open reports.",
+      "heldNote": "Payment is still held — upholding this refunds the buyer.",
+      "releasedNote": "Payment has already been released. Upholding records the decision; the deduction happens at payout.",
+      "uphold": "Uphold",
+      "reject": "Not upheld",
+      "review": "Mark as reviewing",
+      "notePlaceholder": "What you decided and why. The buyer reads this."
     }
   },
   "login": {
@@ -696,7 +706,9 @@
       "not_required": "No delivery needed",
       "awaiting_dispatch": "Waiting to be collected",
       "dispatched": "On the way",
-      "delivered": "Delivered"
+      "delivered": "Delivered",
+      "collected": "Collected from supplier",
+      "processing": "Being processed"
     },
     "carriedBy": "Carried by",
     "withAgent": "With {{name}}",
@@ -838,5 +850,51 @@
       "farmerBody": "Sell direct and keep the margin the middlemen were taking. Approval usually takes a day.",
       "farmerAction": "Sign up to sell"
     }
+  },
+  "fulfil": {
+    "title": "Where your order is",
+    "notePlaceholder": "Note for the record — 12 sacks, 2 rejected for damp",
+    "releasesPayment": "This step pays the supplier. Mark it only once the buyer has the goods.",
+    "action": {
+      "collected": "Mark collected from supplier",
+      "processing": "Mark as processing",
+      "dispatched": "Mark dispatched to buyer",
+      "delivered": "Mark delivered"
+    }
+  },
+  "claim": {
+    "title": "Report a problem",
+    "problemTitle": "Something wrong with this order?",
+    "problemHelp": "Tell us and an administrator will look into it.",
+    "report": "Report a problem",
+    "whatWentWrong": "What went wrong?",
+    "detail": "What happened",
+    "detailPlaceholder": "Be specific — what you ordered, what arrived, and how much.",
+    "submit": "Send report",
+    "yours": "Your reports on this order",
+    "fileAnother": "Report another problem",
+    "decision": "Administrator's decision",
+    "reason": {
+      "not_delivered": "It never arrived",
+      "quantity_short": "Less than ordered",
+      "wrong_item": "Wrong item",
+      "quality_poor": "Quality below what was listed",
+      "damaged": "Arrived damaged",
+      "other": "Something else"
+    },
+    "status": {
+      "open": "Waiting for review",
+      "reviewing": "Being reviewed",
+      "upheld": "Upheld",
+      "rejected": "Not upheld"
+    }
+  },
+  "sales": {
+    "title": "Your sales",
+    "settled": "Paid to you",
+    "pending": "In escrow",
+    "pendingHelp": "Sold and paid for, released when the buyer has the goods.",
+    "thisMonth": "This month",
+    "orders": "orders"
   }
 }

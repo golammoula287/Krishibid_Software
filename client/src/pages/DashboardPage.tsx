@@ -8,6 +8,7 @@ import { CardSkeleton, EmptyState } from '../components/ui.js';
 import { useAccount } from '../lib/account.js';
 import { api } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
+import { useSalesReport } from '../lib/fulfilment.js';
 import { useCategoryName } from '../lib/catalogue.js';
 import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
@@ -101,6 +102,7 @@ function ActionRow({ order, actionLabel }: { order: OrderDto; actionLabel: strin
 // ---------------------------------------------------------------------------
 
 function SupplierDashboard() {
+  const sales = useSalesReport();
   const { t } = useTranslation();
   const locale = currentLocale();
   const account = useAccount();
@@ -211,6 +213,42 @@ function SupplierDashboard() {
       )}
 
       <section>
+        {/**
+         * Money released against money still in escrow, kept apart.
+         *
+         * An order marked completed whose escrow has not settled is a promise, not income —
+         * adding the two together would tell a supplier they can spend something they cannot.
+         */}
+        {sales.data && (
+          <section className="grid gap-3 sm:grid-cols-3">
+            <div className="card">
+              <p className="text-xs text-slate-500">{t('sales.settled')}</p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-brand-700">
+                {formatBdt(sales.data.settledNetPoisha, locale)}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {sales.data.settledOrders} {t('sales.orders')}
+              </p>
+            </div>
+            <div className="card">
+              <p className="text-xs text-slate-500">{t('sales.pending')}</p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-amber-700">
+                {formatBdt(sales.data.pendingNetPoisha, locale)}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-400">{t('sales.pendingHelp')}</p>
+            </div>
+            <div className="card">
+              <p className="text-xs text-slate-500">{t('sales.thisMonth')}</p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-slate-900">
+                {formatBdt(sales.data.thisMonthNetPoisha, locale)}
+              </p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {sales.data.thisMonthOrders} {t('sales.orders')}
+              </p>
+            </div>
+          </section>
+        )}
+
         <SectionHeading title={t('dash.yourListings')} action={{ to: '/market', label: t('landing.seeAll') }} />
         {listings.isLoading && <CardSkeleton count={2} />}
         {/**
