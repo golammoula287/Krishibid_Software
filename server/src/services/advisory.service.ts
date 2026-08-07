@@ -172,10 +172,33 @@ export function validateCitations(
   return { answer, citations, strippedCount: bogus.length };
 }
 
+/**
+ * Which language to answer in, taken from the question itself.
+ *
+ * The UI toggle is a poor proxy for this. A farmer whose phone is set to English still types
+ * "ধানের পাতা হলুদ হয়ে যাচ্ছে কেন" — and being answered in English is being answered in a language
+ * they did not use. The reverse happens too: an agronomist with the app in Bangla asking a
+ * question in English got Bangla back.
+ *
+ * Detected by script rather than by a language model: Bengali occupies one contiguous Unicode
+ * block, so this is exact, free and instant, where a classifier would be none of those.
+ *
+ * A mixed question — Bangla with English crop names, which is how people actually write — counts
+ * as Bangla, because that is the language the sentence is in.
+ */
+export function detectLocale(question: string, fallback: 'bn' | 'en'): 'bn' | 'en' {
+  // U+0980–U+09FF is the Bengali block.
+  if (/[ঀ-৿]/.test(question)) return 'bn';
+  // Latin letters present and no Bengali at all: they asked in English.
+  if (/[A-Za-z]{3,}/.test(question)) return 'en';
+  // Digits, punctuation or nothing recognisable — keep whatever the UI said.
+  return fallback;
+}
+
 export async function ask(userId: string, input: AskInput): Promise<AnswerDto> {
   const started = performance.now();
   const e = env();
-  const locale = input.locale ?? 'bn';
+  const locale = detectLocale(input.question, input.locale ?? 'bn');
   const key = cacheKey(input.question, locale, input.cropSlug);
 
   // ---- 1. cache ----

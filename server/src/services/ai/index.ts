@@ -1,6 +1,7 @@
 import { ClaudeProvider } from './claude.js';
 import { AiProviderError } from './errors.js';
 import { GeminiProvider } from './gemini.js';
+import { FailoverProvider } from './failover.js';
 import { GroqProvider } from './groq.js';
 import type {
   AiProvider,
@@ -18,6 +19,7 @@ export { estimateCostUsd, estimateTokens } from './pricing.js';
 export { GeminiProvider } from './gemini.js';
 export { ClaudeProvider } from './claude.js';
 export { GroqProvider } from './groq.js';
+export { FailoverProvider } from './failover.js';
 
 /**
  * Chat on one provider, embeddings on another.
@@ -55,6 +57,69 @@ class CompositeProvider implements AiProvider {
   }
 }
 
+/**
+ * Builds the chain: the chosen provider first, then whatever else has a key, as reserve.
+ *
+ * Every one of these is a free tier with a daily cap, and the caps get hit — a busy afternoon
+ * exhausts Gemini's requests and the advisor stops answering until midnight UTC. Two accounts
+ * with different limits do not run out at the same moment, so configuring both means one covers
+ * the other. Nothing has to be switched by hand.
+ *
+ * Order is preference, not capability: whichever `AI_PROVIDER` names leads, and the rest fall in
+ * behind it. Configuring one key is still perfectly valid — the chain is then one long and
+ * behaves exactly as it did before failover existed.
+ */
+function chatProvidersFor(config: ProviderConfig): AiProvider[] {
+  const { embeddingDimensions } = config;
+
+  const built: Partial<Record<ProviderName, AiProvider>> = {};
+
+  if (config.groq?.apiKey) {
+    built.groq = new GroqProvider(config.groq.apiKey, config.groq.chatModel, embeddingDimensions);
+  }
+  if (config.claude?.apiKey) {
+    built.claude = new ClaudeProvider(
+      config.claude.apiKey,
+      config.claude.chatModel,
+      embeddingDimensions,
+    );
+  }
+  if (config.gemini?.apiKey) {
+    built.gemini = new GeminiProvider(
+      config.gemini.apiKey,
+      config.gemini.chatModel,
+      config.gemini.embedModel,
+      embeddingDimensions,
+    );
+  }
+
+  const preferred = built[config.provider];
+  if (!preferred) {
+    /**
+     * Named per provider, not one generic line.
+     *
+     * "requires its API key" tells somebody staring at a boot failure nothing they can act on;
+     * the variable to set is the entire useful content of this message.
+     */
+    const required: Record<ProviderName, string> = {
+      groq: 'GROQ_API_KEY',
+      claude: 'ANTHROPIC_API_KEY',
+      gemini: 'GEMINI_API_KEY',
+    };
+    throw new AiProviderError(
+      `AI_PROVIDER=${config.provider} requires ${required[config.provider]}`,
+      config.provider,
+    );
+  }
+
+  const reserves = (['groq', 'gemini', 'claude'] as const)
+    .filter((name) => name !== config.provider)
+    .map((name) => built[name])
+    .filter((p): p is AiProvider => Boolean(p));
+
+  return [preferred, ...reserves];
+}
+
 export function createAiProvider(config: ProviderConfig): AiProvider {
   const { provider, embeddingDimensions } = config;
 
@@ -81,34 +146,17 @@ export function createAiProvider(config: ProviderConfig): AiProvider {
     );
   };
 
-  if (provider === 'claude') {
-    if (!config.claude?.apiKey) {
-      throw new AiProviderError('AI_PROVIDER=claude requires ANTHROPIC_API_KEY', 'claude');
-    }
-    return new CompositeProvider(
-      new ClaudeProvider(config.claude.apiKey, config.claude.chatModel, embeddingDimensions),
-      geminiEmbedder('claude'),
-    );
-  }
+  const chat = chatProvidersFor(config);
+  const chatChain = chat.length > 1 ? new FailoverProvider(chat) : chat[0]!;
 
-  if (provider === 'groq') {
-    if (!config.groq?.apiKey) {
-      throw new AiProviderError('AI_PROVIDER=groq requires GROQ_API_KEY', 'groq');
-    }
-    return new CompositeProvider(
-      new GroqProvider(config.groq.apiKey, config.groq.chatModel, embeddingDimensions),
-      geminiEmbedder('groq'),
-    );
-  }
+  /**
+   * Gemini alone needs no composition — it is its own embedder.
+   *
+   * For anything else, generation goes through the failover chain and embeddings stay pinned to
+   * Gemini, because it is the only provider with an embeddings endpoint. Routing them separately
+   * is what stops a chat-provider outage from also taking retrieval down.
+   */
+  if (provider === 'gemini' && chat.length === 1) return chatChain;
 
-  if (!config.gemini?.apiKey) {
-    throw new AiProviderError('AI_PROVIDER=gemini requires GEMINI_API_KEY', 'gemini');
-  }
-
-  return new GeminiProvider(
-    config.gemini.apiKey,
-    config.gemini.chatModel,
-    config.gemini.embedModel,
-    embeddingDimensions,
-  );
+  return new CompositeProvider(chatChain, geminiEmbedder(provider));
 }

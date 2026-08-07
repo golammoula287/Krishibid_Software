@@ -68,6 +68,18 @@ const envSchema = z.object({
   JWT_REFRESH_TTL: z.string().default('30d'),
   BCRYPT_ROUNDS: z.coerce.number().int().min(10).max(15).default(12),
 
+  /**
+   * Which provider LEADS. Any other key that is set becomes a reserve behind it.
+   *
+   * Not "which provider is used": every configured key joins a failover chain, and when the
+   * leader is out of quota the next one serves the request without anybody switching anything.
+   * These are all free tiers with daily caps, and the caps get hit — one exhausted provider used
+   * to mean the advisor stopped answering for everybody until the reset.
+   *
+   * Groq leads because it is fast and its limits are generous. Embeddings stay on Gemini
+   * regardless, because no other provider has an embeddings endpoint — so `GEMINI_API_KEY` is
+   * required whatever this says, and retrieval keeps working even when generation fails over.
+   */
   AI_PROVIDER: z.enum(['gemini', 'claude', 'groq']).default('gemini'),
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_CHAT_MODEL: z.string().default('gemini-3.6-flash'),
@@ -212,14 +224,39 @@ function buildEnv(): Env {
 
   const env = parsed.data;
 
-  // Cross-field checks the per-field schema can't express.
+  /**
+   * Whether the leader was chosen or merely defaulted.
+   *
+   * The distinction decides whether a missing key is an error. Naming a provider and not giving
+   * it a key is a misconfiguration worth refusing to boot over; ending up on a provider because
+   * nothing was set is not.
+   */
+  const providerWasChosen = Boolean(process.env.AI_PROVIDER);
+
+  /**
+   * With nothing specified, Groq leads if it has a key.
+   *
+   * It is faster and its free limits are more generous, so it is the better default when it is
+   * available — but defaulting to it unconditionally would refuse to boot on every deployment
+   * that has not set `GROQ_API_KEY`, including one that was working fine a minute earlier. The
+   * default has to be something that always works; the preference is applied only when it can be.
+   *
+   * Either way the other configured providers become reserves behind the leader, so this decides
+   * who goes first rather than who is used.
+   */
+  if (!providerWasChosen && env.GROQ_API_KEY) {
+    env.AI_PROVIDER = 'groq';
+  }
+
+  // Cross-field checks the per-field schema can't express. Only an explicit choice is enforced,
+  // for the reason above.
   if (env.AI_PROVIDER === 'gemini' && !env.GEMINI_API_KEY) {
     throw new Error('AI_PROVIDER=gemini requires GEMINI_API_KEY');
   }
-  if (env.AI_PROVIDER === 'claude' && !env.ANTHROPIC_API_KEY) {
+  if (providerWasChosen && env.AI_PROVIDER === 'claude' && !env.ANTHROPIC_API_KEY) {
     throw new Error('AI_PROVIDER=claude requires ANTHROPIC_API_KEY');
   }
-  if (env.AI_PROVIDER === 'groq' && !env.GROQ_API_KEY) {
+  if (providerWasChosen && env.AI_PROVIDER === 'groq' && !env.GROQ_API_KEY) {
     throw new Error('AI_PROVIDER=groq requires GROQ_API_KEY');
   }
   // Neither Claude nor Groq offers embeddings, so retrieval needs Gemini regardless
