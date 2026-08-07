@@ -27,7 +27,9 @@
     "eval:rag": "tsx src/scripts/evalRag.ts",
     "eval:rag:prod": "node dist/evalRag.js",
     "verify:logins": "tsx src/scripts/verifyLogins.ts",
-    "verify:logins:prod": "node dist/verifyLogins.js"
+    "verify:logins:prod": "node dist/verifyLogins.js",
+    "model:check": "tsx src/scripts/checkModel.ts",
+    "model:check:prod": "node dist/checkModel.js"
   },
   "dependencies": {
     "@krishibid/shared": "*",

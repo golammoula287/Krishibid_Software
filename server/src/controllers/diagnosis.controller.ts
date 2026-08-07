@@ -13,6 +13,8 @@ import {
 } from '../services/diagnosis.service.js';
 import { sniffImage } from '../utils/image.js';
 import { uploadImage } from '../services/storage.service.js';
+import { ADVISORY_SOURCES } from '../scripts/advisors.js';
+import { DISEASES } from '../scripts/diseases.js';
 
 function toDto(d: DiagnosisDoc): DiagnosisDto {
   return {
@@ -31,6 +33,14 @@ function toDto(d: DiagnosisDoc): DiagnosisDto {
     latencyMs: d.latencyMs,
     createdAt: (d as unknown as { createdAt: Date }).createdAt.toISOString(),
   };
+}
+
+export function diseases(_req: Request, res: Response): void {
+  res.json(DISEASES);
+}
+
+export function sources(_req: Request, res: Response): void {
+  res.json(ADVISORY_SOURCES);
 }
 
 export function health(_req: Request, res: Response): void {

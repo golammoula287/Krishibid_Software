@@ -32,6 +32,9 @@ export default defineConfig({
     // "Can anybody actually sign in?" is the first question after a deploy or a reseed, and the
     // only place worth asking it is the box people will be signing in to.
     verifyLogins: 'src/scripts/verifyLogins.ts',
+    // So a trained model can be verified on the box that will serve it, which is the only
+    // place the answer actually matters.
+    checkModel: 'src/scripts/checkModel.ts',
   },
   outDir: 'dist',
   format: ['esm'],

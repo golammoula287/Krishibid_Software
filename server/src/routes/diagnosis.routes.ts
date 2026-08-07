@@ -30,6 +30,15 @@ export const diagnosisRoutes = Router();
 diagnosisRoutes.get('/health', controller.health);
 
 /**
+ * The disease library and the institutions behind it. Deliberately public and deliberately
+ * independent of the model: on a deployment where the classifier has not been trained yet, this
+ * reference material is the whole of what the page can honestly offer — and it is useful on its
+ * own to somebody who has not signed up.
+ */
+diagnosisRoutes.get('/diseases', controller.diseases);
+diagnosisRoutes.get('/sources', controller.sources);
+
+/**
  * Farmer-only (plus admin, for support).
  *
  * A buyer inspecting a leaf photo is not a use case, and inference is the most CPU-expensive
