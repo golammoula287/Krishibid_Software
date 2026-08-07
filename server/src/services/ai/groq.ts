@@ -139,6 +139,28 @@ export class GroqProvider implements AiProvider {
     // Groq returns 429 both for the free tier's rate limit and its daily token cap.
     // Either way the caller's correct response is to degrade, not to 500.
     if (status === 429) return new AiQuotaError(message, 'groq', retryAfterMs);
+
+    /**
+     * The tokens-per-minute ceiling does not arrive as a 429.
+     *
+     * Groq's free tier allows 12,000 tokens a minute and rejects an over-budget request with
+     * "Request too large … tokens per minute (TPM)" under a 413. Taken at face value that is a
+     * malformed request — permanent, not worth retrying, and specifically not worth failing over.
+     *
+     * Matched on the message rather than the status, because the status is exactly the thing that
+     * turned out not to be dependable: this was first written against 400, which is what it looks
+     * like it should be, and it silently never fired.
+     *
+     * It is none of those things. It is a rate limit wearing the wrong status code, and treating
+     * it as a client error is why a Bangla question failed while the English one beside it
+     * succeeded: Bengali tokenizes to roughly twice as many tokens as the same sentence in
+     * English, so the Bangla prompt crossed 12,000 and the English one did not. Classified as
+     * quota, it fails over to a provider that has room, which is the entire point of having one.
+     */
+    if (/tokens per minute|TPM|request too large|rate limit|quota/i.test(message)) {
+      return new AiQuotaError(message, 'groq', retryAfterMs);
+    }
+
     const retryable = status >= 500 || status === 408;
     return new AiProviderError(message, 'groq', status, retryable);
   }
