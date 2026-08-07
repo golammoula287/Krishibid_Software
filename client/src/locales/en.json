@@ -615,7 +615,19 @@
     "addPhoto": "Add photo",
     "cover": "Cover",
     "makeCover": "Make cover",
-    "removePhoto": "Remove this photo"
+    "removePhoto": "Remove this photo",
+    "yourListing": "This is your listing",
+    "ownerHelp": "You can correct the details or take it off the marketplace.",
+    "hasBidsNote": "People have bid on this, so it can no longer be removed and the price is fixed.",
+    "edit": "Edit",
+    "remove": "Remove",
+    "removeConfirmTitle": "Take this listing down?",
+    "removeConfirmBody": "It disappears from the marketplace. This cannot be undone.",
+    "editTitle": "Edit your listing",
+    "editHelp": "Category, unit and sale mode cannot change — those would make it a different listing.",
+    "priceLocked": "{{count}} bid(s) already placed, so the price is locked.",
+    "stockZeroNote": "Set it to 0 if you have run out; the listing stays up but shows as sold out.",
+    "notYours": "This listing belongs to somebody else."
   },
   "supplier": {
     "farmer": "Farmer",
@@ -744,5 +756,43 @@
     "body": "Everything the marketplace sells, and the units each is sold in.",
     "search": "Find a category",
     "noMatch": "No category matches that."
+  },
+  "guest": {
+    "howTitle": "How KrishiBid works",
+    "howBody": "Three steps, and your money is protected through all of them.",
+    "step": {
+      "browse": "Find what you need",
+      "browseBody": "Bid on a whole lot, or buy at a listed price in the quantity you want.",
+      "pay": "Pay into escrow",
+      "payBody": "We hold the money. The supplier only receives it once you confirm the goods arrived.",
+      "receive": "Take delivery",
+      "receiveBody": "Collect it yourself, or we assign an agent whose name and number appear on your order."
+    },
+    "liveTitle": "On the marketplace right now",
+    "liveBody": "Real lots from approved suppliers. You can browse everything before creating an account.",
+    "featuresTitle": "Everything on the platform",
+    "featuresBody": "Built for the people who grow food and the people who buy it.",
+    "feature": {
+      "auctions": "Live auctions",
+      "auctionsBody": "Whole lots, a reserve and a closing time. Highest bid takes it.",
+      "shop": "Buy now",
+      "shopBody": "Listed prices, bought in the quantity you need. No waiting.",
+      "diagnose": "Crop disease detection",
+      "diagnoseBody": "Photograph a leaf and get a diagnosis with a remedy — or an honest 'not sure'.",
+      "advisor": "Bangla farming advice",
+      "advisorBody": "Ask in Bangla and get answers drawn only from a cited knowledge base.",
+      "blog": "News and guides",
+      "blogBody": "Seasonal advice, scheme deadlines and what is happening to prices.",
+      "sell": "Sell your harvest",
+      "sellBody": "List a lot in minutes and reach buyers across the country."
+    },
+    "cta": {
+      "buyer": "Buying?",
+      "buyerBody": "Create a free account and start bidding today. Your payment is protected on every order.",
+      "buyerAction": "Sign up to buy",
+      "farmer": "Growing?",
+      "farmerBody": "Sell direct and keep the margin the middlemen were taking. Approval usually takes a day.",
+      "farmerAction": "Sign up to sell"
+    }
   }
 }
