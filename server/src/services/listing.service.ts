@@ -13,6 +13,7 @@ import { env } from '../config/env.js';
 import { badRequest, conflict, forbidden, notFound } from '../utils/errors.js';
 import { logger } from '../utils/logger.js';
 import { Category } from '../models/Category.js';
+import { User } from '../models/User.js';
 import { Listing, type ListingDoc } from '../models/Listing.js';
 import { Order } from '../models/Order.js';
 
@@ -234,11 +235,92 @@ export async function listListings(query: ListingQuery): Promise<Page<ListingDto
  * or on a fresh cluster before `npm run create:indexes`. Failing soft keeps the
  * whole browse page from 500-ing over a missing search index.
  */
+/**
+ * Resolves a query against the things a listing points AT, rather than only its own fields.
+ *
+ * "Karim" is a supplier and "সবজি" is a category, and neither string appears anywhere on a
+ * listing document — the first lives on a user, the second on a category, and the listing carries
+ * only an id and a slug. Searching the listing collection alone can never match either, which is
+ * why looking for a supplier by name returned nothing however the text index was configured.
+ *
+ * Resolved to ids and slugs first, then folded into one query. Two small indexed lookups against
+ * collections of a few hundred documents, which is cheaper than the alternative of joining every
+ * listing to its supplier before filtering.
+ */
+async function resolveReferences(q: string): Promise<{ supplierIds: unknown[]; categorySlugs: string[] }> {
+  // Escaped: an unescaped search box is a regex injection, and `(a+)+$` against a large
+  // collection is a denial of service somebody can type into a search field.
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rx = { $regex: escaped, $options: 'i' };
+
+  const [suppliers, categories] = await Promise.all([
+    User.find({ role: 'farmer', name: rx }).select('_id').limit(50).lean(),
+    // Both languages: a Bangla speaker searching "সবজি" and an English one searching
+    // "Vegetables" are asking the same question of the same category.
+    Category.find({ $or: [{ 'names.bn': rx }, { 'names.en': rx }, { slug: rx }] })
+      .select('slug')
+      .limit(20)
+      .lean(),
+  ]);
+
+  return {
+    supplierIds: suppliers.map((u) => u._id),
+    categorySlugs: categories.map((c) => c.slug),
+  };
+}
+
+/**
+ * The direct query: every field a listing owns, plus the references resolved above.
+ *
+ * Used as the fallback when Atlas Search is unavailable, and — deliberately — also when Atlas
+ * returns nothing. Those two cases are indistinguishable from the outside, and one of them is a
+ * stale index quietly matching nothing, which is exactly what happened here.
+ */
+async function directSearch(
+  q: string,
+  filter: Record<string, unknown>,
+  limit: number,
+): Promise<ListingDto[]> {
+  // Escaped: an unescaped search box is a regex injection, and `(a+)+$` against a large
+  // collection is a denial of service somebody can type into a search field.
+  const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const rx = { $regex: escaped, $options: 'i' };
+  const { supplierIds, categorySlugs } = await resolveReferences(q);
+
+  const docs = await Listing.find({
+    ...filter,
+    $or: [
+      { title: rx },
+      { description: rx },
+      { district: rx },
+      { categorySlug: rx },
+      ...(categorySlugs.length > 0 ? [{ categorySlug: { $in: categorySlugs } }] : []),
+      ...(supplierIds.length > 0 ? [{ farmerId: { $in: supplierIds } }] : []),
+    ],
+  })
+    .limit(limit)
+    .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType rating')
+    .lean();
+
+  return docs.map((d) => toDto(d as unknown as Populated));
+}
+
+/**
+ * Full-text search via Atlas Search, with a direct query behind it.
+ *
+ * The fallback fires on an error AND on an empty result. That second condition is the important
+ * one and it is not defensive padding: a search index built against an older schema does not
+ * throw, it simply matches nothing — so "Rice" returned zero results while "Bogura" returned
+ * five, and nothing anywhere said why. Retrying costs one query in the case where there was
+ * genuinely nothing to find, and makes the feature survive an index that has drifted.
+ */
 async function searchListings(
   q: string,
   filter: Record<string, unknown>,
   limit: number,
 ): Promise<ListingDto[]> {
+  const { supplierIds, categorySlugs } = await resolveReferences(q);
+
   try {
     const docs = await Listing.aggregate([
       {
@@ -255,6 +337,9 @@ async function searchListings(
           },
         },
       },
+      // A supplier's name and a category's Bangla name are not on the listing document, so
+      // `$search` cannot see them at all. They are unioned in after this pipeline rather than
+      // filtered here, because a `$match` can only narrow what the index already found.
       { $match: filter },
       { $limit: limit },
       {
@@ -263,32 +348,32 @@ async function searchListings(
           localField: 'farmerId',
           foreignField: '_id',
           as: 'farmer',
-          pipeline: [{ $project: { name: 1, supplierType: 1 } }],
+          pipeline: [{ $project: { name: 1, supplierType: 1, rating: 1 } }],
         },
       },
       { $addFields: { farmerId: { $arrayElemAt: ['$farmer', 0] } } },
     ]);
 
-    return docs.map((d) => toDto(d as unknown as Populated));
+    if (docs.length > 0) {
+      const hits = docs.map((d) => toDto(d as unknown as Populated));
+
+      // Supplier and category matches cannot come out of the text index, so they are merged in
+      // and de-duplicated by id rather than being lost whenever Atlas happens to return
+      // something for the same words.
+      if (supplierIds.length > 0 || categorySlugs.length > 0) {
+        const extra = await directSearch(q, filter, limit);
+        const seen = new Set(hits.map((h) => h.id));
+        return [...hits, ...extra.filter((x) => !seen.has(x.id))].slice(0, limit);
+      }
+      return hits;
+    }
+
+    logger.debug({ q }, 'atlas $search matched nothing; retrying with a direct query');
   } catch (err) {
-    logger.warn({ err }, 'atlas $search unavailable; falling back to regex scan');
-
-    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const docs = await Listing.find({
-      ...filter,
-      $or: [
-        { title: { $regex: escaped, $options: 'i' } },
-        { categorySlug: { $regex: escaped, $options: 'i' } },
-        { description: { $regex: escaped, $options: 'i' } },
-        { district: { $regex: escaped, $options: 'i' } },
-      ],
-    })
-      .limit(limit)
-      .populate<{ farmerId: { _id: unknown; name: string } }>('farmerId', 'name supplierType rating')
-      .lean();
-
-    return docs.map((d) => toDto(d as unknown as Populated));
+    logger.warn({ err }, 'atlas $search unavailable; falling back to a direct query');
   }
+
+  return directSearch(q, filter, limit);
 }
 
 export async function getListing(listingId: string): Promise<ListingDto> {

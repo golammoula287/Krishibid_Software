@@ -76,6 +76,18 @@ async function createIndexes(): Promise<void> {
           mappings: {
             dynamic: false,
             fields: {
+              /**
+               * `title` is the field people actually search, and it was missing.
+               *
+               * The listing schema renamed `cropSlug` to `title` when the marketplace stopped
+               * assuming everything was a crop, and this definition was not updated with it. The
+               * failure was silent in the worst way: `$search` did not error, it matched nothing
+               * — so searching "Rice" returned zero results while "Bogura" returned five,
+               * because `district` was still indexed and `title` was not.
+               */
+              title: { type: 'string', analyzer: 'lucene.standard' },
+              categorySlug: { type: 'string', analyzer: 'lucene.standard' },
+              /** Kept so listings written before the rename are still findable. */
               cropSlug: { type: 'string', analyzer: 'lucene.standard' },
               description: { type: 'string', analyzer: 'lucene.standard' },
               district: { type: 'string', analyzer: 'lucene.standard' },
