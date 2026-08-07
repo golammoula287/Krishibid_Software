@@ -10,7 +10,7 @@
     "orders": "Orders",
     "account": "My Account",
     "learn": "Learning",
-    "insights": "Market Insights",
+    "insights": "Market insights",
     "review": "Verification Queue",
     "home": "Home",
     "blog": "News",
@@ -107,7 +107,25 @@
     "pagination": "Pagination",
     "pageOf": "Page {{page}} of {{pageCount}} · {{count}} products",
     "totalProducts_one": "{{count}} product",
-    "totalProducts_other": "{{count}} products"
+    "totalProducts_other": "{{count}} products",
+    "assistantTitle": "Market insights",
+    "assistantSubtitle": "Live prices and activity, answered from the marketplace itself",
+    "assistantIntro": "Ask about prices, what is in stock, which auctions are closing or what things have been selling for. Every figure comes from the marketplace as it is right now — ask in Bangla or English.",
+    "askPlaceholder": "Ask about prices, stock or auctions…",
+    "figuresOnly": "Figures only — the assistant is busy",
+    "rightNow": "Right now",
+    "priceRange": "Price range per unit",
+    "stat": {
+      "liveListings": "Lots live",
+      "auctions": "On auction",
+      "fixed": "Fixed price",
+      "suppliers": "Suppliers",
+      "districts": "Districts"
+    },
+    "q1": "What does rice cost right now?",
+    "q2": "Which auctions are closing soon?",
+    "q3": "ধানের দাম এখন কত?",
+    "q4": "কোন জেলায় সবচেয়ে বেশি পণ্য আছে?"
   },
   "diagnose": {
     "title": "Crop disease detection",
