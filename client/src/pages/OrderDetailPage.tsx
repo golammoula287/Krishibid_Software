@@ -308,7 +308,7 @@ export default function OrderDetailPage() {
         <section className="card">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-bold text-slate-900">{o.cropSlug}</h1>
+              <h1 className="truncate text-xl font-bold text-slate-900">{o.productTitle ?? o.cropSlug}</h1>
               <p className="text-sm text-slate-500">
                 {formatNumber(o.quantityKg, locale)} {t('common.kg')}
               </p>

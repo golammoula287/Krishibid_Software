@@ -33,7 +33,11 @@ function toDeliveryDto(d: OrderDoc['delivery']): DeliveryDto {
   };
 }
 
-export function toOrderDto(o: OrderDoc, paymentStatus: string | null): OrderDto {
+export function toOrderDto(
+  o: OrderDoc,
+  paymentStatus: string | null,
+  product?: { title?: string; photo?: string },
+): OrderDto {
   return {
     id: String(o._id),
     listingId: String(o.listingId),
@@ -41,6 +45,8 @@ export function toOrderDto(o: OrderDoc, paymentStatus: string | null): OrderDto 
     farmerId: String(o.farmerId),
     buyerId: String(o.buyerId),
     cropSlug: o.cropSlug,
+    productTitle: product?.title,
+    productPhoto: product?.photo,
     quantityKg: o.quantityKg,
     agreedAmountPoisha: o.agreedAmountPoisha,
     status: o.status as OrderStatus,
@@ -78,7 +84,26 @@ export async function attachPaymentStatus(orders: OrderDoc[]): Promise<OrderDto[
     if (!latest.has(key)) latest.set(key, p.status);
   }
 
-  return orders.map((o) => toOrderDto(o, latest.get(String(o._id)) ?? null));
+  /**
+   * What was bought, fetched for the whole page in one query.
+   *
+   * The obvious per-order lookup would be an N+1 on the orders list, which is the same reason
+   * the payment statuses above are batched.
+   */
+  const listings = await Listing.find({ _id: { $in: orders.map((o) => o.listingId) } })
+    .select('title photos imageUrl')
+    .lean();
+
+  const product = new Map(
+    listings.map((l) => [
+      String(l._id),
+      { title: l.title, photo: l.photos?.[0] ?? l.imageUrl ?? undefined },
+    ]),
+  );
+
+  return orders.map((o) =>
+    toOrderDto(o, latest.get(String(o._id)) ?? null, product.get(String(o.listingId))),
+  );
 }
 
 /**

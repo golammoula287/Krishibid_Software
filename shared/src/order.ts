@@ -87,6 +87,16 @@ export interface OrderDto {
   farmerId: string;
   buyerId: string;
   cropSlug: string;
+  /**
+   * The listing's title and cover photo, copied onto the order for display.
+   *
+   * The orders list showed `cropSlug` — so every row read "crops", which is the category and
+   * tells a buyer nothing about which of their four orders they are looking at. Joined from the
+   * listing rather than stored, so a supplier editing a typo does not leave the order showing
+   * the old wording.
+   */
+  productTitle?: string;
+  productPhoto?: string;
   quantityKg: number;
   agreedAmountPoisha: number;
   status: OrderStatus;
