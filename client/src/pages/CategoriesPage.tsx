@@ -76,7 +76,7 @@ export default function CategoriesPage() {
           >
             <div className="aspect-[4/3] overflow-hidden bg-slate-50">
               <img
-                src={categoryImage(category.slug)}
+                src={categoryImage(category)}
                 alt=""
                 loading="lazy"
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-105"

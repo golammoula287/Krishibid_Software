@@ -15,22 +15,23 @@ export interface CategorySeed {
   units: ('kg' | 'litre' | 'piece' | 'dozen' | 'sack' | 'maund')[];
   perishable: boolean;
   order: number;
+  image?: string;
 }
 
 export const CATEGORIES: CategorySeed[] = [
   // Staples first — this is what most of the marketplace is.
-  { slug: 'crops', names: { bn: 'ফসল ও শস্য', en: 'Crops & Grains' }, units: ['kg', 'maund', 'sack'], perishable: false, order: 10 },
-  { slug: 'vegetables', names: { bn: 'সবজি', en: 'Vegetables' }, units: ['kg', 'maund', 'sack', 'piece'], perishable: true, order: 20 },
-  { slug: 'fruit', names: { bn: 'ফল', en: 'Fruit' }, units: ['kg', 'maund', 'piece', 'dozen'], perishable: true, order: 30 },
-  { slug: 'fish', names: { bn: 'মাছ', en: 'Fish' }, units: ['kg', 'maund', 'piece'], perishable: true, order: 40 },
-  { slug: 'meat', names: { bn: 'মাংস', en: 'Meat & Poultry' }, units: ['kg', 'piece'], perishable: true, order: 50 },
-  { slug: 'dairy', names: { bn: 'দুধ ও দুগ্ধজাত', en: 'Dairy & Eggs' }, units: ['litre', 'kg', 'dozen', 'piece'], perishable: true, order: 60 },
-  { slug: 'oil', names: { bn: 'তেল', en: 'Oil' }, units: ['litre', 'kg'], perishable: false, order: 70 },
-  { slug: 'spices', names: { bn: 'মসলা', en: 'Spices' }, units: ['kg', 'piece'], perishable: false, order: 80 },
-  { slug: 'pulses', names: { bn: 'ডাল', en: 'Pulses & Lentils' }, units: ['kg', 'maund', 'sack'], perishable: false, order: 90 },
-  { slug: 'seeds', names: { bn: 'বীজ', en: 'Seeds & Saplings' }, units: ['kg', 'piece', 'sack'], perishable: false, order: 100 },
-  { slug: 'fertiliser', names: { bn: 'সার ও কীটনাশক', en: 'Fertiliser & Pesticide' }, units: ['kg', 'litre', 'sack'], perishable: false, order: 110 },
-  { slug: 'equipment', names: { bn: 'যন্ত্রপাতি', en: 'Tools & Equipment' }, units: ['piece'], perishable: false, order: 120 },
+  { slug: 'crops', names: { bn: 'ফসল ও শস্য', en: 'Crops & Grains' }, units: ['kg', 'maund', 'sack'], perishable: false, order: 10, image: '/img/produce-spread.webp' },
+  { slug: 'vegetables', names: { bn: 'সবজি', en: 'Vegetables' }, units: ['kg', 'maund', 'sack', 'piece'], perishable: true, order: 20, image: '/img/cat-vegetables.webp' },
+  { slug: 'fruit', names: { bn: 'ফল', en: 'Fruit' }, units: ['kg', 'maund', 'piece', 'dozen'], perishable: true, order: 30, image: '/img/cat-fruit.webp' },
+  { slug: 'fish', names: { bn: 'মাছ', en: 'Fish' }, units: ['kg', 'maund', 'piece'], perishable: true, order: 40, image: '/img/cat-mixed.webp' },
+  { slug: 'meat', names: { bn: 'মাংস', en: 'Meat & Poultry' }, units: ['kg', 'piece'], perishable: true, order: 50, image: '/img/cat-mixed.webp' },
+  { slug: 'dairy', names: { bn: 'দুধ ও দুগ্ধজাত', en: 'Dairy & Eggs' }, units: ['litre', 'kg', 'dozen', 'piece'], perishable: true, order: 60, image: '/img/cat-dairy.webp' },
+  { slug: 'oil', names: { bn: 'তেল', en: 'Oil' }, units: ['litre', 'kg'], perishable: false, order: 70, image: '/img/cat-mango-2.webp' },
+  { slug: 'spices', names: { bn: 'মসলা', en: 'Spices' }, units: ['kg', 'piece'], perishable: false, order: 80, image: '/img/cat-vegetables-2.webp' },
+  { slug: 'pulses', names: { bn: 'ডাল', en: 'Pulses & Lentils' }, units: ['kg', 'maund', 'sack'], perishable: false, order: 90, image: '/img/cat-cauliflower.webp' },
+  { slug: 'seeds', names: { bn: 'বীজ', en: 'Seeds & Saplings' }, units: ['kg', 'piece', 'sack'], perishable: false, order: 100, image: '/img/plant-1.webp' },
+  { slug: 'fertiliser', names: { bn: 'সার ও কীটনাশক', en: 'Fertiliser & Pesticide' }, units: ['kg', 'litre', 'sack'], perishable: false, order: 110, image: '/img/plant-2.webp' },
+  { slug: 'equipment', names: { bn: 'যন্ত্রপাতি', en: 'Tools & Equipment' }, units: ['piece'], perishable: false, order: 120, image: '/img/field-green.webp' },
   // The escape hatch. Better than a supplier abandoning a listing because nothing fits.
-  { slug: 'other', names: { bn: 'অন্যান্য', en: 'Other' }, units: ['kg', 'litre', 'piece', 'dozen', 'sack', 'maund'], perishable: false, order: 900 },
+  { slug: 'other', names: { bn: 'অন্যান্য', en: 'Other' }, units: ['kg', 'litre', 'piece', 'dozen', 'sack', 'maund'], perishable: false, order: 900, image: '/img/cat-pumpkin.webp' },
 ];

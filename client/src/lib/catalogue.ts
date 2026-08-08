@@ -1,6 +1,7 @@
 import type { CategoryDto, ListingDto, Page, SaleMode } from '@krishibid/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api.js';
+import { categoryImage } from './categoryImage.js';
 import { currentLocale } from './i18n.js';
 
 /**
@@ -23,6 +24,15 @@ export function useCategoryName(): (slug: string) => string {
   const categories = useCategories();
   const locale = currentLocale();
   return (slug: string) => categories.data?.find((c) => c.slug === slug)?.names[locale] ?? slug;
+}
+
+/** Resolves a slug to its image URL, checking custom category image before falling back. */
+export function useCategoryImage(): (slug: string) => string {
+  const categories = useCategories();
+  return (slug: string) => {
+    const found = categories.data?.find((c) => c.slug === slug);
+    return categoryImage(found || slug);
+  };
 }
 
 export interface ShopFilters {

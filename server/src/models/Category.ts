@@ -38,6 +38,8 @@ const categorySchema = new Schema(
     order: { type: Number, default: 100 },
     /** Hidden from the rail without deleting it, so listings keep resolving their name. */
     active: { type: Boolean, default: true },
+    /** Optional image URL overriding the default fallback image. */
+    image: { type: String, required: false },
   },
   { timestamps: true },
 );

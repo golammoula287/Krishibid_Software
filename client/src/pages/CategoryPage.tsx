@@ -53,7 +53,7 @@ export default function CategoryPage() {
       {/* The category's own picture as the header, so the page is unmistakably about this one. */}
       <section className="relative -mx-4 overflow-hidden sm:mx-0 sm:rounded-3xl">
         <img
-          src={categoryImage(slug)}
+          src={categoryImage(category || slug)}
           alt=""
           className="h-40 w-full object-cover sm:h-48"
           fetchPriority="high"

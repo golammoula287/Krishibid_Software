@@ -885,6 +885,11 @@ export const SUCCESS_CATALOGUE: Record<string, MessageEntry> = {
     bn: { title: 'বিভাগ সংরক্ষণ হয়েছে', hint: 'বাজারে সঙ্গে সঙ্গে দেখা যাবে।' },
     en: { title: 'Category saved', hint: 'It appears in the marketplace immediately.' },
   },
+  image_uploaded: {
+    tone: 'info',
+    bn: { title: 'ছবি আপলোড হয়েছে' },
+    en: { title: 'Image uploaded' },
+  },
   review_recorded: {
     tone: 'info',
     bn: { title: 'সিদ্ধান্ত সংরক্ষণ হয়েছে' },

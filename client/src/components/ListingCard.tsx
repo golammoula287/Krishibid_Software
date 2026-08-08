@@ -3,11 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons.js';
 import { Stars } from './Stars.js';
+import { useCategoryImage } from '../lib/catalogue.js';
 import { categoryImage } from '../lib/categoryImage.js';
 import { formatBdt, formatNumber, timeRemaining } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 
-export function listingImage(listing: Pick<ListingDto, 'photos' | 'categorySlug'>): string {
+export function listingImage(
+  listing: Pick<ListingDto, 'photos' | 'categorySlug'>,
+  resolveCatImage?: (slug: string) => string,
+): string {
   /**
    * Falls back to the category's picture.
    *
@@ -16,7 +20,7 @@ export function listingImage(listing: Pick<ListingDto, 'photos' | 'categorySlug'
    * that would carry the holes. A category shot is honest enough: it is obviously not this
    * particular lot, and the card names the category right underneath.
    */
-  return listing.photos[0] ?? categoryImage(listing.categorySlug);
+  return listing.photos[0] ?? (resolveCatImage ? resolveCatImage(listing.categorySlug) : categoryImage(listing.categorySlug));
 }
 
 /**
@@ -41,6 +45,7 @@ export default function ListingCard({
 }) {
   const { t } = useTranslation();
   const locale = currentLocale();
+  const getCatImage = useCategoryImage();
 
   const isAuction = listing.saleMode === 'auction';
   const remaining =
@@ -59,7 +64,7 @@ export default function ListingCard({
           at full width rather than a thumbnail beside the text. */}
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-50">
         <img
-          src={listingImage(listing)}
+          src={listingImage(listing, getCatImage)}
           alt=""
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"

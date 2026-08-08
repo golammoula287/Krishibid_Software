@@ -374,6 +374,7 @@ export async function listAllCategories(): Promise<CategoryDto[]> {
     perishable: Boolean(c.perishable),
     order: c.order ?? 100,
     active: Boolean(c.active),
+    image: c.image ?? undefined,
   }));
 }
 

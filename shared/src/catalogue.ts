@@ -47,6 +47,8 @@ export interface CategoryDto {
    * never sees this — it exists so an operator can tell a retired category from a live one.
    */
   active?: boolean;
+  /** Optional photograph for the category, overriding the fallback image. */
+  image?: string;
 }
 
 /**
@@ -85,6 +87,18 @@ export const categoryInputSchema = z.object({
   perishable: z.boolean().default(false),
   order: z.number().int().min(0).max(999).default(100),
   active: z.boolean().default(true),
+  image: z
+    .string()
+    .max(2_000_000)
+    .refine(
+      (v) =>
+        v === '' ||
+        /^https:\/\/\S+$/i.test(v) ||
+        /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v) ||
+        /^\/img\/\S+$/.test(v),
+      { message: 'must be an image URL or inline image' },
+    )
+    .optional(),
 });
 export type CategoryInput = z.infer<typeof categoryInputSchema>;
 

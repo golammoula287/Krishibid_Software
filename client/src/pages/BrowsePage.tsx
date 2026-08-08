@@ -157,7 +157,7 @@ export default function BrowsePage({ saleMode }: { saleMode: SaleMode }) {
                   }`}
                 >
                   <img
-                    src={categoryImage(category.slug)}
+                    src={categoryImage(category)}
                     alt=""
                     loading="lazy"
                     className="h-full w-full object-cover"

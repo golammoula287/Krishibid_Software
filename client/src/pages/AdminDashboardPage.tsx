@@ -5,7 +5,7 @@ import type {
   Role,
   Unit,
 } from '@krishibid/shared';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Icon, type IconName } from '../components/icons.js';
@@ -21,9 +21,11 @@ import {
   useAllCategories,
   useSaveCategory,
   useDeactivateCategory,
+  useUploadCategoryImage,
 } from '../lib/admin.js';
 import { useAuth } from '../lib/auth.js';
 import { useContactMessages } from '../lib/content.js';
+import { categoryImage } from '../lib/categoryImage.js';
 import { formatBdt, formatDate, formatNumber } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
 
@@ -567,6 +569,7 @@ const BLANK_CATEGORY = {
   units: ['kg'] as Unit[],
   perishable: false,
   order: 100,
+  image: '',
 };
 
 /**
@@ -586,6 +589,8 @@ function Categories() {
   const categories = useAllCategories();
   const save = useSaveCategory();
   const deactivate = useDeactivateCategory();
+  const uploadImage = useUploadCategoryImage();
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState(BLANK_CATEGORY);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
@@ -611,6 +616,7 @@ function Categories() {
       units: form.units,
       perishable: form.perishable,
       order: Number(form.order),
+      image: form.image || '',
     };
     save.mutate({ slug: editingSlug ?? undefined, input }, { onSuccess: reset });
   };
@@ -696,6 +702,55 @@ function Categories() {
           <p className="mt-1 text-xs text-slate-500">{t('admin.categories.unitsHelp')}</p>
         </div>
 
+        <div>
+          <span className="label">{t('admin.categories.image')}</span>
+          <p className="mb-2 text-xs text-slate-500">{t('admin.categories.imageHelp')}</p>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="h-20 w-20 overflow-hidden rounded-xl bg-slate-100 ring-1 ring-slate-200">
+              <img
+                src={categoryImage({ slug: form.slug || 'other', image: form.image })}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                disabled={uploadImage.isPending}
+                onClick={() => fileRef.current?.click()}
+              >
+                {uploadImage.isPending ? t('common.loading') : t('account.upload')}
+              </button>
+              {form.image && (
+                <button
+                  type="button"
+                  className="btn-secondary text-sm text-red-700"
+                  onClick={() => set({ image: '' })}
+                >
+                  {t('admin.categories.removeImage')}
+                </button>
+              )}
+            </div>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                uploadImage.mutate(file, {
+                  onSuccess: (url) => set({ image: url }),
+                });
+              }
+              if (fileRef.current) fileRef.current.value = '';
+            }}
+          />
+          {uploadImage.isError && <ErrorNote error={uploadImage.error} />}
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
@@ -740,15 +795,22 @@ function Categories() {
             className={`card ${category.active === false ? 'opacity-60' : ''}`}
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="font-semibold text-brand-900">
-                  {category.names[locale]}{' '}
-                  <span className="text-xs font-normal text-slate-400">/{category.slug}</span>
-                </p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {category.units.map((u) => t(`units.${u}`)).join(' · ')}
-                  {category.perishable && ` · ${t('admin.categories.perishable')}`}
-                </p>
+              <div className="flex items-center gap-3 min-w-0">
+                <img
+                  src={categoryImage(category)}
+                  alt=""
+                  className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+                />
+                <div className="min-w-0">
+                  <p className="font-semibold text-brand-900">
+                    {category.names[locale]}{' '}
+                    <span className="text-xs font-normal text-slate-400">/{category.slug}</span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {category.units.map((u) => t(`units.${u}`)).join(' · ')}
+                    {category.perishable && ` · ${t('admin.categories.perishable')}`}
+                  </p>
+                </div>
               </div>
               {category.active === false && (
                 <span className="badge bg-slate-200 text-slate-600">
@@ -770,6 +832,7 @@ function Categories() {
                     units: category.units,
                     perishable: category.perishable,
                     order: category.order,
+                    image: category.image ?? '',
                   });
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}

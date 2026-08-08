@@ -1,4 +1,6 @@
 import {
+  ALLOWED_IMAGE_MIME,
+  MAX_IMAGE_BYTES,
   advanceDeliverySchema,
   assignDeliverySchema,
   resolveClaimSchema,
@@ -7,11 +9,26 @@ import {
   roleSchema,
 } from '@krishibid/shared';
 import { Router } from 'express';
+import multer from 'multer';
 import { z } from 'zod';
 import * as controller from '../controllers/admin.controller.js';
 import * as fulfilment from '../controllers/fulfilment.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
+import { uploadLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
+import { badRequest } from '../utils/errors.js';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!(ALLOWED_IMAGE_MIME as readonly string[]).includes(file.mimetype)) {
+      cb(badRequest('bad_image_type', `image must be one of: ${ALLOWED_IMAGE_MIME.join(', ')}`));
+      return;
+    }
+    cb(null, true);
+  },
+});
 
 export const adminRoutes = Router();
 
@@ -65,6 +82,12 @@ adminRoutes.post(
 
 // ---- categories: what the marketplace may sell ----
 adminRoutes.get('/categories', controller.listCategories);
+adminRoutes.post(
+  '/categories/image',
+  uploadLimiter,
+  upload.single('image'),
+  controller.uploadCategoryImage,
+);
 adminRoutes.post('/categories', validate(categoryInputSchema), controller.createCategory);
 adminRoutes.patch(
   '/categories/:slug',

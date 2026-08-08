@@ -126,7 +126,7 @@ export default function GuestHomePage() {
             <Link key={category.slug} to={`/category/${category.slug}`} className="group text-center">
               <div className="mx-auto aspect-square overflow-hidden rounded-full ring-1 ring-slate-200 transition group-hover:ring-4 group-hover:ring-brand-200">
                 <img
-                  src={categoryImage(category.slug)}
+                  src={categoryImage(category)}
                   alt=""
                   loading="lazy"
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-110"

@@ -1,6 +1,11 @@
 import type { Role } from '@krishibid/shared';
 import type { Request, Response } from 'express';
+import sharp from 'sharp';
+import { badRequest } from '../utils/errors.js';
+import { sniffImage } from '../utils/image.js';
+import { logger } from '../utils/logger.js';
 import * as adminService from '../services/admin.service.js';
+import { uploadImage } from '../services/storage.service.js';
 
 export async function overview(_req: Request, res: Response): Promise<void> {
   res.json(await adminService.getOverview());
@@ -66,4 +71,25 @@ export async function updateCategory(req: Request, res: Response): Promise<void>
 export async function deactivateCategory(req: Request, res: Response): Promise<void> {
   await adminService.deactivateCategory(String(req.params.slug));
   res.status(204).send();
+}
+
+export async function uploadCategoryImage(req: Request, res: Response): Promise<void> {
+  const file = (req.file as Express.Multer.File | undefined) || (req.files as Express.Multer.File[] | undefined)?.[0];
+  if (!file) {
+    throw badRequest('no_image', 'attach an image in the "image" field');
+  }
+  if (!sniffImage(file.buffer)) {
+    throw badRequest('bad_image', 'the file is not a valid JPEG, PNG or WebP');
+  }
+
+  const normalised = await sharp(file.buffer)
+    .rotate()
+    .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+
+  const url = await uploadImage(normalised, 'categories');
+  logger.info({ userId: req.user!.id, url }, 'category image uploaded');
+
+  res.status(201).json({ url });
 }

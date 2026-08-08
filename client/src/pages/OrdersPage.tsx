@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../components/icons.js';
 import { CardSkeleton, EmptyState, ErrorNote, StatusBadge } from '../components/ui.js';
 import { api } from '../lib/api.js';
+import { useCategoryImage } from '../lib/catalogue.js';
 import { categoryImage } from '../lib/categoryImage.js';
 import { formatBdt, formatDate } from '../lib/format.js';
 import { currentLocale } from '../lib/i18n.js';
@@ -29,6 +30,7 @@ export default function OrdersPage() {
   const { t } = useTranslation();
   const locale = currentLocale();
   const [filter, setFilter] = useState<Filter>('active');
+  const getCatImage = useCategoryImage();
 
   const orders = useQuery({
     queryKey: ['orders'],
@@ -105,7 +107,7 @@ export default function OrdersPage() {
               }`}
             >
               <img
-                src={order.productPhoto ?? categoryImage(order.cropSlug)}
+                src={order.productPhoto ?? getCatImage(order.cropSlug)}
                 alt=""
                 loading="lazy"
                 className="h-16 w-16 shrink-0 rounded-xl bg-slate-100 object-cover sm:h-20 sm:w-20"

@@ -27,8 +27,18 @@ const CATEGORY_IMAGE: Record<string, string> = {
 
 const FALLBACK = '/img/cat-mixed.webp';
 
-export function categoryImage(slug: string): string {
-  return CATEGORY_IMAGE[slug] ?? FALLBACK;
+export function categoryImage(
+  slugOrCategory: string | { slug: string; image?: string | null },
+  customImage?: string | null,
+): string {
+  if (typeof slugOrCategory === 'object' && slugOrCategory !== null) {
+    if (slugOrCategory.image && slugOrCategory.image.trim() !== '') {
+      return slugOrCategory.image;
+    }
+    return CATEGORY_IMAGE[slugOrCategory.slug] ?? FALLBACK;
+  }
+  if (customImage && customImage.trim() !== '') return customImage;
+  return CATEGORY_IMAGE[slugOrCategory] ?? FALLBACK;
 }
 
 /**

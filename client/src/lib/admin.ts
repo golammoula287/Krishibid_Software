@@ -142,3 +142,19 @@ export function useDeactivateCategory() {
     },
   });
 }
+
+export function useUploadCategoryImage() {
+  const toast = useToast();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append('image', file, file.name || 'category.jpg');
+      const result = await api.post<{ url: string }>('/admin/categories/image', form);
+      return result.url;
+    },
+    onSuccess: () => {
+      toast.showSuccess('image_uploaded');
+    },
+  });
+}
